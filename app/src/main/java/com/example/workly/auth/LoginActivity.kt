@@ -212,7 +212,7 @@ fun LoginScreen() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
-                                .shadow(8.dp, RoundedCornerShape(16.dp)),
+                                .shadow(4.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
                             enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(
@@ -226,6 +226,69 @@ fun LoginScreen() {
                             }
                         }
                         
+                        // --- Google Sign In ---
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                            Text(" OR ", color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp))
+                            Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken(context.getString(com.example.workly.R.string.default_web_client_id))
+                            .requestEmail()
+                            .build()
+                        val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+
+                        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                        ) { result ->
+                            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                                isLoading = true
+                                val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                                try {
+                                    val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                                    val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
+                                    auth.signInWithCredential(credential)
+                                        .addOnCompleteListener { authTask ->
+                                            isLoading = false
+                                            if (authTask.isSuccessful) {
+                                                Toast.makeText(context, "Google Login Successful", Toast.LENGTH_SHORT).show()
+                                                context.startActivity(Intent(context, HomeActivity::class.java))
+                                                (context as? ComponentActivity)?.finishAffinity()
+                                            } else {
+                                                Toast.makeText(context, "Firebase Auth Failed", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                } catch (e: com.google.android.gms.common.api.ApiException) {
+                                    isLoading = false
+                                    Toast.makeText(context, "Google Sign-In Failed: ${e.statusCode}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = { launcher.launch(googleSignInClient.signInIntent) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = TextPrimary
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+                        ) {
+                            Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, modifier = Modifier.padding(end = 12.dp))
+                            Text("Sign in with Google", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
                         Spacer(modifier = Modifier.weight(1f))
                         
                         Row(verticalAlignment = Alignment.CenterVertically) {
