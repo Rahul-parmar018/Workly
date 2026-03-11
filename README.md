@@ -21,13 +21,3 @@ To get the project up and running on your local machine, follow these steps:
 
 ---
 
-## 👥 Contributors
-
-We would like to thank the following contributors for their hard work and dedication to this project:
-
-*   **Chirayu Darji**
-*   **Mihir Parmar**
-
----
-
-*Maintained by Rahul Parmar*
