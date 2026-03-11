@@ -28,25 +28,102 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.theme.*
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.example.workly.data.Booking
+import com.example.workly.payment.PaymentActivity
+import java.util.UUID
 
 class BookingActivity : ComponentActivity() {
+    
+    // Result Launchers for Phase 2
+    private lateinit var providerPickerLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
+    private lateinit var paymentLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
+
+    private var selectedProviderName: String? = null
+    private var selectedProviderRate: Double = 0.0
+    private var paymentStatus: String = "Pending"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val serviceName = intent.getStringExtra("SERVICE_NAME") ?: "Service"
-        
+        val price = intent.getDoubleExtra("SERVICE_PRICE", 0.0)
+        val iconRes = intent.getIntExtra("SERVICE_ICON", 0)
+
+        // Initialize Launchers
+        providerPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                selectedProviderName = result.data?.getStringExtra("SELECTED_PROVIDER_NAME")
+                selectedProviderRate = result.data?.getDoubleExtra("SELECTED_PROVIDER_RATE", 0.0) ?: 0.0
+                
+                // Once provider is picked, go to Payment
+                val intent = Intent(this, PaymentActivity::class.java).apply {
+                    putExtra("SERVICE_NAME", serviceName)
+                    putExtra("SERVICE_PRICE", if (selectedProviderRate > 0) selectedProviderRate else price)
+                    putExtra("PROVIDER_NAME", selectedProviderName)
+                }
+                paymentLauncher.launch(intent)
+            }
+        }
+
+        paymentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                paymentStatus = result.data?.getStringExtra("PAYMENT_STATUS") ?: "Pending"
+                // Payment done, now save to Firestore (Triggered via a state change or handled here)
+                // For simplicity in this demo, we'll use a broadcast or a shared state if needed, 
+                // but let's just trigger the final save logic.
+                saveBookingToFirestore(serviceName, if (selectedProviderRate > 0) selectedProviderRate else price, iconRes)
+            }
+        }
+
         setContent {
             WorklyTheme {
                 BookingScreen(
                     serviceName = serviceName,
+                    price = price,
+                    iconRes = iconRes,
                     onBackClick = { finish() },
                     onConfirmClick = {
-                        startActivity(Intent(this, BookingSuccessActivity::class.java))
-                        finish()
+                        // Start the Phase 2 Chain: Pick Provider -> Pay -> Save
+                        val intent = Intent(this, ProviderListActivity::class.java).apply {
+                            putExtra("SERVICE_NAME", serviceName)
+                            // In real app, get actual lat/lon from fused location
+                            putExtra("USER_LAT", 0.01) 
+                            putExtra("USER_LON", 0.01)
+                        }
+                        providerPickerLauncher.launch(intent)
                     }
                 )
             }
         }
+    }
+
+    private fun saveBookingToFirestore(serviceName: String, price: Double, iconRes: Int) {
+        val auth = FirebaseAuth.getInstance()
+        val firestore = FirebaseFirestore.getInstance()
+        val userId = auth.currentUser?.uid ?: return
+        
+        val bookingId = UUID.randomUUID().toString()
+        val booking = Booking(
+            id = bookingId,
+            userId = userId,
+            serviceName = serviceName,
+            date = "Mon, 24 Oct", 
+            time = "10:00 AM",
+            address = "Saved Address", // In real app, pass from screen
+            status = if (paymentStatus == "Held") "PaymentHeld" else "Pending",
+            price = price,
+            serviceIcon = iconRes
+        )
+        
+        firestore.collection("bookings")
+            .document(bookingId)
+            .set(booking)
+            .addOnSuccessListener {
+                startActivity(Intent(this, BookingSuccessActivity::class.java))
+                finish()
+            }
     }
 }
 
@@ -54,12 +131,18 @@ class BookingActivity : ComponentActivity() {
 @Composable
 fun BookingScreen(
     serviceName: String,
+    price: Double,
+    iconRes: Int,
     onBackClick: () -> Unit,
     onConfirmClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+
     var address by remember { mutableStateOf("") }
     var locationStatus by remember { mutableStateOf("Tap to get location") }
+    var isSaving by remember { mutableStateOf(false) }
     
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val scope = rememberCoroutineScope()
@@ -122,17 +205,25 @@ fun BookingScreen(
         bottomBar = {
             Button(
                 onClick = { 
-                    if (address.isNotEmpty()) onConfirmClick() 
-                    else Toast.makeText(context, "Please enter or fetch address", Toast.LENGTH_SHORT).show()
+                    if (address.isNotEmpty()) {
+                        onConfirmClick()
+                    } else {
+                        Toast.makeText(context, "Please enter or fetch address", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
+                enabled = !isSaving
             ) {
-                Text("Confirm Booking", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                } else {
+                    Text("Find Professionals", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
             }
         },
         containerColor = BackgroundGray

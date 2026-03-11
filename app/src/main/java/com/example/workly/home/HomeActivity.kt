@@ -16,11 +16,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -48,10 +48,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.items
 import com.example.workly.theme.*
+import com.example.workly.R
 import com.google.firebase.auth.FirebaseAuth
+import com.example.workly.booking.BookingActivity
+import com.example.workly.data.Booking
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+
+
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,8 +123,7 @@ fun MainScreen() {
                         0 -> HomeScreenContent(innerPadding)
                         1 -> PlaceholderScreen("Discover")
                         2 -> PlaceholderScreen("Chat")
-                        3 -> PlaceholderScreen("Bookings")
-                        4 -> ProfileScreenContent(onLogout = { performLogout(context) })
+                        3 -> ProfileScreenContent(onLogout = { performLogout(context) })
                     }
                 }
             }
@@ -149,9 +161,14 @@ fun HomeScreenContent(innerPadding: PaddingValues) {
         // 1. Vibrant Header
         HomeHeaderSection()
         
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 2. Upcoming Bookings (New Phase 1 Feature)
+        UpcomingBookingsSection()
+        
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 2. Search Field
+        // 3. Search Field
         HomeSearchSection()
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -162,7 +179,10 @@ fun HomeScreenContent(innerPadding: PaddingValues) {
         Spacer(modifier = Modifier.height(32.dp))
 
         // 4. Categories Grid
-        CategoriesSection()
+        val context = LocalContext.current
+        CategoriesSection(onSeeAllClick = {
+            context.startActivity(Intent(context, ServicesActivity::class.java))
+        })
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -175,46 +195,104 @@ fun HomeScreenContent(innerPadding: PaddingValues) {
 
 @Composable
 fun HomeHeaderSection() {
+    val auth = remember { FirebaseAuth.getInstance() }
+    val currentUser = auth.currentUser
+    val userName = currentUser?.displayName ?: "User"
+    val photoUrl = currentUser?.photoUrl
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text(
-                text = "Good Morning,",
-                style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondary
-            )
-            Text(
-                text = "Rahul Sharma",
-                style = MaterialTheme.typography.headlineMedium.copy(brush = PrimaryGradient),
-                fontWeight = FontWeight.Bold
-            )
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Profile Picture with dynamic loading
+            Surface(
+                modifier = Modifier
+                    .size(50.dp)
+                    .shadow(8.dp, CircleShape)
+                    .clickable {
+                         context.startActivity(Intent(context, com.example.workly.admin.AdminDashboardActivity::class.java))
+                    },
+                shape = CircleShape,
+                color = Color.White
+            ) {
+                if (photoUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(photoUrl.toString())
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (userName.isNotEmpty()) userName.take(1).uppercase() else "U",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = ProfessionalBlue
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column {
+                Text(
+                    text = "Welcome back,",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextSecondary,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        brush = Brush.linearGradient(
+                            colors = listOf(ProfessionalBlue, ElectricTeal)
+                        )
+                    ),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 24.sp
+                )
+            }
         }
         
+        // Premium Glass Notification Button
         Surface(
             modifier = Modifier
-                .size(50.dp)
-                .shadow(8.dp, CircleShape),
+                .size(54.dp)
+                .shadow(12.dp, CircleShape),
             shape = CircleShape,
-            color = Color.White
+            color = Color.White.copy(alpha = 0.9f),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = "Notifications",
-                    tint = TextPrimary
+                    tint = TextPrimary,
+                    modifier = Modifier.size(26.dp)
                 )
-                // Notification Dot
+                // Vibrant Status Dot
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .size(8.dp)
-                        .background(EnergyOrange, CircleShape)
+                        .padding(14.dp)
+                        .size(10.dp)
+                        .background(
+                            Brush.sweepGradient(listOf(EnergyOrange, Color.Red)),
+                            CircleShape
+                        )
+                        .border(1.5.dp, Color.White, CircleShape)
                 )
             }
         }
@@ -229,46 +307,56 @@ fun HomeSearchSection() {
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Search Box
-        Box(
+        // High-end Search Box
+        Surface(
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp)
-                .shadow(8.dp, RoundedCornerShape(16.dp))
-                .background(Color.White, RoundedCornerShape(16.dp))
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.CenterStart
+                .shadow(15.dp, RoundedCornerShape(18.dp)),
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+            border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.3f))
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = ProfessionalBlue
+                    tint = ProfessionalBlue,
+                    modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Text(
-                    text = "Search services...",
-                    color = Color.Gray,
-                    style = MaterialTheme.typography.bodyLarge
+                    text = "What help do you need?",
+                    color = Color.Gray.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
         
         Spacer(modifier = Modifier.width(16.dp))
         
-        // Filter Button
-        Box(
+        // Enhanced Filter Button
+        Surface(
             modifier = Modifier
                 .size(56.dp)
-                .shadow(8.dp, RoundedCornerShape(16.dp))
-                .background(ProfessionalBlue, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
+                .shadow(15.dp, RoundedCornerShape(18.dp)),
+            shape = RoundedCornerShape(18.dp),
+            color = ProfessionalBlue
         ) {
-            Icon(
-                imageVector = Icons.Default.Tune,
-                contentDescription = "Filter",
-                tint = Color.White
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = "Filter",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -321,35 +409,50 @@ fun HeroCarouselSection() {
 
 @Composable
 fun HeroCard(page: Int) {
-    val (title, subtitle, gradient) = when(page) {
-        0 -> Triple("30% OFF", "Home Cleaning", PrimaryGradient)
-        1 -> Triple("New Arrival", "AC Repair", SecondaryGradient)
-        else -> Triple("Expert Help", "Plumbing", Brush.linearGradient(listOf(ElectricTeal, ProfessionalBlue)))
+    val title = when(page) {
+        0 -> "Summer Sale"
+        1 -> "Pro Repair"
+        else -> "Elite Pros"
+    }
+    val subtitle = when(page) {
+        0 -> "30% OFF - Home Cleaning"
+        1 -> "Instant AC Maintenance"
+        else -> "Top Rated Plumbing"
+    }
+    val gradient = when(page) {
+        0 -> PrimaryGradient
+        1 -> SecondaryGradient
+        else -> Brush.linearGradient(listOf(ElectricTeal, ProfessionalBlue))
+    }
+    val icon = when(page) {
+        0 -> Icons.Default.CleaningServices
+        1 -> Icons.Default.AcUnit
+        else -> Icons.Default.Plumbing
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+            .height(190.dp),
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(gradient)
         ) {
-            // Background patterns
+            // Background artistic circles
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.1f),
-                    center = Offset(size.width, size.height),
-                    radius = size.height * 0.8f
+                    color = Color.White.copy(alpha = 0.12f),
+                    center = Offset(size.width * 0.9f, size.height * 0.2f),
+                    radius = size.height * 0.5f
                 )
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.05f),
-                    center = Offset(0f, 0f),
-                    radius = size.height * 0.6f
+                    color = Color.White.copy(alpha = 0.08f),
+                    center = Offset(size.width * 0.1f, size.height * 0.9f),
+                    radius = size.height * 0.4f
                 )
             }
 
@@ -359,46 +462,56 @@ fun HeroCard(page: Int) {
                     .padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1.2f)) {
                     Surface(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(8.dp)
+                        color = Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "LIMITED TIME",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            text = "OFFICIAL PARTNER",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
+                        color = Color.White,
+                        fontSize = 32.sp
                     )
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.White.copy(alpha = 0.9f)
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontWeight = FontWeight.Medium
                     )
                 }
                 
-                Icon(
-                    imageVector = if(page==0) Icons.Default.CleaningServices else if(page==1) Icons.Default.AcUnit else Icons.Default.Plumbing,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = Color.White.copy(alpha = 0.8f)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun CategoriesSection() {
+fun CategoriesSection(onSeeAllClick: () -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -413,7 +526,8 @@ fun CategoriesSection() {
             Text(
                 text = "See All",
                 color = ProfessionalBlue,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { onSeeAllClick() }
             )
         }
         
@@ -440,9 +554,12 @@ fun CategoriesSection() {
                             .shadow(4.dp, RoundedCornerShape(20.dp))
                             .background(Color.White, RoundedCornerShape(20.dp))
                             .clickable {
-                                if (name == "Cleaning") {
-                                    context.startActivity(Intent(context, com.example.workly.cleaning.CleaningActivity::class.java))
+                                val intent = Intent(context, BookingActivity::class.java).apply {
+                                    putExtra("SERVICE_NAME", name)
+                                    putExtra("SERVICE_PRICE", if (name == "Cleaning") 40.0 else 25.0)
+                                    putExtra("SERVICE_ICON", R.drawable.workly_logo) // Default icon for categories for now
                                 }
+                                context.startActivity(intent)
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -500,48 +617,63 @@ fun PaddingHeader(title: String) {
 @Composable
 fun PopularServicesSection() {
     Column {
-        PaddingHeader(title = "Popular Services")
-        Spacer(modifier = Modifier.height(16.dp))
+        PaddingHeader(title = "Top Rated Services")
+        Spacer(modifier = Modifier.height(20.dp))
         
+        val services = listOf(
+            Triple("Full Home Cleaning", 40, R.drawable.img_service_cleaner),
+            Triple("AC Deep Repair", 25, R.drawable.img_service_electrician), // Reusing electrician for variety if needed
+            Triple("Premium Plumbing", 15, R.drawable.img_service_plumber)
+        )
+
         LazyRow(
             contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            items(10) {
-                PopularServiceCardNew()
+            items(services.size) { index ->
+                val service = services[index]
+                PopularServiceCardNew(service.first, service.second, service.third)
             }
         }
     }
 }
 
 @Composable
-fun PopularServiceCardNew() {
+fun PopularServiceCardNew(name: String, price: Int, imageRes: Int) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
-            .width(260.dp)
-            .height(140.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .width(280.dp)
+            .height(150.dp)
+            .shadow(12.dp, RoundedCornerShape(24.dp))
+            .clickable {
+                val intent = Intent(context, BookingActivity::class.java).apply {
+                    putExtra("SERVICE_NAME", name)
+                    putExtra("SERVICE_PRICE", price.toDouble())
+                    putExtra("SERVICE_ICON", imageRes)
+                }
+                context.startActivity(intent)
+            },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(14.dp)
         ) {
-            // Image Placeholder
-            Box(
+            // Actual Service Image
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = name,
                 modifier = Modifier
-                    .width(100.dp)
+                    .width(110.dp)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.LightGray.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Image, contentDescription = null, tint = Color.Gray)
-            }
+                    .clip(RoundedCornerShape(18.dp)),
+                contentScale = ContentScale.Crop
+            )
             
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             
             Column(
                 modifier = Modifier.fillMaxHeight(),
@@ -549,22 +681,132 @@ fun PopularServiceCardNew() {
             ) {
                 Column {
                     Text(
-                        text = "Deep Cleaning",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Start at $40",
-                        color = ProfessionalBlue,
+                        text = name,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
+                        fontSize = 18.sp,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Starts at $$price",
+                        color = ProfessionalBlue,
+                        fontWeight = FontWeight.ExtraBold,
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, null, tint = EnergyOrange, modifier = Modifier.size(16.dp))
-                    Text(" 4.8 (120)", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = EnergyOrange,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = " 4.9 (250+)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpcomingBookingsSection() {
+    val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
+    val firestore = remember { FirebaseFirestore.getInstance() }
+    val userId = auth.currentUser?.uid
+    
+    var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            firestore.collection("bookings")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("status", "Pending")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(5)
+                .addSnapshotListener { snapshot, e ->
+                    isLoading = false
+                    if (snapshot != null) {
+                        bookings = snapshot.toObjects(Booking::class.java)
+                    }
+                }
+        } else {
+            isLoading = false
+        }
+    }
+
+    if (bookings.isNotEmpty()) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                text = "Upcoming Bookings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
+                items(bookings.size) { index ->
+                    val booking = bookings[index]
+                    BookingMiniCard(booking)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BookingMiniCard(booking: Booking) {
+    Card(
+        modifier = Modifier
+            .width(260.dp)
+            .shadow(8.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = ProfessionalBlue)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = booking.serviceName,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = "${booking.date} • ${booking.time}",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp
+                )
             }
         }
     }
@@ -573,10 +815,14 @@ fun PopularServiceCardNew() {
 @Composable
 fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
     Surface(
-        color = Color.Black.copy(alpha = 0.9f), // Dark Glass
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 20.dp,
-        modifier = Modifier.height(72.dp).fillMaxWidth().padding(horizontal = 16.dp)
+        color = Color.Black.copy(alpha = 0.92f), // Deep Glass
+        shape = RoundedCornerShape(36.dp),
+        shadowElevation = 25.dp,
+        modifier = Modifier
+            .height(76.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -584,26 +830,30 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             val items = listOf(
-                Icons.Filled.Home,
-                Icons.Outlined.Explore,
-                Icons.Outlined.ChatBubbleOutline,
-                Icons.Outlined.PersonOutline
+                Icons.Filled.Home to "Home",
+                Icons.Outlined.Explore to "Explore",
+                Icons.Outlined.ChatBubbleOutline to "Inbox",
+                Icons.Outlined.PersonOutline to "Profile"
             )
             
-            items.forEachIndexed { index, icon ->
+            items.forEachIndexed { index, (icon, label) ->
                 val isSelected = selectedItem == index
-                val scale by animateFloatAsState(if (isSelected) 1.2f else 1f, label = "scale")
+                val scale by animateFloatAsState(if (isSelected) 1.25f else 1f, label = "scale")
                 val color = if (isSelected) EnergyOrange else Color.White.copy(alpha = 0.5f)
                 
-                IconButton(
-                    onClick = { onItemSelected(index) },
-                    modifier = Modifier.scale(scale)
+                Column(
+                    modifier = Modifier
+                        .clickable(interactionSource = null, indication = null) { onItemSelected(index) }
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = icon,
-                        contentDescription = null,
+                        contentDescription = label,
                         tint = color,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier
+                            .size(28.dp)
+                            .scale(scale)
                     )
                 }
             }

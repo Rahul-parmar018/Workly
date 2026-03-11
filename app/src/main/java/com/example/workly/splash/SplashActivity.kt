@@ -244,31 +244,30 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
 @Composable
 fun OnboardingPage(page: Int) {
     val title = when (page) {
-        0 -> "Find Professionals"
-        1 -> "Get Tasks Done"
-        2 -> "Seamless Experience"
+        0 -> "Spotless Cleaning"
+        1 -> "Expert Electricians"
+        2 -> "Reliable Plumbing"
         else -> ""
     }
 
     val description = when (page) {
-        0 -> "Connect with top-rated local experts for any job you need completed."
-        1 -> "From home repairs to personal tutoring, we have you covered."
-        2 -> "Book, track, and pay securely all within the Workly app."
+        0 -> "Hire top-rated professional cleaners to make your space shine effortlessly."
+        1 -> "Safe and reliable electrical repairs and installations at your doorstep."
+        2 -> "Fast and efficient plumbing services for all your repair and maintenance needs."
         else -> ""
     }
     
-    // Placeholder Graphics
-    val icon = when(page) {
-        0 -> Icons.Default.Build
-        1 -> Icons.Default.CheckCircle
-        2 -> Icons.Default.Star
-        else -> Icons.Default.Info
+    val imageRes = when(page) {
+        0 -> com.example.workly.R.drawable.img_service_cleaner
+        1 -> com.example.workly.R.drawable.img_service_electrician
+        2 -> com.example.workly.R.drawable.img_service_plumber
+        else -> com.example.workly.R.drawable.img_service_cleaner
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(vertical = 32.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -277,20 +276,15 @@ fun OnboardingPage(page: Int) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFFE3F2FD), Color(0xFFBBDEFB))
-                    )
-                ),
+                .padding(vertical = 16.dp)
+                .clip(RoundedCornerShape(32.dp)),
             contentAlignment = Alignment.Center
         ) {
-             Icon(
-                 imageVector = icon,
-                 contentDescription = null,
-                 modifier = Modifier.size(100.dp),
-                 tint = ProfessionalBlue
+             Image(
+                 painter = painterResource(id = imageRes),
+                 contentDescription = title,
+                 modifier = Modifier.fillMaxSize(),
+                 contentScale = ContentScale.Fit
              )
         }
         

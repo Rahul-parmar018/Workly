@@ -4,12 +4,12 @@ import com.example.workly.home.HomeActivity
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,28 +18,33 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.workly.theme.*
+import com.example.workly.R
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.common.api.ApiException
+import androidx.compose.ui.layout.ContentScale
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,257 +58,252 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen() {
+    val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val currentUser = remember { auth.currentUser }
+    
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
 
-    Scaffold(
-        containerColor = ProfessionalBlue
-    ) { innerPadding ->
-        
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Fancy Background
-             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(brush = PrimaryGradient)
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.05f),
-                    center = Offset(size.width, 0f),
-                    radius = size.width
+    // Google Sign-In Configuration
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+    }
+    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)!!
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener { authTask ->
+                    if (authTask.isSuccessful) {
+                        context.startActivity(Intent(context, HomeActivity::class.java))
+                        (context as? ComponentActivity)?.finishAffinity()
+                    } else {
+                        Toast.makeText(context, "Google Sign-In Failed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        } catch (e: ApiException) {
+            Toast.makeText(context, "Google Sign-In Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // --- Full Screen Professional Gradient Background ---
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0D47A1), // Professional Blue
+                            Color(0xFF01579B), // Light Professional Blue
+                            Color.White        // Transition to bottom white
+                        )
+                    )
                 )
+        )
+
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // --- Large Immersive Header (Restored) ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) {
+                // Curved Clip for the Header Design with Premium Image
+                Surface(
+                    modifier = Modifier.fillMaxSize().padding(bottom = 40.dp),
+                    shape = RoundedCornerShape(bottomStart = 80.dp),
+                    color = Color.White
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_header_premium),
+                        contentDescription = "Workly Premium Header",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Header Navigation
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 60.dp, start = 32.dp)
+                ) {
+                    IconButton(
+                        onClick = { (context as? ComponentActivity)?.finish() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color.Black.copy(alpha = 0.1f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.Black)
+                    }
+                }
+    
+                // Profile Image Overlay (Restored dynamic User PFP)
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier
+                        .size(90.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-32).dp, y = 0.dp)
+                        .shadow(15.dp, CircleShape),
+                    border = BorderStroke(4.dp, Color.White)
+                ) {
+                    if (currentUser?.photoUrl != null) {
+                        AsyncImage(
+                            model = currentUser.photoUrl,
+                            contentDescription = "User Avatar",
+                            modifier = Modifier.clip(CircleShape),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.user_pfp),
+                            contentDescription = "Default Avatar",
+                            modifier = Modifier.clip(CircleShape),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                }
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- Main Form Content ---
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header
-                Row(
-                   modifier = Modifier.padding(24.dp),
-                   verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable { (context as? ComponentActivity)?.finish() },
-                    ) {
-                        Icon(
-                             Icons.Default.ArrowBack, 
-                             contentDescription = "Back",
-                             modifier = Modifier.padding(12.dp),
-                             tint = Color.White
-                        )
-                    }
-                }
+                // Email Field
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = { Text("myname@gmail.com", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = ProfessionalBlue.copy(alpha = 0.05f),
+                        unfocusedContainerColor = ProfessionalBlue.copy(alpha = 0.02f),
+                        focusedBorderColor = ProfessionalBlue,
+                        unfocusedBorderColor = Color.LightGray
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
 
-                Spacer(modifier = Modifier.weight(0.1f))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Sheet Content
-                Surface(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-                    color = Color.White,
-                    shadowElevation = 24.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 32.dp, vertical = 40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Welcome Back",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Please login to your account",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TextSecondary
-                        )
+                // Password Field
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    placeholder = { Text("Password", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = ProfessionalBlue.copy(alpha = 0.05f),
+                        unfocusedContainerColor = ProfessionalBlue.copy(alpha = 0.02f),
+                        focusedBorderColor = ProfessionalBlue,
+                        unfocusedBorderColor = Color.LightGray
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
 
-                        Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-                        // Email
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = { Text("Email Address") },
-                            leadingIcon = { Icon(Icons.Default.Email, null, tint = ProfessionalBlue) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ProfessionalBlue,
-                                unfocusedBorderColor = Color.LightGray,
-                                focusedLabelColor = ProfessionalBlue
-                            ),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Password
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Password") },
-                            leadingIcon = { Icon(Icons.Default.Lock, null, tint = ProfessionalBlue) },
-                            trailingIcon = {
-                                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
-                                }
-                            },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ProfessionalBlue,
-                                unfocusedBorderColor = Color.LightGray,
-                                focusedLabelColor = ProfessionalBlue
-                            ),
-                            singleLine = true
-                         )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "Forgot Password?",
-                            color = EnergyOrange,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .align(Alignment.End)
-                                .clickable {
-                                    context.startActivity(Intent(context, ForgotPasswordActivity::class.java))
-                                }
-                        )
-
-                        Spacer(modifier = Modifier.height(40.dp))
-
-                        // Login Button
-                        Button(
-                            onClick = {
-                                if (email.isNotEmpty() && password.isNotEmpty()) {
-                                    isLoading = true
-                                    auth.signInWithEmailAndPassword(email, password)
-                                        .addOnCompleteListener { task ->
-                                            isLoading = false
-                                            if (task.isSuccessful) {
-                                                Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                                                context.startActivity(Intent(context, HomeActivity::class.java))
-                                                (context as? ComponentActivity)?.finishAffinity()
-                                            } else {
-                                                Log.e("LoginActivity", "Login Failed", task.exception)
-                                                Toast.makeText(context, "Login Failed: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                } else {
-                                    Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .shadow(4.dp, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp),
-                            enabled = !isLoading,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ProfessionalBlue
-                            )
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                            } else {
-                                Text("Log In", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        
-                        // --- Google Sign In ---
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
-                            Text(" OR ", color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp))
-                            Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
-                        }
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
-                            .requestIdToken(context.getString(com.example.workly.R.string.default_web_client_id))
-                            .requestEmail()
-                            .build()
-                        val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
-
-                        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-                            contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-                        ) { result ->
-                            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                                isLoading = true
-                                val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                                try {
-                                    val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-                                    val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
-                                    auth.signInWithCredential(credential)
-                                        .addOnCompleteListener { authTask ->
-                                            isLoading = false
-                                            if (authTask.isSuccessful) {
-                                                Toast.makeText(context, "Google Login Successful", Toast.LENGTH_SHORT).show()
-                                                context.startActivity(Intent(context, HomeActivity::class.java))
-                                                (context as? ComponentActivity)?.finishAffinity()
-                                            } else {
-                                                Toast.makeText(context, "Firebase Auth Failed", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                } catch (e: com.google.android.gms.common.api.ApiException) {
+                // SIGN IN Button
+                Button(
+                    onClick = {
+                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                            isLoading = true
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
                                     isLoading = false
-                                    Toast.makeText(context, "Google Sign-In Failed: ${e.statusCode}", Toast.LENGTH_SHORT).show()
+                                    if (task.isSuccessful) {
+                                        context.startActivity(Intent(context, HomeActivity::class.java))
+                                        (context as? ComponentActivity)?.finishAffinity()
+                                    } else {
+                                        Toast.makeText(context, "Error: ${task.exception?.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
-                            }
                         }
-
-                        Button(
-                            onClick = { launcher.launch(googleSignInClient.signInIntent) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .shadow(2.dp, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp),
-                            enabled = !isLoading,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = TextPrimary
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
-                        ) {
-                            Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, modifier = Modifier.padding(end = 12.dp))
-                            Text("Sign in with Google", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Don't have an account? ", color = TextSecondary)
-                            Text(
-                                "Sign Up",
-                                color = ProfessionalBlue,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable {
-                                    context.startActivity(Intent(context, RegisterActivity::class.java))
-                                }
-                            )
-                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .shadow(8.dp, RoundedCornerShape(25.dp)),
+                    shape = RoundedCornerShape(25.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF388E3C),
+                        contentColor = Color.White
+                    ),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White)
+                    } else {
+                        Text("SIGN IN", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Only Google Sign In
+                OutlinedButton(
+                    onClick = { 
+                        isLoading = true
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                            isLoading = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ProfessionalBlue)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_google),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Sign in with Google", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    "New User? Sign Up",
+                    color = Color(0xFF388E3C),
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.clickable {
+                        context.startActivity(Intent(context, RegisterActivity::class.java))
+                    }
+                )
             }
         }
     }

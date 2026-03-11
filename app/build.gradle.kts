@@ -96,4 +96,5 @@ dependencies {
 // coroutine
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

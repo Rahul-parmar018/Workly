@@ -60,6 +60,10 @@
         <activity android:name=".cleaning.CleaningActivity" android:exported="false" />
         <activity android:name=".booking.BookingActivity" android:exported="false" />
         <activity android:name=".booking.BookingSuccessActivity" android:exported="false" />
+        <activity android:name=".booking.ProviderListActivity" android:exported="false" />
+        <activity android:name=".payment.PaymentActivity" android:exported="false" />
+        <activity android:name=".home.ServicesActivity" android:exported="false" />
+        <activity android:name=".admin.AdminDashboardActivity" android:exported="false" />
 
 
 
