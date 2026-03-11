@@ -21,13 +21,3 @@ To get the project up and running on your local machine, follow these steps:
 
 ---
 
-## 👥 Contributors
-
-We would like to thank the following contributors for their hard work and dedication to this project:
-
-*   **Chirayu Darji** ([chirayudarji71@gmail.com](mailto:chirayudarji71@gmail.com))
-*   **Mihir Parmar** ([mihirparmar593@gmail.com](mailto:mihirparmar593@gmail.com))
-
----
-
-*Maintained by [Rahul-parmar018](https://github.com/Rahul-parmar018)*
