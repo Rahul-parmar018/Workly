@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -151,7 +151,7 @@ fun LoginScreen() {
                             .size(44.dp)
                             .background(Color.Black.copy(alpha = 0.1f), CircleShape)
                     ) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.Black)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.Black)
                     }
                 }
     

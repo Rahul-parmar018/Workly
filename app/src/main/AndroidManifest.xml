@@ -64,6 +64,8 @@
         <activity android:name=".payment.PaymentActivity" android:exported="false" />
         <activity android:name=".home.ServicesActivity" android:exported="false" />
         <activity android:name=".admin.AdminDashboardActivity" android:exported="false" />
+        <activity android:name=".chat.ChatActivity" android:exported="false" />
+        <activity android:name=".booking.MyBookingsActivity" android:exported="false" />
 
 
 
