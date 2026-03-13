@@ -1,4 +1,6 @@
-package com.example.workly.booking
+
+
+ package com.example.workly.booking
 
 import android.Manifest
 import android.app.DatePickerDialog
@@ -35,7 +37,12 @@ import coil.compose.AsyncImage
 import com.example.workly.data.Booking
 import com.example.workly.payment.PaymentActivity
 import com.example.workly.theme.*
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import android.os.Looper
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -186,8 +193,8 @@ fun BookingScreen(
             isLoadingLocation = true
             try {
                 fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-                    isLoadingLocation = false
                     if (loc != null) {
+                        isLoadingLocation = false
                         userLat = loc.latitude; userLon = loc.longitude
                         try {
                             @Suppress("DEPRECATION")
@@ -195,6 +202,25 @@ fun BookingScreen(
                             address = addrs?.firstOrNull()?.getAddressLine(0) ?: "${loc.latitude}, ${loc.longitude}"
                         } catch (e: Exception) { address = "${loc.latitude}, ${loc.longitude}" }
                         onAddressChange(address)
+                    } else {
+                        // lastLocation is null — request a fresh GPS fix
+                        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
+                            .setMaxUpdates(1).build()
+                        val cb = object : LocationCallback() {
+                            override fun onLocationResult(result: LocationResult) {
+                                fusedLocationClient.removeLocationUpdates(this)
+                                val fresh = result.lastLocation ?: return
+                                isLoadingLocation = false
+                                userLat = fresh.latitude; userLon = fresh.longitude
+                                try {
+                                    @Suppress("DEPRECATION")
+                                    val addrs = android.location.Geocoder(context, Locale.getDefault()).getFromLocation(fresh.latitude, fresh.longitude, 1)
+                                    address = addrs?.firstOrNull()?.getAddressLine(0) ?: "${fresh.latitude}, ${fresh.longitude}"
+                                } catch (e: Exception) { address = "${fresh.latitude}, ${fresh.longitude}" }
+                                onAddressChange(address)
+                            }
+                        }
+                        fusedLocationClient.requestLocationUpdates(request, cb, Looper.getMainLooper())
                     }
                 }.addOnFailureListener { isLoadingLocation = false }
             } catch (e: SecurityException) { isLoadingLocation = false }

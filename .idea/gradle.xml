@@ -9,12 +9,8 @@
         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
         <option name="modules">
           <set>
-            <option value="$PROJECT_DIR$/../formsapp" />
-            <option value="$PROJECT_DIR$/../quotesapp" />
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/todoapp" />
-            <option value="$PROJECT_DIR$/todoappv2" />
           </set>
         </option>
       </GradleProjectSettings>
