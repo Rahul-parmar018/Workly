@@ -234,7 +234,10 @@ fun BookingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundGray,
+                    titleContentColor = TextPrimary
+                )
             )
         },
         containerColor = BackgroundGray,
@@ -285,12 +288,16 @@ fun BookingScreen(
                 value = address,
                 onValueChange = { address = it; onAddressChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Enter your full address") },
+                placeholder = { Text("Enter your full address", color = Color.Gray) },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color.Transparent
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedPlaceholderColor = Color.DarkGray,
+                    unfocusedPlaceholderColor = Color.Gray
                 ),
                 trailingIcon = {
                     IconButton(onClick = {
@@ -352,12 +359,16 @@ fun BookingScreen(
                 value = "",
                 onValueChange = {},
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("E.g. bring eco-friendly products, 2nd floor, etc.") },
+                placeholder = { Text("E.g. bring eco-friendly products, 2nd floor, etc.", color = Color.Gray) },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color.Transparent
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedPlaceholderColor = Color.DarkGray,
+                    unfocusedPlaceholderColor = Color.Gray
                 ),
                 minLines = 3
             )

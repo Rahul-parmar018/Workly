@@ -125,7 +125,10 @@ fun ProviderListScreen(
                     }
                 },
                 navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundGray,
+                    titleContentColor = TextPrimary
+                )
             )
         },
         containerColor = BackgroundGray

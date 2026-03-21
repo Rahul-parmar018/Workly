@@ -2,6 +2,10 @@ package com.example.workly.home
 
 import android.content.Intent
 import android.widget.Toast
+import com.example.workly.provider.MyServicesActivity
+import com.example.workly.provider.AddServiceActivity
+import com.example.workly.provider.ProviderOrdersActivity
+import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -416,6 +420,26 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
     val user = FirebaseAuth.getInstance().currentUser
     val avatarUrl = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=1565C0&color=fff&bold=true&rounded=true&size=200"
 
+    // ── Lifetime Earnings Realtime Listener ──
+    var lifetimeEarnings by remember { mutableIntStateOf(0) }
+    
+    LaunchedEffect(user?.uid) {
+        if (userRole == "provider" && user != null) {
+            FirebaseFirestore.getInstance().collection("orders")
+                .whereEqualTo("providerId", user.uid)
+                .whereEqualTo("status", "completed")
+                .addSnapshotListener { snapshot, error ->
+                    if (error == null && snapshot != null) {
+                        var total = 0
+                        for (doc in snapshot.documents) {
+                            total += doc.getLong("price")?.toInt() ?: 0
+                        }
+                        lifetimeEarnings = total
+                    }
+                }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 100.dp)
@@ -465,8 +489,11 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                 }
                 ProfileMenuItem(Icons.Default.ReceiptLong, bookingsLabel, bookingsSubtitle) {
                     android.util.Log.d("Workly", "$bookingsLabel clicked")
-                    Toast.makeText(context, "Opening $bookingsLabel...", Toast.LENGTH_SHORT).show()
-                    context.startActivity(Intent(context, MyBookingsActivity::class.java))
+                    if (userRole == "provider") {
+                        context.startActivity(Intent(context, ProviderOrdersActivity::class.java))
+                    } else {
+                        context.startActivity(Intent(context, MyBookingsActivity::class.java))
+                    }
                 }
                 ProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
                 ProfileMenuItem(Icons.Default.CreditCard, "Payment Methods", "Cards, UPI & wallet") {}
@@ -475,9 +502,13 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                 if (userRole == "provider") {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Provider Tools", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
-                    ProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {}
-                    ProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {}
-                    ProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "View your income & payouts") {}
+                    ProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {
+                        context.startActivity(Intent(context, MyServicesActivity::class.java))
+                    }
+                    ProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
+                        context.startActivity(Intent(context, AddServiceActivity::class.java))
+                    }
+                    ProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings collected from completed orders") {}
                 }
 
                 // ── Admin-only section ──

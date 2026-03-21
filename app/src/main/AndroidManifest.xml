@@ -71,6 +71,11 @@
         <activity android:name=".chat.ChatActivity" android:exported="false" />
         <activity android:name=".booking.MyBookingsActivity" android:exported="false" />
 
+        <!-- Provider Specific Dynamic Screens -->
+        <activity android:name=".provider.MyServicesActivity" android:exported="false" />
+        <activity android:name=".provider.AddServiceActivity" android:exported="false" />
+        <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
+
 
 
     </application>

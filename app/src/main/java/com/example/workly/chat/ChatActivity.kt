@@ -102,7 +102,10 @@ fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = TextPrimary
+                    )
                 )
             }
         },
