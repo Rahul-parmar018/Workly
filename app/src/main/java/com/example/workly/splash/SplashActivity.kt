@@ -1,7 +1,7 @@
 package com.example.workly.splash
 
 import com.example.workly.home.HomeActivity
-import com.example.workly.auth.AuthSelectionActivity
+import com.example.workly.auth.LoginActivity
 
 import android.content.Intent
 import android.os.Bundle
@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.theme.*
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,13 +51,7 @@ class SplashActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Check if user is already logged in
-        val user = FirebaseAuth.getInstance().currentUser
-        if (user != null) {
-            startActivity(Intent(this, HomeActivity::class.java))
-            finish()
-            return
-        }
+        // Temporarily disabled old Auth check. Forcing fallback to Login/Onboarding to test navigation.
 
         setContent {
             WorklyTheme {
@@ -75,7 +68,7 @@ class SplashActivity : ComponentActivity() {
                     } else {
                         OnboardingScreen(
                             onGetStarted = {
-                                startActivity(Intent(this@SplashActivity, AuthSelectionActivity::class.java))
+                                startActivity(Intent(this@SplashActivity, LoginActivity::class.java))
                                 finish()
                             }
                         )

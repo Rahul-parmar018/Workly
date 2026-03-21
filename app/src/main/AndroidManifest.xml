@@ -50,6 +50,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".auth.RoleSelectionActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".auth.ForgotPasswordActivity"
             android:exported="false" />
 

@@ -8,16 +8,14 @@
     android:background="@drawable/auth_bg_gradient"
     tools:context=".auth.AuthSelectionActivity">
 
-    <!-- Subtle Pattern Overlay could theoretically be an ImageView, skipping for simplicity -->
-
     <ImageView
         android:id="@+id/ivLogo"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_marginTop="80dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="24dp"
         android:src="@drawable/workly_logo"
         android:background="@drawable/circle_white_bg"
-        android:padding="24dp"
+        android:padding="20dp"
         android:elevation="12dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -29,21 +27,86 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
-        android:layout_marginTop="32dp"
-        android:text="Join thousands of users finding expert help every day."
+        android:layout_marginTop="24dp"
+        android:text="Find trusted experts instantly."
         android:textAlignment="center"
         android:textColor="#D9FFFFFF"
         android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivLogo" />
+
+    <LinearLayout
+        android:id="@+id/roleSelectionLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginTop="32dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtext">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Continue as:"
+            android:textColor="#E0E0E0"
+            android:textSize="14sp"
+            android:layout_marginBottom="12dp"
+            android:layout_gravity="center"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardUser"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="16dp"
+            app:strokeWidth="4dp"
+            app:strokeColor="@android:color/white"
+            app:cardBackgroundColor="@android:color/white">
+
+            <TextView
+                android:id="@+id/tvUserText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="👤 User"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textColor="#1A237E"
+                android:textStyle="bold"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardProvider"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            app:cardCornerRadius="16dp"
+            app:strokeWidth="2dp"
+            app:strokeColor="@android:color/white"
+            app:cardBackgroundColor="@android:color/transparent">
+
+            <TextView
+                android:id="@+id/tvProviderText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="🧑‍🔧 Provider"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"/>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
-        android:layout_marginBottom="60dp"
+        android:layout_marginBottom="32dp"
         android:orientation="vertical"
         android:gravity="center_horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -55,14 +118,17 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:text="Sign in with Google"
-            android:textColor="#1A237E"
+            android:textColor="#000000"
             android:textStyle="bold"
             app:backgroundTint="@android:color/white"
             app:cornerRadius="28dp"
             app:icon="@drawable/ic_google"
+            app:iconSize="20dp"
             app:iconGravity="textStart"
-            app:iconTint="@null"
-            android:elevation="8dp" />
+            app:iconPadding="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:elevation="4dp" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -92,7 +158,7 @@
             android:layout_marginTop="24dp"
             android:text="Already have an account? Sign In"
             android:textColor="#E6FFFFFF"
-            android:textSize="15sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:clickable="true"
             android:focusable="true"/>

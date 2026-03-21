@@ -6,71 +6,65 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.workly.R
-import com.example.workly.home.HomeActivity
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.google.android.material.card.MaterialCardView
 
 class AuthSelectionActivity : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
-
-    private val googleSignInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)!!
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { authTask ->
-                    progressBar.visibility = View.GONE
-                    if (authTask.isSuccessful) {
-                        startActivity(Intent(this, HomeActivity::class.java))
-                        finishAffinity()
-                    } else {
-                        Toast.makeText(this, "Google Sign-In Failed", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        } catch (e: ApiException) {
-            progressBar.visibility = View.GONE
-            Toast.makeText(this, "Google Sign-In Error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
+    private var selectedRole = "user"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auth_selection)
 
-        auth = FirebaseAuth.getInstance()
         progressBar = findViewById(R.id.progressBar)
+
+        val cardUser: MaterialCardView = findViewById(R.id.cardUser)
+        val cardProvider: MaterialCardView = findViewById(R.id.cardProvider)
+        val tvUserText: TextView = findViewById(R.id.tvUserText)
+        val tvProviderText: TextView = findViewById(R.id.tvProviderText)
 
         val btnGoogleSignIn: MaterialButton = findViewById(R.id.btnGoogleSignIn)
         val btnCreateAccount: MaterialButton = findViewById(R.id.btnCreateAccount)
         val tvSignIn: TextView = findViewById(R.id.tvSignIn)
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        val googleSignInClient = GoogleSignIn.getClient(this, gso)
+        fun highlight(selected: MaterialCardView, other: MaterialCardView, selectedText: TextView, otherText: TextView) {
+            // Highlighting properties mapped precisely to UI balance
+            selected.strokeWidth = 4
+            selected.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
+            selectedText.setTextColor(android.graphics.Color.parseColor("#1A237E")) // Dark text bounds logic
+            
+            // Revert state for other card
+            other.strokeWidth = 2
+            other.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
+            otherText.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+        }
+
+        cardUser.setOnClickListener {
+            selectedRole = "user"
+            highlight(cardUser, cardProvider, tvUserText, tvProviderText)
+        }
+
+        cardProvider.setOnClickListener {
+            selectedRole = "provider"
+            highlight(cardProvider, cardUser, tvProviderText, tvUserText)
+        }
+        
+        // Ensure default highlight is mapped correctly on initialization
+        highlight(cardUser, cardProvider, tvUserText, tvProviderText)
 
         btnGoogleSignIn.setOnClickListener {
-            progressBar.visibility = View.VISIBLE
-            googleSignInClient.signOut().addOnCompleteListener {
-                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-            }
+            Toast.makeText(this, "Google Auth disconnected. Test with JWT backend Auth logic for correct DB handling.", Toast.LENGTH_SHORT).show()
         }
 
         btnCreateAccount.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
+            val regIntent = Intent(this, RegisterActivity::class.java)
+            regIntent.putExtra("role", selectedRole)
+            startActivity(regIntent)
         }
 
         tvSignIn.setOnClickListener {

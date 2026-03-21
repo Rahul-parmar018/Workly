@@ -3,6 +3,7 @@ package com.example.workly.home
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.workly.auth.LoginActivity
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +42,38 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
     var selectedItem by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
 
-    // No FAB — WorkLog removed as per user request
+    // ── Firestore User Data State ──
+    var userName by remember { mutableStateOf("Loading...") }
+    var userRole by remember { mutableStateOf("user") }
+    var dataLoaded by remember { mutableStateOf(false) }
+
+    // ── Fetch from Firestore on first compose ──
+    LaunchedEffect(Unit) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users").document(user.uid).get()
+                .addOnSuccessListener { doc ->
+                    if (doc != null && doc.exists()) {
+                        userName = doc.getString("name") ?: (user.displayName ?: "User")
+                        userRole = doc.getString("role") ?: "user"
+                        Log.d("ROLE", "Fetched role: $userRole, name: $userName")
+                    } else {
+                        userName = user.displayName ?: "User"
+                        userRole = "user"
+                    }
+                    dataLoaded = true
+                }
+                .addOnFailureListener {
+                    userName = user.displayName ?: "User"
+                    userRole = "user"
+                    dataLoaded = true
+                }
+        } else {
+            dataLoaded = true
+        }
+    }
+
     Scaffold(containerColor = BackgroundGray) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
 
@@ -69,13 +102,19 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                         0 -> HomeScreenContent(
                             innerPadding = innerPadding,
                             viewModel = viewModel,
+                            userName = userName,
+                            userRole = userRole,
                             onSeeAllServices = {
                                 context.startActivity(Intent(context, ServicesActivity::class.java))
                             }
                         )
                         1 -> ExploreScreen()
                         2 -> InboxScreen()
-                        3 -> ProfileScreenContent(onLogout = { performLogout(context) })
+                        3 -> ProfileScreenContent(
+                            userName = userName,
+                            userRole = userRole,
+                            onLogout = { performLogout(context) }
+                        )
                     }
                 }
             }
