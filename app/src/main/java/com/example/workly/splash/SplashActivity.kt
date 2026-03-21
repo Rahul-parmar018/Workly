@@ -45,21 +45,31 @@ import com.example.workly.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import com.google.firebase.auth.FirebaseAuth
+
 class SplashActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Temporarily disabled old Auth check. Forcing fallback to Login/Onboarding to test navigation.
-
         setContent {
             WorklyTheme {
                 var showSplash by remember { mutableStateOf(true) }
+                val auth = FirebaseAuth.getInstance()
+                val currentUser = remember { auth.currentUser }
 
                 LaunchedEffect(Unit) {
                     delay(2500) // Slightly longer for animation
-                    showSplash = false
+                    
+                    if (currentUser != null) {
+                        // User is already logged in, go straight to Home
+                        startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                        finish()
+                    } else {
+                        // No user session, show onboarding
+                        showSplash = false
+                    }
                 }
 
                 Crossfade(targetState = showSplash, label = "SplashFade") { isSplash ->
