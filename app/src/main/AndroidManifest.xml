@@ -7,9 +7,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
     
     <application
         android:usesCleartextTraffic="true"
@@ -24,7 +23,7 @@
 
         <!-- Splash Screen (LAUNCHER) -->
         <activity
-            android:name=".splash.SplashActivity"
+            android:name=".ui.splash.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,65 +31,31 @@
             </intent-filter>
         </activity>
 
-        <!-- Login Screen -->
-        <activity
-            android:name=".auth.LoginActivity"
-            android:exported="false" />
+        <!-- Auth Screens -->
+        <activity android:name=".ui.auth.LoginActivity" android:exported="false" />
+        <activity android:name=".ui.auth.RegisterActivity" android:exported="false" />
+        <activity android:name=".ui.auth.AuthSelectionActivity" android:exported="false" />
+        <activity android:name=".ui.auth.ForgotPasswordActivity" android:exported="false" />
 
-        <!-- Home Screen -->
-        <activity
-            android:name=".home.HomeActivity"
-            android:exported="false" />
+        <!-- Home & Services -->
+        <activity android:name=".ui.home.HomeActivity" android:exported="false" />
+        <activity android:name=".ui.services.ServicesActivity" android:exported="false" />
+        <activity android:name=".ui.services.CleaningActivity" android:exported="false" />
 
-        <activity
-            android:name=".home.ServiceDetailActivity"
-            android:exported="false" />
+        <!-- Provider Screens -->
+        <activity android:name=".ui.provider.AddServiceActivity" android:exported="false" />
 
+        <!-- Booking Screens -->
+        <activity android:name=".ui.booking.BookingActivity" android:exported="false" />
+        <activity android:name=".ui.booking.BookingSuccessActivity" android:exported="false" />
+        <activity android:name=".ui.booking.ProviderListActivity" android:exported="false" />
+        <activity android:name=".ui.booking.MyBookingsActivity" android:exported="false" />
 
-
-        <activity
-            android:name=".auth.RegisterActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".auth.AuthSelectionActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".auth.RoleSelectionActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".auth.ForgotPasswordActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".location.WorkLogActivity"
-            android:exported="true" />
-
-        <activity android:name=".cleaning.CleaningActivity" android:exported="false" />
-        <activity android:name=".booking.BookingActivity" android:exported="false" />
-        <activity android:name=".booking.BookingSuccessActivity" android:exported="false" />
-        <activity android:name=".booking.ProviderListActivity" android:exported="false" />
-        <activity android:name=".payment.PaymentActivity" android:exported="false" />
-        <activity android:name=".home.ServicesActivity" android:exported="false" />
-        <activity android:name=".admin.AdminDashboardActivity" android:exported="false" />
-        <activity android:name=".chat.ChatActivity" android:exported="false" />
-        <activity android:name=".booking.MyBookingsActivity" android:exported="false" />
-
-        <!-- Provider & Admin Specific Auth -->
-        <activity android:name=".auth.ProviderLoginActivity" android:exported="false" />
-        <activity android:name=".auth.ProviderRegisterActivity" android:exported="false" />
-        <activity android:name=".auth.AdminLoginActivity" android:exported="false" />
-
-        <!-- Provider Specific Dynamic Screens -->
-        <activity android:name=".provider.MyServicesActivity" android:exported="false" />
-        <activity android:name=".provider.AddServiceActivity" android:exported="false" />
-        <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
-
-
+        <!-- Chat & Admin & Payment -->
+        <activity android:name=".ui.chat.ChatActivity" android:exported="false" />
+        <activity android:name=".ui.admin.AdminDashboardActivity" android:exported="false" />
+        <activity android:name=".ui.payment.PaymentActivity" android:exported="false" />
 
     </application>
-
 
 </manifest>
