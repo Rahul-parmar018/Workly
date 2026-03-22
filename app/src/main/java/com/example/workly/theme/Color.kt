@@ -9,8 +9,8 @@ val EnergyOrange = Color(0xFFFF9800)
 val ElectricTeal = Color(0xFF009688)
 val BackgroundGray = Color(0xFFF8F9FA)
 
-val TextPrimary = Color(0xFF212121)
-val TextSecondary = Color(0xFF757575)
+val TextPrimary = Color(0xFF1C1C1E) // Near black
+val TextSecondary = Color(0xFF555555) // Darker gray for better contrast
 
 val PrimaryGradient = Brush.linearGradient(
     colors = listOf(ProfessionalBlue, ElectricTeal)

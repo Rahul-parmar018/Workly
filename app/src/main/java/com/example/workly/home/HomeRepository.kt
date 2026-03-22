@@ -24,7 +24,7 @@ class HomeRepository {
             return@callbackFlow
         }
 
-        val listener = firestore.collection("bookings")
+        val listener = firestore.collection("orders")
             .whereEqualTo("userId", userId)
             .limit(5)
             .addSnapshotListener { snapshot, e ->

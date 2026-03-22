@@ -2,6 +2,11 @@ package com.example.workly.home
 
 import android.content.Intent
 import android.widget.Toast
+import com.example.workly.provider.MyServicesActivity
+import com.example.workly.provider.AddServiceActivity
+import com.example.workly.provider.ProviderOrdersActivity
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -33,6 +38,7 @@ import com.example.workly.booking.BookingActivity
 import com.example.workly.booking.MyBookingsActivity
 import com.example.workly.admin.AdminDashboardActivity
 import com.example.workly.data.Booking
+import com.example.workly.data.OrderStatus
 import com.example.workly.data.Service
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
@@ -44,11 +50,14 @@ import kotlinx.coroutines.delay
 fun HomeScreenContent(
     innerPadding: PaddingValues,
     viewModel: HomeViewModel,
+    userName: String,
+    userRole: String,
     onSeeAllServices: () -> Unit
 ) {
     val context = LocalContext.current
     val bookings by viewModel.upcomingBookings.collectAsState()
     val user = FirebaseAuth.getInstance().currentUser
+    val firstName = userName.split(" ").firstOrNull() ?: "there"
 
     val banners = listOf(
         Triple("Professional Cleaning", "Starting ₹40/hr · Top rated pros", "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=700&fit=crop"),
@@ -64,7 +73,19 @@ fun HomeScreenContent(
         }
     }
 
-    val popularServices = remember { getAllServices().take(6) }
+    // 🧪 PRODUCTION-GRADE: Real-time Services Feed from Firestore
+    var firestoreServices by remember { mutableStateOf<List<Service>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        FirebaseFirestore.getInstance().collection("services")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .limit(10)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    firestoreServices = snapshot.toObjects(Service::class.java)
+                }
+            }
+    }
+    val popularServices = firestoreServices.ifEmpty { getAllServices().take(6) } // Fallback to hardcoded while loading
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()),
@@ -81,24 +102,18 @@ fun HomeScreenContent(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Avatar
-                    val avatarUrl = user?.let { "https://ui-avatars.com/api/?name=${(it.displayName ?: "U").replace(" ", "+")}&background=ffffff&color=1565C0&bold=true&rounded=true&size=120" }
+                    val avatarUrl = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=ffffff&color=1565C0&bold=true&rounded=true&size=120"
                     Surface(modifier = Modifier.size(48.dp), shape = CircleShape, color = Color.White.copy(0.2f)) {
-                        if (avatarUrl != null) {
-                            AsyncImage(
-                                model = avatarUrl,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Person, null, tint = Color.White)
-                            }
-                        }
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Hello, ${user?.displayName?.split(" ")?.firstOrNull() ?: "there"} 👋", color = Color.White.copy(0.85f), fontSize = 13.sp)
+                        Text("Hello, $firstName 👋", color = Color.White.copy(0.85f), fontSize = 13.sp)
                         Text("What do you need today?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     }
                     // Notifications
@@ -283,11 +298,13 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 }
 
 // ─── Upcoming Booking Card ──────────────────────────────────────────────────
+
 @Composable
 fun UpcomingBookingCard(booking: Booking) {
     val statusColor = when (booking.status) {
-        "Confirmed" -> ElectricTeal
-        "InProgress" -> EnergyOrange
+        OrderStatus.ACCEPTED -> ElectricTeal
+        OrderStatus.PENDING -> EnergyOrange
+        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
         else -> TextSecondary
     }
     Card(
@@ -414,10 +431,30 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
 // ─── Profile Screen ────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreenContent(onLogout: () -> Unit) {
+fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Unit) {
     val context = LocalContext.current
     val user = FirebaseAuth.getInstance().currentUser
-    val avatarUrl = user?.let { "https://ui-avatars.com/api/?name=${(it.displayName ?: "User").replace(" ", "+")}&background=1565C0&color=fff&bold=true&rounded=true&size=200" }
+    val avatarUrl = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=1565C0&color=fff&bold=true&rounded=true&size=200"
+
+    // ── Lifetime Earnings Realtime Listener ──
+    var lifetimeEarnings by remember { mutableIntStateOf(0) }
+    
+    LaunchedEffect(user?.uid) {
+        if (userRole == "provider" && user != null) {
+            FirebaseFirestore.getInstance().collection("orders")
+                .whereEqualTo("providerId", user.uid)
+                .whereEqualTo("status", "completed")
+                .addSnapshotListener { snapshot, error ->
+                    if (error == null && snapshot != null) {
+                        var total = 0
+                        for (doc in snapshot.documents) {
+                            total += doc.getLong("price")?.toInt() ?: 0
+                        }
+                        lifetimeEarnings = total
+                    }
+                }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -445,7 +482,7 @@ fun ProfileScreenContent(onLogout: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(user?.displayName ?: "Your Name", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                    Text(userName, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
                     Text(user?.email ?: "your@email.com", color = Color.White.copy(0.8f), fontSize = 13.sp)
                 }
             }
@@ -454,18 +491,49 @@ fun ProfileScreenContent(onLogout: () -> Unit) {
         item {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Account", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp))
-                ProfileMenuItem(Icons.Default.ReceiptLong, "My Bookings", "View all your bookings") {
-                    android.util.Log.d("Workly", "My Bookings clicked")
-                    Toast.makeText(context, "Opening My Bookings...", Toast.LENGTH_SHORT).show()
-                    context.startActivity(Intent(context, MyBookingsActivity::class.java))
+                
+                // Dynamic label based on role
+                val bookingsLabel = when (userRole) {
+                    "provider" -> "My Orders"
+                    "admin" -> "All Orders"
+                    else -> "My Bookings"
+                }
+                val bookingsSubtitle = when (userRole) {
+                    "provider" -> "View incoming service orders"
+                    "admin" -> "View & manage all orders"
+                    else -> "View all your bookings"
+                }
+                ProfileMenuItem(Icons.Default.ReceiptLong, bookingsLabel, bookingsSubtitle) {
+                    android.util.Log.d("Workly", "$bookingsLabel clicked")
+                    if (userRole == "provider") {
+                        context.startActivity(Intent(context, ProviderOrdersActivity::class.java))
+                    } else {
+                        context.startActivity(Intent(context, MyBookingsActivity::class.java))
+                    }
                 }
                 ProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
                 ProfileMenuItem(Icons.Default.CreditCard, "Payment Methods", "Cards, UPI & wallet") {}
 
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Management", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
-                ProfileMenuItem(Icons.Default.AdminPanelSettings, "Admin Dashboard", "Manage approvals & providers") {
-                    context.startActivity(Intent(context, AdminDashboardActivity::class.java))
+                // ── Provider-specific section ──
+                if (userRole == "provider") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Provider Tools", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                    ProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {
+                        context.startActivity(Intent(context, MyServicesActivity::class.java))
+                    }
+                    ProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
+                        context.startActivity(Intent(context, AddServiceActivity::class.java))
+                    }
+                    ProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings collected from completed orders") {}
+                }
+
+                // ── Admin-only section ──
+                if (userRole == "admin") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Management", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextSecondary, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                    ProfileMenuItem(Icons.Default.AdminPanelSettings, "Admin Dashboard", "Manage approvals & providers") {
+                        context.startActivity(Intent(context, AdminDashboardActivity::class.java))
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

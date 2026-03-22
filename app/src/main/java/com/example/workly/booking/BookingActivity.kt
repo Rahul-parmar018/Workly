@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.workly.data.Booking
+import com.example.workly.data.OrderStatus
 import com.example.workly.payment.PaymentActivity
 import com.example.workly.theme.*
 import com.google.android.gms.location.LocationCallback
@@ -118,38 +119,50 @@ class BookingActivity : ComponentActivity() {
         val auth = FirebaseAuth.getInstance()
         val firestore = FirebaseFirestore.getInstance()
         val userId = auth.currentUser?.uid ?: return
-        val docRef = firestore.collection("bookings").document()
-        val booking = Booking(
-            id = docRef.id,
-            userId = userId,
-            serviceName = serviceName,
-            serviceCategory = serviceCategory,
-            date = savedDate,
-            time = savedTime,
-            address = savedAddress,
-            basePrice = intent.getDoubleExtra("SERVICE_PRICE", price),
-            finalPrice = price,
-            providerId = selectedProviderId ?: "",
-            providerName = selectedProviderName ?: "",
-            status = "Pending",
-            paymentStatus = "Paid",
-            paymentMethod = paymentMethod,
-            createdAt = Timestamp.now(),
-            updatedAt = Timestamp.now()
-        )
-        docRef.set(booking).addOnSuccessListener {
-            startActivity(Intent(this, BookingSuccessActivity::class.java).apply {
-                putExtra("SERVICE_NAME", serviceName)
-                putExtra("PROVIDER_NAME", selectedProviderName ?: "")
-                putExtra("BOOKING_ID", docRef.id)
-                putExtra("DATE", savedDate)
-                putExtra("TIME", savedTime)
-                putExtra("ADDRESS", savedAddress)
-                putExtra("PRICE", price)
-            })
-            finish()
+        
+        // 🚀 FIRST: Fetch UserName from Firestore to ensure data consistency
+        firestore.collection("users").document(userId).get().addOnSuccessListener { userDoc ->
+            val userName = userDoc.getString("name") ?: "User"
+            
+            val docRef = firestore.collection("orders").document()
+            val booking = Booking(
+                id = docRef.id,
+                userId = userId,
+                userName = userName,
+                serviceName = serviceName,
+                serviceCategory = serviceCategory,
+                date = savedDate,
+                time = savedTime,
+                address = savedAddress,
+                basePrice = intent.getDoubleExtra("SERVICE_PRICE", price),
+                finalPrice = price,
+                providerId = selectedProviderId ?: "",
+                providerName = selectedProviderName ?: "",
+                status = OrderStatus.PENDING,
+                paymentStatus = "Paid",
+                paymentMethod = paymentMethod,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                acceptedAt = null,
+                completedAt = null
+            )
+            
+            docRef.set(booking).addOnSuccessListener {
+                startActivity(Intent(this, BookingSuccessActivity::class.java).apply {
+                    putExtra("SERVICE_NAME", serviceName)
+                    putExtra("PROVIDER_NAME", selectedProviderName ?: "")
+                    putExtra("BOOKING_ID", docRef.id)
+                    putExtra("DATE", savedDate)
+                    putExtra("TIME", savedTime)
+                    putExtra("ADDRESS", savedAddress)
+                    putExtra("PRICE", price)
+                })
+                finish()
+            }.addOnFailureListener {
+                Toast.makeText(this, "Booking failed. Please try again.", Toast.LENGTH_SHORT).show()
+            }
         }.addOnFailureListener {
-            Toast.makeText(this, "Booking failed. Please try again.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Failed to fetch user data.", Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -234,7 +247,10 @@ fun BookingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundGray,
+                    titleContentColor = TextPrimary
+                )
             )
         },
         containerColor = BackgroundGray,
@@ -285,12 +301,16 @@ fun BookingScreen(
                 value = address,
                 onValueChange = { address = it; onAddressChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Enter your full address") },
+                placeholder = { Text("Enter your full address", color = Color.Gray) },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color.Transparent
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedPlaceholderColor = Color.DarkGray,
+                    unfocusedPlaceholderColor = Color.Gray
                 ),
                 trailingIcon = {
                     IconButton(onClick = {
@@ -352,12 +372,16 @@ fun BookingScreen(
                 value = "",
                 onValueChange = {},
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("E.g. bring eco-friendly products, 2nd floor, etc.") },
+                placeholder = { Text("E.g. bring eco-friendly products, 2nd floor, etc.", color = Color.Gray) },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color.Transparent
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedPlaceholderColor = Color.DarkGray,
+                    unfocusedPlaceholderColor = Color.Gray
                 ),
                 minLines = 3
             )

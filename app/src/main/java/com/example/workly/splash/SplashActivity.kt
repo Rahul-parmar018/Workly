@@ -1,7 +1,7 @@
 package com.example.workly.splash
 
 import com.example.workly.home.HomeActivity
-import com.example.workly.auth.AuthSelectionActivity
+import com.example.workly.auth.LoginActivity
 
 import android.content.Intent
 import android.os.Bundle
@@ -42,9 +42,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.theme.*
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class SplashActivity : ComponentActivity() {
 
@@ -52,21 +54,63 @@ class SplashActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Check if user is already logged in
-        val user = FirebaseAuth.getInstance().currentUser
-        if (user != null) {
-            startActivity(Intent(this, HomeActivity::class.java))
-            finish()
-            return
-        }
-
         setContent {
             WorklyTheme {
                 var showSplash by remember { mutableStateOf(true) }
+                val auth = FirebaseAuth.getInstance()
+                val currentUser = remember { auth.currentUser }
 
                 LaunchedEffect(Unit) {
                     delay(2500) // Slightly longer for animation
-                    showSplash = false
+                    
+                    if (currentUser != null) {
+                        val db = FirebaseFirestore.getInstance()
+                        db.collection("users").document(currentUser.uid).get()
+                            .addOnSuccessListener { userDoc ->
+                                if (userDoc.exists()) {
+                                    val role = userDoc.getString("role") ?: "user"
+                                    
+                                    when (role) {
+                                        "admin" -> {
+                                            startActivity(Intent(this@SplashActivity, com.example.workly.admin.AdminDashboardActivity::class.java))
+                                            finish()
+                                        }
+                                        "provider" -> {
+                                            // Check approval status for providers
+                                            db.collection("providers").document(currentUser.uid).get()
+                                                .addOnSuccessListener { provDoc ->
+                                                    val approved = provDoc.getBoolean("isApproved") ?: false
+                                                    if (approved) {
+                                                        startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                                        finish()
+                                                    } else {
+                                                        // If not approved, we might want to still show splash/onboarding or a msg
+                                                        // For now, let's send to login/auth hub to avoid getting stuck
+                                                        startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
+                                                        finish()
+                                                    }
+                                                }
+                                                .addOnFailureListener {
+                                                    startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                                    finish()
+                                                }
+                                        }
+                                        else -> { // Standard user
+                                            startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                            finish()
+                                        }
+                                    }
+                                } else {
+                                    showSplash = false
+                                }
+                            }
+                            .addOnFailureListener {
+                                showSplash = false
+                            }
+                    } else {
+                        // No user session, show onboarding
+                        showSplash = false
+                    }
                 }
 
                 Crossfade(targetState = showSplash, label = "SplashFade") { isSplash ->
@@ -75,7 +119,7 @@ class SplashActivity : ComponentActivity() {
                     } else {
                         OnboardingScreen(
                             onGetStarted = {
-                                startActivity(Intent(this@SplashActivity, AuthSelectionActivity::class.java))
+                                startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
                                 finish()
                             }
                         )
