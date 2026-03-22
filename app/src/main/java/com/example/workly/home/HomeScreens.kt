@@ -6,6 +6,7 @@ import com.example.workly.provider.MyServicesActivity
 import com.example.workly.provider.AddServiceActivity
 import com.example.workly.provider.ProviderOrdersActivity
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -37,6 +38,7 @@ import com.example.workly.booking.BookingActivity
 import com.example.workly.booking.MyBookingsActivity
 import com.example.workly.admin.AdminDashboardActivity
 import com.example.workly.data.Booking
+import com.example.workly.data.OrderStatus
 import com.example.workly.data.Service
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
@@ -71,7 +73,19 @@ fun HomeScreenContent(
         }
     }
 
-    val popularServices = remember { getAllServices().take(6) }
+    // 🧪 PRODUCTION-GRADE: Real-time Services Feed from Firestore
+    var firestoreServices by remember { mutableStateOf<List<Service>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        FirebaseFirestore.getInstance().collection("services")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .limit(10)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    firestoreServices = snapshot.toObjects(Service::class.java)
+                }
+            }
+    }
+    val popularServices = firestoreServices.ifEmpty { getAllServices().take(6) } // Fallback to hardcoded while loading
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding()),
@@ -284,11 +298,13 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 }
 
 // ─── Upcoming Booking Card ──────────────────────────────────────────────────
+
 @Composable
 fun UpcomingBookingCard(booking: Booking) {
     val statusColor = when (booking.status) {
-        "Confirmed" -> ElectricTeal
-        "InProgress" -> EnergyOrange
+        OrderStatus.ACCEPTED -> ElectricTeal
+        OrderStatus.PENDING -> EnergyOrange
+        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
         else -> TextSecondary
     }
     Card(

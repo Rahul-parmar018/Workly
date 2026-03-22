@@ -6,5 +6,8 @@ data class Service(
     val category: String = "", // Home, Wellness, Tech, Auto, etc.
     val basePrice: Double = 0.0,
     val iconRes: Int = 0,
-    val description: String = ""
+    val description: String = "",
+    val providerId: String = "",
+    val providerName: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )

@@ -21,53 +21,39 @@ class AuthSelectionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auth_selection)
 
-        progressBar = findViewById(R.id.progressBar)
-
         val cardUser: MaterialCardView = findViewById(R.id.cardUser)
         val cardProvider: MaterialCardView = findViewById(R.id.cardProvider)
-        val tvUserText: TextView = findViewById(R.id.tvUserText)
-        val tvProviderText: TextView = findViewById(R.id.tvProviderText)
-
+        val tvAdminPortal: TextView = findViewById(R.id.tvAdminPortal)
         val btnGoogleSignIn: MaterialButton = findViewById(R.id.btnGoogleSignIn)
-        val btnCreateAccount: MaterialButton = findViewById(R.id.btnCreateAccount)
         val tvSignIn: TextView = findViewById(R.id.tvSignIn)
 
-        fun highlight(selected: MaterialCardView, other: MaterialCardView, selectedText: TextView, otherText: TextView) {
-            // Highlighting properties mapped precisely to UI balance
-            selected.strokeWidth = 4
-            selected.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
-            selectedText.setTextColor(android.graphics.Color.parseColor("#1A237E")) // Dark text bounds logic
-            
-            // Revert state for other card
-            other.strokeWidth = 2
-            other.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
-            otherText.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-        }
-
         cardUser.setOnClickListener {
-            selectedRole = "user"
-            highlight(cardUser, cardProvider, tvUserText, tvProviderText)
+            val intent = Intent(this, RegisterActivity::class.java)
+            intent.putExtra("role", "user")
+            startActivity(intent)
         }
 
         cardProvider.setOnClickListener {
-            selectedRole = "provider"
-            highlight(cardProvider, cardUser, tvProviderText, tvUserText)
+            // Specialized Provider Register
+            val intent = Intent(this, ProviderRegisterActivity::class.java)
+            startActivity(intent)
         }
-        
-        // Ensure default highlight is mapped correctly on initialization
-        highlight(cardUser, cardProvider, tvUserText, tvProviderText)
+
+        tvAdminPortal.setOnClickListener {
+            // Specialized Admin Login
+            val intent = Intent(this, AdminLoginActivity::class.java)
+            startActivity(intent)
+        }
 
         btnGoogleSignIn.setOnClickListener {
-            Toast.makeText(this, "Google Auth disconnected. Test with JWT backend Auth logic for correct DB handling.", Toast.LENGTH_SHORT).show()
-        }
-
-        btnCreateAccount.setOnClickListener {
-            val regIntent = Intent(this, RegisterActivity::class.java)
-            regIntent.putExtra("role", selectedRole)
-            startActivity(regIntent)
+            // Standard User Google Sign In logic can stay in LoginActivity or be handled here
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.putExtra("trigger_google", true)
+            startActivity(intent)
         }
 
         tvSignIn.setOnClickListener {
+            // Default back to standard login
             startActivity(Intent(this, LoginActivity::class.java))
         }
     }

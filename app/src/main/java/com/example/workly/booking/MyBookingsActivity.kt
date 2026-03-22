@@ -18,12 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.data.Booking
+import com.example.workly.data.OrderStatus
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -32,7 +32,6 @@ import com.google.firebase.firestore.Query
 class MyBookingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        android.util.Log.d("Workly", "MyBookingsActivity onCreate")
         enableEdgeToEdge()
         setContent {
             WorklyTheme {
@@ -52,12 +51,12 @@ fun MyBookingsScreen(onBack: () -> Unit) {
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            firestore.collection("bookings")
+            firestore.collection("orders")
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        android.util.Log.e("MyBookings", "Firestore Error: ${error.message}", error)
+                        android.util.Log.e("MyBookings", "Firestore Error: ${error.message}")
                         isLoading = false
                         return@addSnapshotListener
                     }
@@ -97,7 +96,7 @@ fun MyBookingsScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.BookOnline, null, modifier = Modifier.padding(24.dp).size(48.dp), tint = ProfessionalBlue.copy(0.3f))
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text("No bookings found", color = TextSecondary, fontWeight = FontWeight.Medium)
+                    Text("No bookings found yet.", color = TextSecondary, fontWeight = FontWeight.Medium)
                 }
             }
         } else {
@@ -117,11 +116,10 @@ fun MyBookingsScreen(onBack: () -> Unit) {
 @Composable
 fun BookingHistoryCard(booking: Booking) {
     val statusColor = when (booking.status) {
-        "Pending" -> EnergyOrange
-        "Confirmed" -> ProfessionalBlue
-        "InProgress" -> ElectricTeal
-        "Completed" -> Color(0xFF2E7D32)
-        "Cancelled" -> Color.Red
+        OrderStatus.PENDING -> EnergyOrange
+        OrderStatus.ACCEPTED -> ProfessionalBlue
+        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
+        OrderStatus.CANCELLED -> Color.Red
         else -> TextSecondary
     }
 
@@ -144,9 +142,9 @@ fun BookingHistoryCard(booking: Booking) {
                 }
                 Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(0.12f)) {
                     Text(
-                        booking.status,
+                        booking.status.uppercase(),
                         color = statusColor,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         fontSize = 11.sp,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )

@@ -46,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class SplashActivity : ComponentActivity() {
 
@@ -63,9 +64,49 @@ class SplashActivity : ComponentActivity() {
                     delay(2500) // Slightly longer for animation
                     
                     if (currentUser != null) {
-                        // User is already logged in, go straight to Home
-                        startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
-                        finish()
+                        val db = FirebaseFirestore.getInstance()
+                        db.collection("users").document(currentUser.uid).get()
+                            .addOnSuccessListener { userDoc ->
+                                if (userDoc.exists()) {
+                                    val role = userDoc.getString("role") ?: "user"
+                                    
+                                    when (role) {
+                                        "admin" -> {
+                                            startActivity(Intent(this@SplashActivity, com.example.workly.admin.AdminDashboardActivity::class.java))
+                                            finish()
+                                        }
+                                        "provider" -> {
+                                            // Check approval status for providers
+                                            db.collection("providers").document(currentUser.uid).get()
+                                                .addOnSuccessListener { provDoc ->
+                                                    val approved = provDoc.getBoolean("isApproved") ?: false
+                                                    if (approved) {
+                                                        startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                                        finish()
+                                                    } else {
+                                                        // If not approved, we might want to still show splash/onboarding or a msg
+                                                        // For now, let's send to login/auth hub to avoid getting stuck
+                                                        startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
+                                                        finish()
+                                                    }
+                                                }
+                                                .addOnFailureListener {
+                                                    startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                                    finish()
+                                                }
+                                        }
+                                        else -> { // Standard user
+                                            startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
+                                            finish()
+                                        }
+                                    }
+                                } else {
+                                    showSplash = false
+                                }
+                            }
+                            .addOnFailureListener {
+                                showSplash = false
+                            }
                     } else {
                         // No user session, show onboarding
                         showSplash = false
@@ -78,7 +119,7 @@ class SplashActivity : ComponentActivity() {
                     } else {
                         OnboardingScreen(
                             onGetStarted = {
-                                startActivity(Intent(this@SplashActivity, LoginActivity::class.java))
+                                startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
                                 finish()
                             }
                         )

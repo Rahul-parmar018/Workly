@@ -74,7 +74,7 @@ class LoginActivity : AppCompatActivity() {
                 auth.signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            checkRoleAndRedirect(auth.currentUser?.uid, email)
+                            fetchRoleAndRedirect(auth.currentUser?.uid)
                         } else {
                             progressBar.visibility = View.GONE
                             btnSignIn.isEnabled = true
@@ -107,20 +107,23 @@ class LoginActivity : AppCompatActivity() {
                     val user = auth.currentUser
                     if (user != null) {
                         db.collection("users").document(user.uid).get()
-                            .addOnSuccessListener { document ->
-                                if (document.exists()) {
-                                    checkRoleAndRedirect(user.uid, user.email)
+                            .addOnSuccessListener { userDoc ->
+                                if (userDoc.exists()) {
+                                    val role = userDoc.getString("role") ?: "user"
+                                    saveRoleLocally(role)
+                                    checkRoleAndRedirect(user.uid, role)
                                 } else {
+                                    // Completely new account, default to 'user' in 'users' collection
                                     val userMap = hashMapOf(
                                         "id" to user.uid,
                                         "name" to (user.displayName ?: "Google User"),
                                         "email" to (user.email ?: ""),
-                                        "role" to "user",
-                                        "isApproved" to false
+                                        "role" to "user"
                                     )
                                     db.collection("users").document(user.uid).set(userMap)
                                         .addOnCompleteListener {
-                                            checkRoleAndRedirect(user.uid, user.email)
+                                            saveRoleLocally("user")
+                                            checkRoleAndRedirect(user.uid, "user")
                                         }
                                 }
                             }
@@ -132,38 +135,84 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun checkRoleAndRedirect(uid: String?, email: String?) {
+    private fun fetchRoleAndRedirect(uid: String?) {
         if (uid == null) return
-
-        // 4. ADMIN LOGIN (SPECIAL FLOW) hardcoded protection logic
-        if (email == "admin@workly.com") {
-            progressBar.visibility = View.GONE
-            Toast.makeText(this, "Logged in as admin", Toast.LENGTH_SHORT).show()
-            startActivity(Intent(this, AdminDashboardActivity::class.java))
-            finishAffinity()
-            return
-        }
 
         db.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
-                progressBar.visibility = View.GONE
                 if (document != null && document.exists()) {
                     val role = document.getString("role") ?: "user"
-                    Toast.makeText(this, "Logged in as $role", Toast.LENGTH_SHORT).show()
+                    saveRoleLocally(role)
+                    
                     when (role) {
-                        "admin" -> startActivity(Intent(this, AdminDashboardActivity::class.java))
-                        "provider" -> startActivity(Intent(this, HomeActivity::class.java))
-                        else -> startActivity(Intent(this, HomeActivity::class.java))
+                        "admin" -> {
+                            progressBar.visibility = View.GONE
+                            startActivity(Intent(this, AdminDashboardActivity::class.java))
+                            finishAffinity()
+                        }
+                        "provider" -> {
+                            checkProviderApproval(uid)
+                        }
+                        else -> { // user
+                            progressBar.visibility = View.GONE
+                            Toast.makeText(this, "Logged in as User", Toast.LENGTH_SHORT).show()
+                            startActivity(Intent(this, HomeActivity::class.java))
+                            finishAffinity()
+                        }
                     }
-                    finishAffinity()
                 } else {
-                    startActivity(Intent(this, HomeActivity::class.java))
-                    finishAffinity()
+                    progressBar.visibility = View.GONE
+                    Toast.makeText(this, "Profile not found", Toast.LENGTH_SHORT).show()
                 }
             }
             .addOnFailureListener {
                 progressBar.visibility = View.GONE
-                Toast.makeText(this, "Failed role extraction", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Authentication Error", Toast.LENGTH_LONG).show()
             }
+    }
+
+    private fun checkRoleAndRedirect(uid: String, role: String) {
+        when (role) {
+            "admin" -> {
+                progressBar.visibility = View.GONE
+                startActivity(Intent(this, AdminDashboardActivity::class.java))
+                finishAffinity()
+            }
+            "provider" -> {
+                checkProviderApproval(uid)
+            }
+            else -> { // user
+                progressBar.visibility = View.GONE
+                Toast.makeText(this, "Logged in as User", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, HomeActivity::class.java))
+                finishAffinity()
+            }
+        }
+    }
+
+    private fun checkProviderApproval(uid: String) {
+        db.collection("providers").document(uid).get()
+            .addOnSuccessListener { provDoc ->
+                progressBar.visibility = View.GONE
+                val approved = provDoc.getBoolean("isApproved") ?: false
+                if (approved) {
+                    Toast.makeText(this, "Logged in as Provider", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, HomeActivity::class.java))
+                    finishAffinity()
+                } else {
+                    auth.signOut()
+                    Toast.makeText(this, "Waiting for Approval", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener {
+                progressBar.visibility = View.GONE
+                auth.signOut()
+                Toast.makeText(this, "Error checking approval", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun saveRoleLocally(role: String) {
+        val sharedPrefs = getSharedPreferences("WorklyPrefs", MODE_PRIVATE)
+        sharedPrefs.edit().putString("user_role", role).apply()
     }
 }

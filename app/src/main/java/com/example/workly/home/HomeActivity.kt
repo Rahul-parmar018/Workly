@@ -47,17 +47,16 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
     var userRole by remember { mutableStateOf("user") }
     var dataLoaded by remember { mutableStateOf(false) }
 
-    // ── Fetch from Firestore on first compose ──
     LaunchedEffect(Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
             val db = FirebaseFirestore.getInstance()
+            
             db.collection("users").document(user.uid).get()
                 .addOnSuccessListener { doc ->
                     if (doc != null && doc.exists()) {
                         userName = doc.getString("name") ?: (user.displayName ?: "User")
                         userRole = doc.getString("role") ?: "user"
-                        Log.d("ROLE", "Fetched role: $userRole, name: $userName")
                     } else {
                         userName = user.displayName ?: "User"
                         userRole = "user"
@@ -66,7 +65,6 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                 }
                 .addOnFailureListener {
                     userName = user.displayName ?: "User"
-                    userRole = "user"
                     dataLoaded = true
                 }
         } else {
@@ -136,7 +134,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
 
 fun performLogout(context: Context) {
     FirebaseAuth.getInstance().signOut()
-    val intent = Intent(context, LoginActivity::class.java)
+    val intent = Intent(context, com.example.workly.auth.AuthSelectionActivity::class.java)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     context.startActivity(intent)
 }

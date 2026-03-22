@@ -91,26 +91,48 @@ fun ProviderListScreen(
     )
 
     LaunchedEffect(serviceCategory) {
-        // Try Firestore first, fallback to mock if empty
         var query = firestore.collection("providers").limit(20)
         if (serviceCategory.isNotEmpty()) {
             query = firestore.collection("providers")
                 .whereArrayContains("specialties", serviceCategory)
                 .limit(20)
         }
+        
         query.get()
             .addOnSuccessListener { snapshot ->
-                val firestoreProviders = snapshot.toObjects(Provider::class.java)
-                val source = if (firestoreProviders.isEmpty()) fallbackProviders else firestoreProviders
-                providers = source
-                    .map { it to AIMatcher.calculateScore(it, userLat, userLon) }
-                    .sortedByDescending { it.second }
-                isLoading = false
+                val provDocs = snapshot.toObjects(Provider::class.java)
+                if (provDocs.isEmpty()) {
+                    providers = fallbackProviders.map { it to AIMatcher.calculateScore(it, userLat, userLon) }.sortedByDescending { it.second }
+                    isLoading = false
+                    return@addOnSuccessListener
+                }
+
+                val providerIds = provDocs.map { it.id }.filter { it.isNotEmpty() }
+                if (providerIds.isEmpty()) {
+                    providers = fallbackProviders.map { it to AIMatcher.calculateScore(it, userLat, userLon) }.sortedByDescending { it.second }
+                    isLoading = false
+                    return@addOnSuccessListener
+                }
+
+                // Batch fetch names/emails from 'users'
+                firestore.collection("users").whereIn("id", providerIds).get()
+                    .addOnSuccessListener { userSnapshot ->
+                        val userMap = userSnapshot.documents.associateBy({ it.id }, { it.getString("name") ?: "Pro" })
+                        
+                        providers = provDocs.map { p ->
+                            p.copy(name = userMap[p.id] ?: "Professional")
+                        }.map { it to AIMatcher.calculateScore(it, userLat, userLon) }
+                        .sortedByDescending { it.second }
+                        
+                        isLoading = false
+                    }
+                    .addOnFailureListener {
+                        providers = provDocs.map { it to AIMatcher.calculateScore(it, userLat, userLon) }.sortedByDescending { it.second }
+                        isLoading = false
+                    }
             }
             .addOnFailureListener {
-                providers = fallbackProviders
-                    .map { it to AIMatcher.calculateScore(it, userLat, userLon) }
-                    .sortedByDescending { it.second }
+                providers = fallbackProviders.map { it to AIMatcher.calculateScore(it, userLat, userLon) }.sortedByDescending { it.second }
                 isLoading = false
             }
     }

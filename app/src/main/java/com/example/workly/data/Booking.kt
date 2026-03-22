@@ -1,15 +1,23 @@
 package com.example.workly.data
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.ServerTimestamp
+
+object OrderStatus {
+    const val PENDING = "pending"
+    const val ACCEPTED = "accepted"
+    const val COMPLETED = "completed"
+    const val CANCELLED = "cancelled"
+}
 
 /**
- * Booking schema for Workly.
- * Firestore path: /bookings/{bookingId}
- * NOTE: No nullable Timestamp — Firestore cannot serialize null Timestamp fields.
+ * Booking/Order schema for Workly.
+ * Firestore path: /orders/{orderId}
  */
 data class Booking(
     val id: String = "",
     val userId: String = "",
+    val userName: String = "",
     val serviceName: String = "",
     val serviceCategory: String = "",
     val serviceId: String = "",
@@ -25,8 +33,10 @@ data class Booking(
     val basePrice: Double = 0.0,
     val finalPrice: Double = 0.0,
     val discount: Double = 0.0,
-    // Status: Pending → Confirmed → InProgress → Completed | Cancelled
-    val status: String = "Pending",
+    
+    // Status: Use OrderStatus constants
+    val status: String = OrderStatus.PENDING,
+    
     // Payment
     val paymentStatus: String = "Unpaid",
     val paymentMethod: String = "",
@@ -34,13 +44,19 @@ data class Booking(
     val providerNotes: String = "",
     val rating: Float = 0f,
     val review: String = "",
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now()
-    // completedAt REMOVED — nullable Timestamp breaks Firestore serialization
+    
+    // Timestamps
+    val createdAt: Long = System.currentTimeMillis(),
+    @ServerTimestamp
+    val createdAtServer: Timestamp? = null,
+    val acceptedAt: Long? = null,
+    val completedAt: Long? = null,
+    val updatedAt: Long = System.currentTimeMillis()
 ) {
-    fun toMap(): Map<String, Any> = mapOf(
+    fun toMap(): Map<String, Any?> = mapOf(
         "id" to id,
         "userId" to userId,
+        "userName" to userName,
         "serviceName" to serviceName,
         "serviceCategory" to serviceCategory,
         "serviceId" to serviceId,
@@ -64,6 +80,9 @@ data class Booking(
         "rating" to rating,
         "review" to review,
         "createdAt" to createdAt,
+        "createdAtServer" to createdAtServer,
+        "acceptedAt" to acceptedAt,
+        "completedAt" to completedAt,
         "updatedAt" to updatedAt
     )
 }

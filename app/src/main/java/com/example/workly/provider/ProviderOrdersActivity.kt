@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +20,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.workly.data.OrderStatus
+import com.example.workly.theme.ElectricTeal
+import com.example.workly.theme.EnergyOrange
 import com.example.workly.theme.ProfessionalBlue
 import com.example.workly.theme.TextPrimary
 import com.example.workly.theme.WorklyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 
 class ProviderOrdersActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,13 +54,19 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
         if (user != null) {
             db.collection("orders")
                 .whereEqualTo("providerId", user.uid)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
+                        android.util.Log.e("ProviderOrders", "Error: ${error.message}")
                         isLoading = false
                         return@addSnapshotListener
                     }
                     if (snapshot != null) {
-                        ordersList = snapshot.documents.mapNotNull { it.data }
+                        ordersList = snapshot.documents.mapNotNull { 
+                            val data = it.data?.toMutableMap() ?: mutableMapOf()
+                            data["id"] = it.id
+                            data
+                        }
                     }
                     isLoading = false
                 }
@@ -84,7 +96,14 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ProfessionalBlue)
             } else if (ordersList.isEmpty()) {
-                Text("No orders received yet.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+                    Spacer(Modifier.height(16.dp))
+                    Text("No orders received yet.", color = Color.Gray, fontWeight = FontWeight.Medium)
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -102,25 +121,109 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
 
 @Composable
 fun OrderCard(order: Map<String, Any>) {
+    val db = FirebaseFirestore.getInstance()
+    val orderId = order["id"]?.toString() ?: ""
+    val serviceTitle = order["serviceName"]?.toString() ?: "Order Task"
+    val userName = order["userName"]?.toString() ?: "Customer"
     val price = order["price"]?.toString() ?: "0"
-    val status = order["status"]?.toString() ?: "pending"
+    val status = order["status"]?.toString() ?: OrderStatus.PENDING
     
+    var isProcessing by remember { mutableStateOf(false) }
+
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Order Task", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A1A))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Status: ${status.uppercase()}", fontSize = 12.sp, color = if (status == "completed") Color(0xFF4CAF50) else Color(0xFFFF9800), fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Payout: ₹$price", fontSize = 14.sp, color = ProfessionalBlue, fontWeight = FontWeight.SemiBold)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = serviceTitle, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = TextPrimary)
+                    Text(text = "From: $userName", fontSize = 13.sp, color = Color.Gray)
+                }
+                Text(
+                    text = status.uppercase(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = when(status) {
+                        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
+                        OrderStatus.ACCEPTED -> ProfessionalBlue
+                        else -> EnergyOrange
+                    },
+                    modifier = Modifier
+                        .background(
+                            when(status) {
+                                OrderStatus.COMPLETED -> Color(0xFFE8F5E9)
+                                OrderStatus.ACCEPTED -> ProfessionalBlue.copy(0.1f)
+                                else -> EnergyOrange.copy(0.1f)
+                            },
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = Color.LightGray.copy(0.3f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Payout: ₹$price", fontSize = 16.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
+                
+                if (status == OrderStatus.PENDING) {
+                    Button(
+                        onClick = {
+                            isProcessing = true
+                            db.runTransaction { transaction ->
+                                val ref = db.collection("orders").document(orderId)
+                                val snap = transaction.get(ref)
+                                if (snap.getString("status") == OrderStatus.PENDING) {
+                                    transaction.update(ref, mapOf(
+                                        "status" to OrderStatus.ACCEPTED,
+                                        "acceptedAt" to System.currentTimeMillis()
+                                    ))
+                                }
+                                null
+                            }.addOnCompleteListener { isProcessing = false }
+                        },
+                        enabled = !isProcessing,
+                        colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        if (isProcessing) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                        else Text("Accept", fontWeight = FontWeight.Bold)
+                    }
+                } else if (status == OrderStatus.ACCEPTED) {
+                    Button(
+                        onClick = {
+                            isProcessing = true
+                            db.runTransaction { transaction ->
+                                val ref = db.collection("orders").document(orderId)
+                                val snap = transaction.get(ref)
+                                if (snap.getString("status") == OrderStatus.ACCEPTED) {
+                                    transaction.update(ref, mapOf(
+                                        "status" to OrderStatus.COMPLETED,
+                                        "completedAt" to System.currentTimeMillis()
+                                    ))
+                                }
+                                null
+                            }.addOnCompleteListener { isProcessing = false }
+                        },
+                        enabled = !isProcessing,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        if (isProcessing) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                        else Text("Complete", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
