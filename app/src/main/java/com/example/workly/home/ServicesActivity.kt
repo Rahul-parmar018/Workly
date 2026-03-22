@@ -58,7 +58,19 @@ class ServicesActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
-    val allServices = remember { getAllServices() }
+    var allServices by remember { mutableStateOf<List<Service>>(emptyList()) }
+    
+    LaunchedEffect(Unit) {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("services")
+            .whereEqualTo("isActive", true)
+            .addSnapshotListener { snapshot, e ->
+                if (e == null && snapshot != null) {
+                    val services = snapshot.toObjects(Service::class.java)
+                    allServices = services.sortedByDescending { it.createdAt }
+                }
+            }
+    }
+
     val categories = listOf("All", "Cleaning", "Repair", "Plumbing", "Electric", "Wellness", "Tech", "Auto", "Events")
     var selectedCategory by remember { mutableStateOf(initialCategory) }
     var searchQuery by remember { mutableStateOf("") }
@@ -66,7 +78,7 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
     val filteredServices = allServices.filter { service ->
         val matchesCategory = selectedCategory == "All" || service.category == selectedCategory
         val matchesSearch = searchQuery.isEmpty() ||
-                service.name.contains(searchQuery, ignoreCase = true) ||
+                service.title.contains(searchQuery, ignoreCase = true) ||
                 service.category.contains(searchQuery, ignoreCase = true)
         matchesCategory && matchesSearch
     }
@@ -178,18 +190,23 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
 @Composable
 fun PremiumServiceCard(service: Service) {
     val context = LocalContext.current
-    val imageUrl = getServiceCardImageUrl(service.name, service.category)
+    val imageUrl = service.imageUrl.ifEmpty { getServiceCardImageUrl(service.title, service.category) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(20.dp))
             .clickable {
-                context.startActivity(Intent(context, BookingActivity::class.java).apply {
-                    putExtra("SERVICE_NAME", service.name)
-                    putExtra("SERVICE_PRICE", service.basePrice)
-                    putExtra("SERVICE_CATEGORY", service.category)  // ← THE FIX
+                context.startActivity(Intent(context, Class.forName("com.example.workly.home.ServiceDetailActivity")).apply {
+                    putExtra("SERVICE_TITLE", service.title)
+                    putExtra("SERVICE_PRICE", service.price)
+                    putExtra("SERVICE_CATEGORY", service.category)
                     putExtra("SERVICE_ID", service.id)
+                    putExtra("SERVICE_DURATION", service.duration)
+                    putExtra("SERVICE_DESC", service.description)
+                    putExtra("SERVICE_IMG", imageUrl)
+                    putExtra("PROVIDER_NAME", service.providerName)
+                    putExtra("PROVIDER_ID", service.providerId)
                 })
             },
         shape = RoundedCornerShape(20.dp),
@@ -205,7 +222,7 @@ fun PremiumServiceCard(service: Service) {
             ) {
                 AsyncImage(
                     model = imageUrl,
-                    contentDescription = service.name,
+                    contentDescription = service.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -227,7 +244,7 @@ fun PremiumServiceCard(service: Service) {
             // Info
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    service.name,
+                    service.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     maxLines = 2,
@@ -242,7 +259,7 @@ fun PremiumServiceCard(service: Service) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "₹${service.basePrice.toInt()}+",
+                        "₹${service.price.toInt()}+",
                         color = ProfessionalBlue,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp
@@ -317,41 +334,7 @@ fun getServiceCardImageUrl(name: String, category: String): String {
     }
 }
 
-fun getAllServices(): List<Service> = listOf(
-    Service("1", "Full Home Cleaning", "Cleaning", 40.0),
-    Service("2", "Deep Kitchen Clean", "Cleaning", 60.0),
-    Service("3", "Bathroom Scrub", "Cleaning", 30.0),
-    Service("4", "Sofa & Carpet Clean", "Cleaning", 80.0),
-    Service("5", "Post-Construction Clean", "Cleaning", 150.0),
-    Service("6", "Office Sanitization", "Cleaning", 200.0),
-    Service("7", "AC Service & Repair", "Repair", 80.0),
-    Service("8", "Refrigerator Repair", "Repair", 70.0),
-    Service("9", "Washing Machine Fix", "Repair", 60.0),
-    Service("10", "Door & Lock Repair", "Repair", 40.0),
-    Service("11", "Furniture Assembly", "Repair", 50.0),
-    Service("12", "Tap & Pipe Fixing", "Plumbing", 35.0),
-    Service("13", "Drain Unclogging", "Plumbing", 50.0),
-    Service("14", "Water Tank Cleaning", "Plumbing", 90.0),
-    Service("15", "Bathroom Fitting", "Plumbing", 120.0),
-    Service("16", "Fan & Light Fitting", "Electric", 45.0),
-    Service("17", "Switch Board Repair", "Electric", 40.0),
-    Service("18", "Inverter Installation", "Electric", 100.0),
-    Service("19", "CCTV & Wiring Setup", "Electric", 130.0),
-    Service("20", "Home Massage", "Wellness", 100.0),
-    Service("21", "Yoga at Home", "Wellness", 60.0),
-    Service("22", "Personal Trainer", "Wellness", 80.0),
-    Service("23", "Haircut at Home", "Wellness", 40.0),
-    Service("24", "Laptop Repair", "Tech", 50.0),
-    Service("25", "Phone Screen Fix", "Tech", 40.0),
-    Service("26", "WiFi Setup & Config", "Tech", 35.0),
-    Service("27", "Smart Home Install", "Tech", 200.0),
-    Service("28", "Car Wash & Detail", "Auto", 30.0),
-    Service("29", "Bike Servicing", "Auto", 50.0),
-    Service("30", "Car Battery Jump", "Auto", 25.0),
-    Service("31", "Event Photography", "Events", 150.0),
-    Service("32", "Party Decoration", "Events", 300.0),
-    Service("33", "DJ & Sound Setup", "Events", 500.0),
-)
+fun getAllServices(): List<Service> = emptyList()
 
 fun getCategoryColor(category: String): Color = when (category) {
     "Cleaning" -> Color(0xFF1565C0)

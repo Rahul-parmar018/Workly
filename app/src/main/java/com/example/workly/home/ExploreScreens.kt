@@ -16,18 +16,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.workly.data.Service
 import com.example.workly.theme.*
+import com.example.workly.home.getAllServices
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun ExploreScreen() {
-    val services = remember { getAllServices() }
+    var services by remember { mutableStateOf<List<Service>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        FirebaseFirestore.getInstance().collection("services")
+            .whereEqualTo("isActive", true)
+            .addSnapshotListener { snapshot, e ->
+                if (e == null && snapshot != null) {
+                    services = snapshot.toObjects(Service::class.java)
+                }
+            }
+    }
+
     val categories = listOf("All", "Cleaning", "Repair", "Plumbing", "Electric", "Wellness", "Tech", "Auto", "Events")
     var selectedCategory by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
 
     val filtered = services.filter { service ->
         val matchesCat = selectedCategory == "All" || service.category == selectedCategory
-        val matchesSearch = searchQuery.isEmpty() || service.name.contains(searchQuery, true) || service.category.contains(searchQuery, true)
+        val matchesSearch = searchQuery.isEmpty() || service.title.contains(searchQuery, true) || service.category.contains(searchQuery, true)
         matchesCat && matchesSearch
     }
 
