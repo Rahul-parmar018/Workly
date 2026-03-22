@@ -300,7 +300,7 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 // ─── Upcoming Booking Card ──────────────────────────────────────────────────
 
 @Composable
-fun UpcomingBookingCard(booking: Booking) {
+fun UpcomingBookingCard(booking: Order) {
     val statusColor = when (booking.status) {
         OrderStatus.ACCEPTED -> ElectricTeal
         OrderStatus.PENDING -> EnergyOrange
@@ -320,8 +320,9 @@ fun UpcomingBookingCard(booking: Booking) {
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(booking.serviceName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("${booking.date} ${booking.time}".trim(), color = TextSecondary, fontSize = 12.sp)
+                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                val dateStr = booking.createdAt.toDate().toString() // format appropriately
+                Text(dateStr, color = TextSecondary, fontSize = 12.sp)
                 if (booking.providerName.isNotEmpty()) {
                     Text("Pro: ${booking.providerName}", color = ProfessionalBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
@@ -342,11 +343,17 @@ fun PopularServiceCard(service: Service) {
             .width(160.dp)
             .shadow(8.dp, RoundedCornerShape(18.dp))
             .clickable {
-                context.startActivity(Intent(context, BookingActivity::class.java).apply {
-                    putExtra("SERVICE_NAME", service.name)
-                    putExtra("SERVICE_PRICE", service.basePrice)
+                // Navigate to Service Detail
+                context.startActivity(Intent(context, Class.forName("com.example.workly.home.ServiceDetailActivity")).apply {
+                    putExtra("SERVICE_TITLE", service.title)
+                    putExtra("SERVICE_PRICE", service.price)
                     putExtra("SERVICE_CATEGORY", service.category)
                     putExtra("SERVICE_ID", service.id)
+                    putExtra("SERVICE_DURATION", service.duration)
+                    putExtra("SERVICE_DESC", service.description)
+                    putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getServiceCardImageUrl(service.title, service.category) })
+                    putExtra("PROVIDER_NAME", service.providerName)
+                    putExtra("PROVIDER_ID", service.providerId)
                 })
             },
         shape = RoundedCornerShape(18.dp),
@@ -354,20 +361,20 @@ fun PopularServiceCard(service: Service) {
     ) {
         Column {
             AsyncImage(
-                model = getServiceCardImageUrl(service.name, service.category),
-                contentDescription = service.name,
+                model = service.imageUrl.ifEmpty { getServiceCardImageUrl(service.title, service.category) },
+                contentDescription = service.title,
                 modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(service.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 17.sp)
+                Text(service.title, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 17.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = EnergyOrange, modifier = Modifier.size(12.dp))
-                    Text(" 4.8", fontSize = 11.sp, color = TextSecondary)
+                    Text(" " + if(service.rating > 0) service.rating.toString() else "4.8", fontSize = 11.sp, color = TextSecondary)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("₹${service.basePrice.toInt()}+", fontWeight = FontWeight.ExtraBold, color = ProfessionalBlue, fontSize = 14.sp)
+                Text("₹${service.price.toInt()}+", fontWeight = FontWeight.ExtraBold, color = ProfessionalBlue, fontSize = 14.sp)
             }
         }
     }

@@ -46,7 +46,7 @@ class MyBookingsActivity : ComponentActivity() {
 fun MyBookingsScreen(onBack: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
+    var bookings by remember { mutableStateOf<List<Order>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(userId) {
@@ -60,7 +60,7 @@ fun MyBookingsScreen(onBack: () -> Unit) {
                         isLoading = false
                         return@addSnapshotListener
                     }
-                    bookings = snapshot?.toObjects(Booking::class.java) ?: emptyList()
+                    bookings = snapshot?.toObjects(Order::class.java) ?: emptyList()
                     isLoading = false
                 }
         } else {
@@ -114,12 +114,11 @@ fun MyBookingsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun BookingHistoryCard(booking: Booking) {
-    val statusColor = when (booking.status) {
-        OrderStatus.PENDING -> EnergyOrange
-        OrderStatus.ACCEPTED -> ProfessionalBlue
-        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
-        OrderStatus.CANCELLED -> Color.Red
+fun BookingHistoryCard(booking: Order) {
+    val statusColor = when (booking.status.lowercase()) {
+        "pending" -> EnergyOrange
+        "accepted" -> ProfessionalBlue
+        "completed" -> Color(0xFF2E7D32)
         else -> TextSecondary
     }
 
@@ -137,8 +136,8 @@ fun BookingHistoryCard(booking: Booking) {
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(booking.serviceName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(booking.serviceCategory, fontSize = 12.sp, color = TextSecondary)
+                    Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Order ID: ${booking.id.take(8)}...", fontSize = 12.sp, color = TextSecondary)
                 }
                 Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(0.12f)) {
                     Text(
@@ -159,9 +158,15 @@ fun BookingHistoryCard(booking: Booking) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CalendarToday, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("${booking.date} · ${booking.time}", fontSize = 13.sp, color = TextSecondary)
+                    
+                    val dateStr = try {
+                        val sdf = java.text.SimpleDateFormat("dd MMM yyyy · hh:mm a", java.util.Locale.getDefault())
+                        sdf.format(booking.createdAt.toDate())
+                    } catch (e: Exception) { "Unknown Date" }
+                    
+                    Text(dateStr, fontSize = 13.sp, color = TextSecondary)
                 }
-                Text("₹${booking.finalPrice.toInt()}", fontWeight = FontWeight.ExtraBold, color = TextPrimary, fontSize = 16.sp)
+                Text("₹${booking.price.toInt()}", fontWeight = FontWeight.ExtraBold, color = TextPrimary, fontSize = 16.sp)
             }
 
             if (booking.providerName.isNotEmpty()) {
@@ -171,13 +176,6 @@ fun BookingHistoryCard(booking: Booking) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Pro: ${booking.providerName}", color = ProfessionalBlue, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(booking.address, fontSize = 12.sp, color = TextSecondary, maxLines = 1)
             }
         }
     }

@@ -69,25 +69,17 @@ class BookingActivity : ComponentActivity() {
         val serviceCategory = intent.getStringExtra("SERVICE_CATEGORY") ?: ""
         val basePrice = intent.getDoubleExtra("SERVICE_PRICE", 0.0)
 
-        providerPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                selectedProviderName = result.data?.getStringExtra("SELECTED_PROVIDER_NAME")
-                selectedProviderId = result.data?.getStringExtra("SELECTED_PROVIDER_ID")
-                selectedProviderRate = result.data?.getDoubleExtra("SELECTED_PROVIDER_RATE", basePrice) ?: basePrice
-                val payIntent = Intent(this, PaymentActivity::class.java).apply {
-                    putExtra("SERVICE_NAME", serviceName)
-                    putExtra("SERVICE_PRICE", selectedProviderRate)
-                    putExtra("PROVIDER_NAME", selectedProviderName)
-                    putExtra("BASE_PRICE", basePrice)
-                }
-                paymentLauncher.launch(payIntent)
-            }
-        }
+        var serviceId = intent.getStringExtra("SERVICE_ID") ?: ""
+        var providerName = intent.getStringExtra("PROVIDER_NAME") ?: ""
+        var providerId = intent.getStringExtra("PROVIDER_ID") ?: ""
+
+        val auth = FirebaseAuth.getInstance()
+        val userName = auth.currentUser?.displayName ?: "User"
 
         paymentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 paymentMethod = result.data?.getStringExtra("PAYMENT_METHOD") ?: "Cash"
-                saveBookingToFirestore(serviceName, serviceCategory, selectedProviderRate.takeIf { it > 0 } ?: basePrice)
+                saveBookingToFirestore(serviceId, serviceName, basePrice, userName, providerId, providerName)
             }
         }
 
@@ -102,20 +94,20 @@ class BookingActivity : ComponentActivity() {
                     onDateTimeChange = { date, time -> savedDate = date; savedTime = time },
                     onFindPros = { address, date, time, lat, lon ->
                         savedAddress = address; savedDate = date; savedTime = time
-                        val intent = Intent(this, ProviderListActivity::class.java).apply {
+                        val payIntent = Intent(this, PaymentActivity::class.java).apply {
                             putExtra("SERVICE_NAME", serviceName)
-                            putExtra("SERVICE_CATEGORY", serviceCategory)
-                            putExtra("USER_LAT", lat)
-                            putExtra("USER_LON", lon)
+                            putExtra("SERVICE_PRICE", basePrice)
+                            putExtra("PROVIDER_NAME", providerName)
+                            putExtra("BASE_PRICE", basePrice)
                         }
-                        providerPickerLauncher.launch(intent)
+                        paymentLauncher.launch(payIntent)
                     }
                 )
             }
         }
     }
 
-    private fun saveBookingToFirestore(serviceName: String, serviceCategory: String, price: Double) {
+    private fun saveBookingToFirestore(serviceId: String, serviceTitle: String, price: Double, userName: String, providerId: String, providerName: String) {
         val auth = FirebaseAuth.getInstance()
         val firestore = FirebaseFirestore.getInstance()
         val userId = auth.currentUser?.uid ?: return
@@ -266,9 +258,9 @@ fun BookingScreen(
                     ),
                     enabled = canProceed
                 ) {
-                    Icon(Icons.Default.Search, null)
+                    Icon(Icons.Default.Payment, null) // updated icon
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Find Professionals", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("Proceed to Payment", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             }
         }
