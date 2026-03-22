@@ -70,8 +70,8 @@ class BookingActivity : ComponentActivity() {
         val basePrice = intent.getDoubleExtra("SERVICE_PRICE", 0.0)
 
         var serviceId = intent.getStringExtra("SERVICE_ID") ?: ""
-        var providerName = intent.getStringExtra("PROVIDER_NAME") ?: ""
-        var providerId = intent.getStringExtra("PROVIDER_ID") ?: ""
+        selectedProviderName = intent.getStringExtra("PROVIDER_NAME") ?: ""
+        selectedProviderId = intent.getStringExtra("PROVIDER_ID") ?: ""
 
         val auth = FirebaseAuth.getInstance()
         val userName = auth.currentUser?.displayName ?: "User"
@@ -79,7 +79,7 @@ class BookingActivity : ComponentActivity() {
         paymentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 paymentMethod = result.data?.getStringExtra("PAYMENT_METHOD") ?: "Cash"
-                saveBookingToFirestore(serviceId, serviceName, basePrice, userName, providerId, providerName)
+                saveBookingToFirestore(serviceId, serviceName, serviceCategory, basePrice, userName, selectedProviderId!!, selectedProviderName!!)
             }
         }
 
@@ -97,7 +97,7 @@ class BookingActivity : ComponentActivity() {
                         val payIntent = Intent(this, PaymentActivity::class.java).apply {
                             putExtra("SERVICE_NAME", serviceName)
                             putExtra("SERVICE_PRICE", basePrice)
-                            putExtra("PROVIDER_NAME", providerName)
+                            putExtra("PROVIDER_NAME", selectedProviderName)
                             putExtra("BASE_PRICE", basePrice)
                         }
                         paymentLauncher.launch(payIntent)
@@ -107,29 +107,30 @@ class BookingActivity : ComponentActivity() {
         }
     }
 
-    private fun saveBookingToFirestore(serviceId: String, serviceTitle: String, price: Double, userName: String, providerId: String, providerName: String) {
+    private fun saveBookingToFirestore(serviceId: String, serviceTitle: String, serviceCategory: String, price: Double, userName: String, providerId: String, providerName: String) {
         val auth = FirebaseAuth.getInstance()
         val firestore = FirebaseFirestore.getInstance()
         val userId = auth.currentUser?.uid ?: return
         
         // 🚀 FIRST: Fetch UserName from Firestore to ensure data consistency
         firestore.collection("users").document(userId).get().addOnSuccessListener { userDoc ->
-            val userName = userDoc.getString("name") ?: "User"
+            val fetchedName = userDoc.getString("name") ?: userName
             
             val docRef = firestore.collection("orders").document()
             val booking = Booking(
                 id = docRef.id,
                 userId = userId,
-                userName = userName,
-                serviceName = serviceName,
+                userName = fetchedName,
+                serviceName = serviceTitle,
                 serviceCategory = serviceCategory,
+                serviceId = serviceId,
                 date = savedDate,
                 time = savedTime,
                 address = savedAddress,
                 basePrice = intent.getDoubleExtra("SERVICE_PRICE", price),
                 finalPrice = price,
-                providerId = selectedProviderId ?: "",
-                providerName = selectedProviderName ?: "",
+                providerId = providerId,
+                providerName = providerName,
                 status = OrderStatus.PENDING,
                 paymentStatus = "Paid",
                 paymentMethod = paymentMethod,
@@ -141,8 +142,8 @@ class BookingActivity : ComponentActivity() {
             
             docRef.set(booking).addOnSuccessListener {
                 startActivity(Intent(this, BookingSuccessActivity::class.java).apply {
-                    putExtra("SERVICE_NAME", serviceName)
-                    putExtra("PROVIDER_NAME", selectedProviderName ?: "")
+                    putExtra("SERVICE_NAME", serviceTitle)
+                    putExtra("PROVIDER_NAME", providerName)
                     putExtra("BOOKING_ID", docRef.id)
                     putExtra("DATE", savedDate)
                     putExtra("TIME", savedTime)
