@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     
     <application
         android:usesCleartextTraffic="true"
@@ -54,6 +57,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".auth.RoleSelectionActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".auth.ForgotPasswordActivity"
             android:exported="false" />
 
@@ -70,6 +77,16 @@
         <activity android:name=".admin.AdminDashboardActivity" android:exported="false" />
         <activity android:name=".chat.ChatActivity" android:exported="false" />
         <activity android:name=".booking.MyBookingsActivity" android:exported="false" />
+
+        <!-- Provider & Admin Specific Auth -->
+        <activity android:name=".auth.ProviderLoginActivity" android:exported="false" />
+        <activity android:name=".auth.ProviderRegisterActivity" android:exported="false" />
+        <activity android:name=".auth.AdminLoginActivity" android:exported="false" />
+
+        <!-- Provider Specific Dynamic Screens -->
+        <activity android:name=".provider.MyServicesActivity" android:exported="false" />
+        <activity android:name=".provider.AddServiceActivity" android:exported="false" />
+        <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
 
 
 

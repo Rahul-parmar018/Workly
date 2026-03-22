@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.workly.data.Booking
+import com.example.workly.data.OrderStatus
 import com.example.workly.theme.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.Timestamp
@@ -53,7 +54,7 @@ data class AdminProvider(
     val category: String = "",
     val rating: Double = 0.0,
     val jobsDone: Int = 0,
-    val isActive: Boolean = true,
+    val isApproved: Boolean = false,
     val phone: String = ""
 )
 
@@ -67,9 +68,9 @@ fun AdminDashboardScreen() {
     var isLoadingBookings by remember { mutableStateOf(true) }
     var isLoadingProviders by remember { mutableStateOf(true) }
 
-    // Load bookings from Firestore in real-time
+    // Load orders from Firestore in real-time
     LaunchedEffect(Unit) {
-        firestore.collection("bookings")
+        firestore.collection("orders")
             .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 allBookings = snapshot?.toObjects(Booking::class.java) ?: emptyList()
@@ -77,24 +78,42 @@ fun AdminDashboardScreen() {
             }
         firestore.collection("providers")
             .addSnapshotListener { snapshot, _ ->
-                providers = snapshot?.toObjects(AdminProvider::class.java) ?: listOf(
-                    AdminProvider("pro_1", "Alex Johnson", "Cleaning", 4.9, 127, true, "+91 98765 43210"),
-                    AdminProvider("pro_2", "Maria Garcia", "Wellness", 4.8, 85, true, "+91 87654 32109"),
-                    AdminProvider("pro_3", "David Smith", "Repair", 4.7, 200, true, "+91 76543 21098"),
-                    AdminProvider("pro_4", "Priya Sharma", "Plumbing", 4.9, 156, true, "+91 65432 10987"),
-                    AdminProvider("pro_5", "Raj Kumar", "Electric", 4.6, 98, false, "+91 54321 09876"),
-                )
-                isLoadingProviders = false
+                val provDocs = snapshot?.toObjects(AdminProvider::class.java) ?: emptyList()
+                if (provDocs.isEmpty()) {
+                    providers = emptyList()
+                    isLoadingProviders = false
+                    return@addSnapshotListener
+                }
+
+                val ids = provDocs.map { it.id }.filter { it.isNotEmpty() }
+                if (ids.isEmpty()) {
+                    providers = provDocs
+                    isLoadingProviders = false
+                    return@addSnapshotListener
+                }
+
+                firestore.collection("users").whereIn("id", ids).get()
+                    .addOnSuccessListener { userSnapshot ->
+                        val userMap = userSnapshot.documents.associateBy({ it.id }, { it.getString("name") ?: "Pro" })
+                        providers = provDocs.map { p ->
+                            p.copy(name = userMap[p.id] ?: "Professional")
+                        }
+                        isLoadingProviders = false
+                    }
+                    .addOnFailureListener {
+                        providers = provDocs
+                        isLoadingProviders = false
+                    }
             }
     }
 
     // Stats derived from real data
     val totalBookings = allBookings.size
-    val pendingCount = allBookings.count { it.status == "Pending" }
-    val confirmedCount = allBookings.count { it.status == "Confirmed" }
-    val completedCount = allBookings.count { it.status == "Completed" }
+    val pendingCount = allBookings.count { it.status == OrderStatus.PENDING }
+    val confirmedCount = allBookings.count { it.status == OrderStatus.ACCEPTED }
+    val completedCount = allBookings.count { it.status == OrderStatus.COMPLETED }
     val totalRevenue = allBookings.filter { it.status == "Completed" }.sumOf { it.finalPrice }
-    val activeProviders = providers.count { it.isActive }
+    val approvedProviders = providers.count { it.isApproved }
 
     Scaffold(
         topBar = {
@@ -152,15 +171,15 @@ fun AdminDashboardScreen() {
                         confirmedCount = confirmedCount,
                         completedCount = completedCount,
                         totalRevenue = totalRevenue,
-                        activeProviders = activeProviders,
+                        activeProviders = approvedProviders,
                         recentBookings = allBookings.take(5)
                     )
                     1 -> AdminBookingsTab(
                         bookings = allBookings,
                         isLoading = isLoadingBookings,
                         onStatusChange = { booking, newStatus ->
-                            firestore.collection("bookings").document(booking.id)
-                                .update("status", newStatus, "updatedAt", Timestamp.now())
+                            firestore.collection("orders").document(booking.id)
+                                .update("status", newStatus, "updatedAt", System.currentTimeMillis())
                         }
                     )
                     2 -> AdminProvidersTab(
@@ -168,7 +187,7 @@ fun AdminDashboardScreen() {
                         isLoading = isLoadingProviders,
                         onToggleActive = { provider ->
                             firestore.collection("providers").document(provider.id)
-                                .update("isActive", !provider.isActive)
+                                .update("isApproved", !provider.isApproved)
                         }
                     )
                     3 -> AdminAnalyticsTab(
@@ -255,9 +274,9 @@ fun AdminBookingsTab(
     isLoading: Boolean,
     onStatusChange: (Booking, String) -> Unit
 ) {
-    var filterStatus by remember { mutableStateOf("All") }
-    val filters = listOf("All", "Pending", "Confirmed", "InProgress", "Completed", "Cancelled")
-    val filtered = if (filterStatus == "All") bookings else bookings.filter { it.status == filterStatus }
+    var filterStatus by remember { mutableStateOf("all") }
+    val filters = listOf("all", OrderStatus.PENDING, OrderStatus.ACCEPTED, "InProgress", OrderStatus.COMPLETED, OrderStatus.CANCELLED)
+    val filtered = if (filterStatus == "all") bookings else bookings.filter { it.status == filterStatus }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Filter chips
@@ -272,7 +291,7 @@ fun AdminBookingsTab(
                     selected = filterStatus == status,
                     onClick = { filterStatus = status },
                     text = {
-                        val count = if (status == "All") bookings.size else bookings.count { it.status == status }
+                        val count = if (status == "all") bookings.size else bookings.count { it.status == status }
                         Text("$status ($count)", fontWeight = if (filterStatus == status) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp)
                     }
                 )
@@ -302,11 +321,11 @@ fun AdminBookingsTab(
 @Composable
 fun BookingListCard(booking: Booking, onStatusChange: ((String) -> Unit)?, compact: Boolean = false) {
     val statusColor = when (booking.status) {
-        "Pending" -> EnergyOrange
-        "Confirmed" -> ProfessionalBlue
+        OrderStatus.PENDING -> EnergyOrange
+        OrderStatus.ACCEPTED -> ProfessionalBlue
         "InProgress" -> ElectricTeal
-        "Completed" -> Color(0xFF2E7D32)
-        "Cancelled" -> Color.Red
+        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
+        OrderStatus.CANCELLED -> Color.Red
         else -> TextSecondary
     }
 
@@ -363,16 +382,16 @@ fun BookingListCard(booking: Booking, onStatusChange: ((String) -> Unit)?, compa
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (booking.status) {
-                        "Pending" -> {
-                            AdminActionButton("Confirm", Icons.Default.Check, ElectricTeal, Modifier.weight(1f)) { onStatusChange("Confirmed") }
-                            AdminActionButton("Cancel", Icons.Default.Close, Color.Red, Modifier.weight(1f)) { onStatusChange("Cancelled") }
+                        OrderStatus.PENDING -> {
+                            AdminActionButton("Confirm", Icons.Default.Check, ElectricTeal, Modifier.weight(1f)) { onStatusChange(OrderStatus.ACCEPTED) }
+                            AdminActionButton("Cancel", Icons.Default.Close, Color.Red, Modifier.weight(1f)) { onStatusChange(OrderStatus.CANCELLED) }
                         }
-                        "Confirmed" -> {
+                        OrderStatus.ACCEPTED -> {
                             AdminActionButton("Start Job", Icons.Default.PlayArrow, ProfessionalBlue, Modifier.weight(1f)) { onStatusChange("InProgress") }
-                            AdminActionButton("Cancel", Icons.Default.Close, Color.Red, Modifier.weight(1f)) { onStatusChange("Cancelled") }
+                            AdminActionButton("Cancel", Icons.Default.Close, Color.Red, Modifier.weight(1f)) { onStatusChange(OrderStatus.CANCELLED) }
                         }
                         "InProgress" -> {
-                            AdminActionButton("Mark Complete", Icons.Default.CheckCircle, Color(0xFF2E7D32), Modifier.weight(1f)) { onStatusChange("Completed") }
+                            AdminActionButton("Mark Complete", Icons.Default.CheckCircle, Color(0xFF2E7D32), Modifier.weight(1f)) { onStatusChange(OrderStatus.COMPLETED) }
                         }
                     }
                 }
@@ -419,7 +438,7 @@ fun AdminProvidersTab(
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("${providers.size} Professionals", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text("${providers.count { it.isActive }} Active", color = ElectricTeal, fontWeight = FontWeight.Bold)
+            Text("${providers.count { it.isApproved }} Active", color = ElectricTeal, fontWeight = FontWeight.Bold)
         }
 
         if (isLoading) {
@@ -455,10 +474,10 @@ fun ProviderAdminCard(provider: AdminProvider, onToggleActive: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(provider.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Surface(shape = CircleShape, color = if (provider.isActive) ElectricTeal.copy(0.12f) else Color.Red.copy(0.1f)) {
+                    Surface(shape = CircleShape, color = if (provider.isApproved) ElectricTeal.copy(0.12f) else Color.Red.copy(0.1f)) {
                         Text(
-                            if (provider.isActive) "Active" else "Inactive",
-                            color = if (provider.isActive) ElectricTeal else Color.Red,
+                            if (provider.isApproved) "Approved" else "Pending",
+                            color = if (provider.isApproved) ElectricTeal else Color.Red,
                             fontSize = 10.sp, fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
@@ -478,7 +497,7 @@ fun ProviderAdminCard(provider: AdminProvider, onToggleActive: () -> Unit) {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Switch(
-                checked = provider.isActive,
+                checked = provider.isApproved,
                 onCheckedChange = { onToggleActive() },
                 colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ElectricTeal)
             )
@@ -490,17 +509,17 @@ fun ProviderAdminCard(provider: AdminProvider, onToggleActive: () -> Unit) {
 @Composable
 fun AdminAnalyticsTab(allBookings: List<Booking>, totalRevenue: Double, completedCount: Int) {
     val categoryRevenue = allBookings
-        .filter { it.status == "Completed" }
+        .filter { it.status == OrderStatus.COMPLETED }
         .groupBy { it.serviceCategory.ifEmpty { "Other" } }
         .mapValues { (_, bookings) -> bookings.sumOf { it.finalPrice } }
         .entries.sortedByDescending { it.value }
 
     val statusBreakdown = mapOf(
-        "Pending" to allBookings.count { it.status == "Pending" },
-        "Confirmed" to allBookings.count { it.status == "Confirmed" },
+        "Pending" to allBookings.count { it.status == OrderStatus.PENDING },
+        "Confirmed" to allBookings.count { it.status == OrderStatus.ACCEPTED },
         "InProgress" to allBookings.count { it.status == "InProgress" },
-        "Completed" to allBookings.count { it.status == "Completed" },
-        "Cancelled" to allBookings.count { it.status == "Cancelled" }
+        "Completed" to allBookings.count { it.status == OrderStatus.COMPLETED },
+        "Cancelled" to allBookings.count { it.status == OrderStatus.CANCELLED }
     )
 
     LazyColumn(

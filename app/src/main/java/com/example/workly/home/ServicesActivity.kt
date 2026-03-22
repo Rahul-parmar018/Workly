@@ -97,7 +97,10 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = TextPrimary
+                )
             )
         },
         containerColor = BackgroundGray

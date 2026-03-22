@@ -6,74 +6,54 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.workly.R
-import com.example.workly.home.HomeActivity
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.google.android.material.card.MaterialCardView
 
 class AuthSelectionActivity : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
-
-    private val googleSignInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)!!
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { authTask ->
-                    progressBar.visibility = View.GONE
-                    if (authTask.isSuccessful) {
-                        startActivity(Intent(this, HomeActivity::class.java))
-                        finishAffinity()
-                    } else {
-                        Toast.makeText(this, "Google Sign-In Failed", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        } catch (e: ApiException) {
-            progressBar.visibility = View.GONE
-            Toast.makeText(this, "Google Sign-In Error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
+    private var selectedRole = "user"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auth_selection)
 
-        auth = FirebaseAuth.getInstance()
-        progressBar = findViewById(R.id.progressBar)
-
+        val cardUser: MaterialCardView = findViewById(R.id.cardUser)
+        val cardProvider: MaterialCardView = findViewById(R.id.cardProvider)
+        val tvAdminPortal: TextView = findViewById(R.id.tvAdminPortal)
         val btnGoogleSignIn: MaterialButton = findViewById(R.id.btnGoogleSignIn)
-        val btnCreateAccount: MaterialButton = findViewById(R.id.btnCreateAccount)
         val tvSignIn: TextView = findViewById(R.id.tvSignIn)
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        val googleSignInClient = GoogleSignIn.getClient(this, gso)
-
-        btnGoogleSignIn.setOnClickListener {
-            progressBar.visibility = View.VISIBLE
-            googleSignInClient.signOut().addOnCompleteListener {
-                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-            }
+        cardUser.setOnClickListener {
+            val intent = Intent(this, RegisterActivity::class.java)
+            intent.putExtra("role", "user")
+            startActivity(intent)
         }
 
-        btnCreateAccount.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
+        cardProvider.setOnClickListener {
+            // Specialized Provider Register
+            val intent = Intent(this, ProviderRegisterActivity::class.java)
+            startActivity(intent)
+        }
+
+        tvAdminPortal.setOnClickListener {
+            // Specialized Admin Login
+            val intent = Intent(this, AdminLoginActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnGoogleSignIn.setOnClickListener {
+            // Standard User Google Sign In logic can stay in LoginActivity or be handled here
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.putExtra("trigger_google", true)
+            startActivity(intent)
         }
 
         tvSignIn.setOnClickListener {
+            // Default back to standard login
             startActivity(Intent(this, LoginActivity::class.java))
         }
     }

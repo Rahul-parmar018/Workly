@@ -78,8 +78,10 @@ dependencies {
     // Location
     implementation(libs.play.services.location)
 
-    // Firebase Firestore
+    // Firebase
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
 
     // CameraX
     implementation(libs.androidx.camera.core)
@@ -97,5 +99,6 @@ dependencies {
 // coroutine
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2")
     implementation("io.coil-kt:coil-compose:2.5.0")
 }
