@@ -69,10 +69,11 @@
             app:strokeColor="@android:color/white"
             app:cardBackgroundColor="@android:color/transparent">
 
-            <Row
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="16dp"
+                android:orientation="horizontal"
                 android:gravity="center_vertical">
                 <TextView
                     android:id="@+id/tvUserText"
@@ -88,7 +89,7 @@
                     android:layout_height="20dp"
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@android:color/white"/>
-            </Row>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Provider Path -->
@@ -102,10 +103,11 @@
             app:strokeColor="@android:color/white"
             app:cardBackgroundColor="@android:color/transparent">
 
-            <Row
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="16dp"
+                android:orientation="horizontal"
                 android:gravity="center_vertical">
                 <TextView
                     android:id="@+id/tvProviderText"
@@ -121,7 +123,7 @@
                     android:layout_height="20dp"
                     android:src="@drawable/ic_chevron_right"
                     app:tint="@android:color/white"/>
-            </Row>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>

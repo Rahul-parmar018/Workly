@@ -20,6 +20,7 @@ class AuthSelectionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auth_selection)
+        progressBar = findViewById(R.id.progressBar)
 
         val cardUser: MaterialCardView = findViewById(R.id.cardUser)
         val cardProvider: MaterialCardView = findViewById(R.id.cardProvider)
