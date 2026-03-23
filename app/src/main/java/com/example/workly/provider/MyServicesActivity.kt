@@ -1,7 +1,6 @@
 package com.example.workly.provider
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,20 +10,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.workly.data.Service
 import com.example.workly.theme.ProfessionalBlue
 import com.example.workly.theme.TextPrimary
 import com.example.workly.theme.WorklyTheme
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import java.io.File
 
 class MyServicesActivity : ComponentActivity() {
 
@@ -33,7 +37,12 @@ class MyServicesActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WorklyTheme {
-                MyServicesScreen(onBack = { finish() })
+                val repo = remember { AddServiceRepository(this@MyServicesActivity) }
+                val vm: MyServicesViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(c: Class<T>): T =
+                        MyServicesViewModel(repo) as T
+                })
+                MyServicesScreen(vm, onBack = { finish() })
             }
         }
     }
@@ -41,30 +50,9 @@ class MyServicesActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyServicesScreen(onBack: () -> Unit) {
-    val db = FirebaseFirestore.getInstance()
-    val user = FirebaseAuth.getInstance().currentUser
-    var servicesList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(user?.uid) {
-        if (user != null) {
-            db.collection("services")
-                .whereEqualTo("providerId", user.uid)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        isLoading = false
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        servicesList = snapshot.documents.mapNotNull { it.data }
-                    }
-                    isLoading = false
-                }
-        } else {
-            isLoading = false
-        }
-    }
+fun MyServicesScreen(vm: MyServicesViewModel, onBack: () -> Unit) {
+    val servicesList by vm.services.collectAsState()
+    val isLoading by vm.isLoading.collectAsState()
 
     Scaffold(
         topBar = {
@@ -94,7 +82,7 @@ fun MyServicesScreen(onBack: () -> Unit) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(servicesList) { service ->
+                    items(servicesList, key = { it.id }) { service ->
                         ServiceCard(service)
                     }
                 }
@@ -104,9 +92,18 @@ fun MyServicesScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun ServiceCard(service: Map<String, Any>) {
-    val title = service["title"]?.toString() ?: "Unknown Service"
-    val price = service["price"]?.toString() ?: "0"
+fun ServiceCard(service: Service) {
+    val title = service.title
+    val price = service.price.toInt()
+    val imagePath = service.imagePath
+    val imageUrl = service.imageUrl
+
+    val imageSource = if (imagePath.isNotEmpty()) {
+        val file = File(imagePath)
+        if (file.exists()) android.net.Uri.fromFile(file) else imageUrl
+    } else {
+        imageUrl
+    }
     
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -115,13 +112,41 @@ fun ServiceCard(service: Map<String, Any>) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 🖼️ Service Image
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF1F5F9))
+            ) {
+                AsyncImage(
+                    model = imageSource,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                    error = painterResource(id = android.R.drawable.ic_menu_report_image)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A1A))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Base Rate: ₹$price", fontSize = 14.sp, color = ProfessionalBlue, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "₹$price", fontSize = 14.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
+                
+                // Simplified view for college project - no sync status needed
+                Text(
+                    text = "Professional Service", 
+                    fontSize = 11.sp, 
+                    color = Color.Gray, 
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }

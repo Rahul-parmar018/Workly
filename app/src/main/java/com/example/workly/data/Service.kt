@@ -17,5 +17,7 @@ data class Service(
     val totalOrders: Int = 0,
     val isActive: Boolean = true,
     val keywords: List<String> = emptyList(),
+    val imagePath: String = "",
+    val syncStatus: String = "synced",
     val createdAt: Timestamp = Timestamp.now()
 )
