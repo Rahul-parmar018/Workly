@@ -3,9 +3,13 @@ dotenv.config();
 
 import app from './app.js';
 import connectDB from './config/db.js';
+import initSchedulers from './scheduler.js';
 
 // Connect to Database
 connectDB();
+
+// Initialize Background Chronic Jobs (Payouts, Reconciliation)
+initSchedulers();
 
 const PORT = process.env.PORT || 5000;
 

@@ -4,6 +4,9 @@ import cors from 'cors';
 import morgan from 'morgan';
 import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
+import paymentAdminRoutes from './routes/adminRoutes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
@@ -21,6 +24,9 @@ if (process.env.NODE_ENV === 'development') {
 // Mount Routers
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/bookings', bookingRoutes);
+app.use('/api/v1/admin/payments', paymentAdminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
