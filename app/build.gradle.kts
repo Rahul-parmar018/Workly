@@ -75,8 +75,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
 
-    // Location
+    // Location & Maps
     implementation(libs.play.services.location)
+    implementation("org.maplibre.gl:android-sdk:10.0.2")
 
     // Firebase
     implementation(platform(libs.firebase.bom))
