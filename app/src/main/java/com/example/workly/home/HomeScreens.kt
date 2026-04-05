@@ -48,6 +48,7 @@ import com.example.workly.data.Service
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // ─── Workly Premium Color Palette ──────────────────────────────────────────
 private val WorklyBlueDeep   = Color(0xFF1E2A78)
@@ -105,16 +106,11 @@ fun HomeScreenContent(
     }
     val effectiveAvatar = userImage ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=ffffff&color=0e0e0e&bold=true&rounded=true&size=120"
 
+    val screenBg = MaterialTheme.colorScheme.background
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(WorklyBgLight.copy(alpha = 0.4f), WorklyPureWhite),
-                    center = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    radius = 1000f
-                )
-            )
+            .background(screenBg)
             .padding(top = innerPadding.calculateTopPadding()),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
@@ -130,13 +126,13 @@ fun HomeScreenContent(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "👋 Hi $firstName",
-                        color = WorklyTextDeep,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         "What do you need cleaned today?",
-                        color = WorklyTextMuted,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -145,7 +141,7 @@ fun HomeScreenContent(
                 Surface(
                     modifier = Modifier.size(44.dp),
                     shape = CircleShape,
-                    color = WorklyPillGray,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shadowElevation = 4.dp
                 ) {
                     AsyncImage(
@@ -173,16 +169,16 @@ fun HomeScreenContent(
                         .fillMaxWidth()
                         .clickable { context.startActivity(Intent(context, ServicesActivity::class.java)) },
                     shape = RoundedCornerShape(28.dp),
-                    color = WorklyPillGray,
-                    shadowElevation = 0.dp // User wants it clean
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 0.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Search, null, tint = WorklyTextMuted, modifier = Modifier.size(22.dp))
+                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Search for services...", color = WorklyTextMuted.copy(alpha = 0.7f), fontSize = 16.sp)
+                        Text("Search for services...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = 16.sp)
                     }
                 }
                 
@@ -196,7 +192,7 @@ fun HomeScreenContent(
                 ) {
                     Text(
                         "✔ Verified • 4.8★ Rated • 10k+ users",
-                        color = WorklyTextMuted,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -286,7 +282,7 @@ fun HomeScreenContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "No booking fee • Cancel anytime",
-                    color = WorklyTextMuted,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -369,12 +365,12 @@ fun HomeScreenContent(
                 items(trustItems.size) { idx ->
                     Surface(
                         shape = RoundedCornerShape(50.dp),
-                        color = WorklyPillGray,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier.shadow(2.dp, RoundedCornerShape(50.dp))
                     ) {
                         Text(
                             trustItems[idx],
-                            color = WorklyTextDeep,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
@@ -435,7 +431,7 @@ fun PremiumServiceCard(
             .shadow(8.dp, RoundedCornerShape(24.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Box(
             modifier = Modifier
@@ -471,7 +467,7 @@ fun PremiumServiceCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     title,
-                    color = WorklyTextDeep,
+                    color = Color(0xFF0F172A), // always dark text — readable on light gradients
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -485,6 +481,10 @@ fun PremiumServiceCard(
 @Composable
 fun PremiumServiceDetailCard(service: Service) {
     val context = LocalContext.current
+    val cardBg  = MaterialTheme.colorScheme.surface
+    val onCard  = MaterialTheme.colorScheme.onSurface
+    val primary = MaterialTheme.colorScheme.primary
+
     Surface(
         modifier = Modifier
             .width(260.dp)
@@ -502,7 +502,7 @@ fun PremiumServiceDetailCard(service: Service) {
                     })
             },
         shape = RoundedCornerShape(20.dp),
-        color = Color.White
+        color = cardBg
     ) {
         Column {
             Box {
@@ -515,7 +515,6 @@ fun PremiumServiceDetailCard(service: Service) {
                         .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
                     contentScale = ContentScale.Crop
                 )
-                // Slight gradient overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -528,11 +527,11 @@ fun PremiumServiceDetailCard(service: Service) {
                 )
             }
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(service.title, color = WorklyTextDeep, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(service.title, color = onCard, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(16.dp))
-                    Text(" 4.8 (2.1k reviews)", color = WorklyTextMuted, fontSize = 13.sp)
+                    Text(" 4.8 (2.1k reviews)", color = onCard.copy(alpha = 0.55f), fontSize = 13.sp)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -540,8 +539,8 @@ fun PremiumServiceDetailCard(service: Service) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("₹${service.price.toInt()}", color = WorklyBlueDeep, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text("⏱ ${service.duration}", color = WorklyTextMuted, fontSize = 12.sp)
+                    Text("₹${service.price.toInt()}", color = primary, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("⏱ ${service.duration}", color = onCard.copy(alpha = 0.55f), fontSize = 12.sp)
                 }
             }
         }
@@ -554,14 +553,14 @@ fun PremiumStatCard(value: String, label: String, modifier: Modifier = Modifier)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = WorklyPillGray
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(value, color = WorklyBlueDeep, fontSize = 18.sp, fontWeight = FontWeight.Black)
-            Text(label.uppercase(), color = WorklyTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(value, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+            Text(label.uppercase(), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
     }
 }
@@ -576,11 +575,11 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, color = WorklyTextDeep, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+        Text(title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         if (onSeeAll != null) {
             Text(
                 "See All",
-                color = WorklyBlueDeep,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 modifier = Modifier.clickable { onSeeAll() }
@@ -642,13 +641,16 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
         Triple("Messages", Icons.Default.ChatBubble, Icons.Outlined.ChatBubbleOutline),
         Triple("Profile", Icons.Default.Person, Icons.Outlined.Person)
     )
+    val navBg = MaterialTheme.colorScheme.surface
+    val navActive = MaterialTheme.colorScheme.primary
+    val navInactive = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(16.dp, RoundedCornerShape(28.dp)),
         shape = RoundedCornerShape(28.dp),
-        color = WorklyPureWhite.copy(alpha = 0.96f),
-        border = BorderStroke(1.dp, WorklyBlueDeep.copy(alpha = 0.05f))
+        color = navBg,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
@@ -668,20 +670,20 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .size(width = 54.dp, height = 32.dp)
-                                    .background(WorklyBlueDeep.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                                    .background(navActive.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
                             )
                         }
                         Icon(
                             if (isSelected) filledIcon else outlinedIcon,
                             contentDescription = label,
-                            tint = if (isSelected) WorklyBlueDeep else WorklyTextMuted,
+                            tint = if (isSelected) navActive else navInactive,
                             modifier = Modifier.size(22.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         label,
-                        color = if (isSelected) WorklyBlueDeep else WorklyTextMuted,
+                        color = if (isSelected) navActive else navInactive,
                         fontSize = 10.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -717,10 +719,11 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
         }
     }
 
+    val profileBg = MaterialTheme.colorScheme.background
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(WorklyPureWhite),
+            .background(profileBg),
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         item {
@@ -819,7 +822,38 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                 Spacer(modifier = Modifier.height(8.dp))
                 PremiumSectionLabel("Preferences")
                 PremiumProfileMenuItem(Icons.Default.Notifications, "Notifications", "Push, SMS & email") {}
-                PremiumProfileMenuItem(Icons.Default.Palette, "Appearance", "Light Mode") {}
+
+                // Theme Selection state
+                var showThemeSheet by remember { mutableStateOf(false) }
+                val themeDataStore = remember { ThemeDataStore(context) }
+                val currentTheme by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+                val coroutineScope = rememberCoroutineScope()
+
+
+                val themeSubtitle = when(currentTheme) {
+                    ThemeMode.LIGHT -> "Light Mode ☀️"
+                    ThemeMode.DARK -> "Dark Mode 🌙"
+                    ThemeMode.SYSTEM -> "System Default ⚙️"
+                }
+
+                PremiumProfileMenuItem(Icons.Default.Palette, "Appearance", themeSubtitle) {
+                    showThemeSheet = true
+                }
+
+                if (showThemeSheet) {
+                    AppearanceBottomSheet(
+                        currentMode = currentTheme,
+                        onDismiss = { showThemeSheet = false },
+                        onModeSelected = { mode ->
+                            coroutineScope.launch {
+                                themeDataStore.setThemeMode(mode)
+                                // Auto-close after short delay for premium feel
+                                kotlinx.coroutines.delay(200)
+                                showThemeSheet = false
+                            }
+                        }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
@@ -849,7 +883,7 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
 fun PremiumSectionLabel(text: String) {
     Text(
         text,
-        color = WorklyTextMuted,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
         fontWeight = FontWeight.ExtraBold,
         fontSize = 12.sp,
         letterSpacing = 1.sp,
@@ -869,25 +903,95 @@ fun PremiumProfileMenuItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = WorklyPillGray
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = WorklyPureWhite,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.size(44.dp),
                 shadowElevation = 2.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = WorklyBlueDeep, modifier = Modifier.size(22.dp))
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = WorklyTextDeep)
-                Text(subtitle, fontSize = 12.sp, color = WorklyTextMuted)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
-            Icon(Icons.Default.ChevronRight, null, tint = WorklyTextMuted.copy(alpha = 0.4f))
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppearanceBottomSheet(
+    currentMode: com.example.workly.theme.ThemeMode,
+    onDismiss: () -> Unit,
+    onModeSelected: (com.example.workly.theme.ThemeMode) -> Unit
+) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                "Appearance",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+
+            val options = listOf(
+                Pair(com.example.workly.theme.ThemeMode.LIGHT, "Light Mode        ☀️"),
+                Pair(com.example.workly.theme.ThemeMode.DARK,  "Dark Mode         🌙"),
+                Pair(com.example.workly.theme.ThemeMode.SYSTEM,"System Default    ⚙️")
+            )
+
+            options.forEach { (mode, label) ->
+                val isSelected = currentMode == mode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            if (!isSelected) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                onModeSelected(mode)
+                            }
+                        }
+                        .padding(vertical = 16.dp, horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = isSelected,
+                        onClick = null, // Handled by Row click
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = MaterialTheme.colorScheme.primary,
+                            unselectedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = label,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 16.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
+            }
         }
     }
 }

@@ -42,7 +42,7 @@ fun InboxScreen() {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val uid = auth.currentUser?.uid ?: ""
-    
+
     var chats by remember { mutableStateOf<List<ChatPreview>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -65,14 +65,14 @@ fun InboxScreen() {
                             chats = emptyList()
                             return@addSnapshotListener
                         }
-                        
+
                         docs.forEach { doc ->
                             val members = doc.get("members") as? List<String> ?: emptyList()
                             val otherId = members.find { it != uid } ?: ""
                             val lastMsg = doc.getString("lastMessage") ?: ""
                             val ts = doc.getTimestamp("lastTimestamp")?.toDate() ?: Date()
                             val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(ts)
-                            
+
                             if (otherId.isEmpty()) {
                                 previews.add(ChatPreview("", "Unknown", lastMsg, timeStr, 0))
                                 if (previews.size == docs.size) {
@@ -82,16 +82,14 @@ fun InboxScreen() {
                                 return@forEach
                             }
 
-                            // 🚀 SECONDARY: Fetch OTHER member's name from users OR providers
                             db.collection("users").document(otherId).get().addOnCompleteListener { task ->
                                 val userDoc = if (task.isSuccessful) task.result else null
                                 val userName = userDoc?.getString("name")
-                                
+
                                 if (userName.isNullOrEmpty()) {
                                     db.collection("providers").document(otherId).get().addOnCompleteListener { pTask ->
                                         val pDoc = if (pTask.isSuccessful) pTask.result else null
                                         val pName = pDoc?.getString("name") ?: "Pro"
-                                        
                                         previews.add(ChatPreview(otherId, pName, lastMsg, timeStr, 0))
                                         if (previews.size == docs.size) {
                                             chats = previews.sortedByDescending { it.time }
@@ -112,9 +110,16 @@ fun InboxScreen() {
         }
     }
 
+    // ── Theme-reactive aliases ───────────────────────────────────────────────
+    val bg       = MaterialTheme.colorScheme.background
+    val onBg     = MaterialTheme.colorScheme.onBackground
+    val primary  = MaterialTheme.colorScheme.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(bg)
             .padding(horizontal = 24.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -122,26 +127,28 @@ fun InboxScreen() {
             text = "Messages",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
-            color = ProfessionalBlue
+            color = onBg
         )
         Text(
             text = "Connect with your service team",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary
+            color = onBg.copy(alpha = 0.55f)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ProfessionalBlue)
+                CircularProgressIndicator(color = primary)
             }
         } else if (chats.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Assignment, null, tint = Color.LightGray, modifier = Modifier.size(64.dp))
+                    Icon(Icons.Default.MailOutline, null, tint = onSurface.copy(alpha = 0.25f), modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("No messages yet", color = Color.Gray, fontWeight = FontWeight.Medium)
+                    Text("No messages yet", color = onSurface.copy(alpha = 0.45f), fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Book a service to start chatting", color = onSurface.copy(alpha = 0.3f), fontSize = 13.sp)
                 }
             }
         } else {
@@ -160,6 +167,12 @@ fun InboxScreen() {
 @Composable
 fun ChatListItem(chat: ChatPreview) {
     val context = LocalContext.current
+
+    val cardBg   = MaterialTheme.colorScheme.surface
+    val onCard   = MaterialTheme.colorScheme.onSurface
+    val surfVar  = MaterialTheme.colorScheme.surfaceVariant
+    val primary  = MaterialTheme.colorScheme.primary
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,7 +185,7 @@ fun ChatListItem(chat: ChatPreview) {
                 context.startActivity(intent)
             },
         shape = RoundedCornerShape(20.dp),
-        color = Color.White
+        color = cardBg
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -181,10 +194,10 @@ fun ChatListItem(chat: ChatPreview) {
             Surface(
                 modifier = Modifier.size(52.dp),
                 shape = CircleShape,
-                color = BackgroundGray
+                color = surfVar
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Person, null, tint = ProfessionalBlue)
+                    Icon(Icons.Default.Person, null, tint = primary)
                 }
             }
 
@@ -196,14 +209,14 @@ fun ChatListItem(chat: ChatPreview) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = chat.receiverName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(text = chat.time, fontSize = 11.sp, color = Color.Gray)
+                    Text(text = chat.receiverName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onCard)
+                    Text(text = chat.time, fontSize = 11.sp, color = onCard.copy(alpha = 0.45f))
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = chat.lastMessage,
                     fontSize = 14.sp,
-                    color = TextSecondary,
+                    color = onCard.copy(alpha = 0.6f),
                     maxLines = 1
                 )
             }

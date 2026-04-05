@@ -43,9 +43,13 @@ class ServicesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val initialCategory = intent.getStringExtra("CATEGORY") ?: "All"
+        val themeDataStore = ThemeDataStore(this)
+        
         setContent {
-            WorklyTheme(darkTheme = false) {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            WorklyTheme(themeMode = themeMode) {
                 ServicesScreen(
                     initialCategory = initialCategory,
                     onBackClick = { finish() }

@@ -36,21 +36,13 @@ import com.example.workly.home.getAllServices
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 
-// ─── Workly Premium Color Palette ──────────────────────────────────────────
-private val WorklyBlueDeep   = Color(0xFF1E2A78)
-private val WorklyBlueLight  = Color(0xFF2D3FA3)
-private val WorklyBgLight    = Color(0xFFF8FAFC)
-private val WorklyPureWhite  = Color(0xFFFFFFFF)
-private val WorklyPillGray   = Color(0xFFF1F5F9)
-private val WorklyTextDeep   = Color(0xFF0F172A)
-private val WorklyTextMuted  = Color(0xFF64748B)
+// Brand accent — always the same regardless of theme
+private val AccentBlue = Color(0xFF1E2A78)
 
 private val CleaningGradient = Brush.verticalGradient(listOf(Color(0xFFEAF6FF), Color(0xFFFFFFFF)))
 private val ElectricGradient = Brush.verticalGradient(listOf(Color(0xFFFFF4E5), Color(0xFFFFE0B2)))
 private val PlumbingGradient = Brush.verticalGradient(listOf(Color(0xFFE6FFFA), Color(0xFFCCF2F4)))
 private val RepairGradient   = Brush.verticalGradient(listOf(Color(0xFFF3E8FF), Color(0xFFF9F5FF)))
-private val MoreGradient     = Brush.verticalGradient(listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0)))
-private val CtaGradient      = Brush.horizontalGradient(listOf(WorklyBlueDeep, WorklyBlueLight))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +58,7 @@ fun ExploreScreen() {
             .addSnapshotListener { snapshot, e ->
                 if (e == null && snapshot != null) {
                     services = snapshot.documents.mapNotNull { doc ->
-                        try { doc.toObject(Service::class.java) } 
+                        try { doc.toObject(Service::class.java) }
                         catch (ex: Exception) { null }
                     }
                 }
@@ -78,35 +70,43 @@ fun ExploreScreen() {
         (searchQuery.isEmpty() || service.title.contains(searchQuery, true))
     }
 
+    // ── Theme-reactive local aliases ─────────────────────────────────────────
+    val bg         = MaterialTheme.colorScheme.background
+    val surface    = MaterialTheme.colorScheme.surface
+    val surfaceVar = MaterialTheme.colorScheme.surfaceVariant
+    val onBg       = MaterialTheme.colorScheme.onBackground
+    val onSurface  = MaterialTheme.colorScheme.onSurface
+    val primary    = MaterialTheme.colorScheme.primary
+
     Scaffold(
-        containerColor = WorklyBgLight,
+        containerColor = bg,
         topBar = {
-            Column(modifier = Modifier.background(WorklyBgLight).statusBarsPadding()) {
-                // 🔥 1. HEADER (Upgrade)
+            Column(modifier = Modifier.background(bg).statusBarsPadding()) {
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Explore Services", fontSize = 24.sp, fontWeight = FontWeight.Black, color = WorklyTextDeep)
+                        Text("Explore Services", fontSize = 24.sp, fontWeight = FontWeight.Black, color = onBg)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, null, tint = WorklyBlueDeep, modifier = Modifier.size(14.dp))
-                            Text(" Ahmedabad", fontSize = 13.sp, color = WorklyBlueDeep, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.LocationOn, null, tint = primary, modifier = Modifier.size(14.dp))
+                            Text(" Ahmedabad", fontSize = 13.sp, color = primary, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Surface(shape = CircleShape, color = WorklyPureWhite, modifier = Modifier.size(44.dp), shadowElevation = 2.dp) {
+                    Surface(shape = CircleShape, color = surfaceVar, modifier = Modifier.size(44.dp), shadowElevation = 2.dp) {
                         AsyncImage(model = "https://ui-avatars.com/api/?name=Rahul+Parmar&background=1E2A78&color=fff", contentDescription = null)
                     }
                 }
                 Text(
                     "Discover 33+ services near you",
                     fontSize = 14.sp,
-                    color = WorklyTextMuted,
+                    color = onBg.copy(alpha = 0.5f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
 
-                // 🔥 2. SEARCH BAR & FILTER
+                // Search Bar & Filter
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -114,22 +114,22 @@ fun ExploreScreen() {
                     Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
-                        color = WorklyPureWhite,
+                        color = surface,
                         shadowElevation = 2.dp
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Icon(Icons.Default.Search, null, tint = WorklyTextMuted, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Search, null, tint = onSurface.copy(alpha = 0.45f), modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             BasicTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
                                 modifier = Modifier.weight(1f),
-                                textStyle = TextStyle(color = WorklyTextDeep, fontSize = 15.sp),
+                                textStyle = TextStyle(color = onSurface, fontSize = 15.sp),
                                 decorationBox = { inner ->
-                                    if (searchQuery.isEmpty()) Text("Search cleaning, plumbing...", color = WorklyTextMuted, fontSize = 15.sp)
+                                    if (searchQuery.isEmpty()) Text("Search cleaning, plumbing...", color = onSurface.copy(alpha = 0.4f), fontSize = 15.sp)
                                     inner()
                                 }
                             )
@@ -138,35 +138,35 @@ fun ExploreScreen() {
                     Spacer(modifier = Modifier.width(12.dp))
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = WorklyPureWhite,
+                        color = surface,
                         shadowElevation = 2.dp,
                         modifier = Modifier.size(48.dp).clickable { /* Filters */ }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Tune, null, tint = WorklyBlueDeep, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Tune, null, tint = primary, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
-                
-                // 🔥 3. FILTER CHIPS
+
+                // Filter Chips
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    val filters = listOf("Nearby", "Under \u20b9499", "4\u2605+ Rated", "Fast Service")
+                    val filters = listOf("Nearby", "Under ₹499", "4★+ Rated", "Fast Service")
                     items(filters.size) { idx ->
                         val f = filters[idx]
                         val isSel = selectedFilter == f
                         Surface(
                             onClick = { selectedFilter = f },
                             shape = RoundedCornerShape(50.dp),
-                            color = if (isSel) WorklyBlueDeep else WorklyPureWhite,
+                            color = if (isSel) primary else surface,
                             shadowElevation = if (isSel) 4.dp else 1.dp
                         ) {
                             Text(
                                 f,
-                                color = if (isSel) Color.White else WorklyTextDeep,
+                                color = if (isSel) Color.White else onSurface,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
@@ -181,7 +181,7 @@ fun ExploreScreen() {
             modifier = Modifier.fillMaxSize().padding(p),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            // 🔥 4. CATEGORY ROW (Icons + Style)
+            // Category Row
             item {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 24.dp),
@@ -201,25 +201,25 @@ fun ExploreScreen() {
                             onClick = { selectedCategory = if (isSel) "All" else name },
                             shape = RoundedCornerShape(20.dp),
                             modifier = Modifier.size(80.dp, 100.dp),
-                            color = Color.White,
-                            border = if (isSel) BorderStroke(2.dp, WorklyBlueDeep) else null,
+                            color = surface,
+                            border = if (isSel) BorderStroke(2.dp, primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
                             shadowElevation = if (isSel) 8.dp else 2.dp
                         ) {
                             Column(
-                                modifier = Modifier.background(grad).padding(8.dp),
+                                modifier = Modifier.padding(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 AsyncImage(model = icon, contentDescription = name, modifier = Modifier.size(40.dp))
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WorklyTextDeep)
+                                Text(name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = onSurface)
                             }
                         }
                     }
                 }
             }
 
-            // 🔥 7. POPULAR NEAR YOU (Header)
+            // Popular Near You Header
             item {
                 Spacer(modifier = Modifier.height(32.dp))
                 Row(
@@ -227,16 +227,16 @@ fun ExploreScreen() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("\ud83d\udd25 Popular Near You", fontSize = 18.sp, fontWeight = FontWeight.Black, color = WorklyTextDeep)
+                    Text("🔥 Popular Near You", fontSize = 18.sp, fontWeight = FontWeight.Black, color = onBg)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Sort: Popular", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WorklyBlueDeep)
-                        Icon(Icons.Default.KeyboardArrowDown, null, tint = WorklyBlueDeep, modifier = Modifier.size(18.dp))
+                        Text("Sort: Popular", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primary)
+                        Icon(Icons.Default.KeyboardArrowDown, null, tint = primary, modifier = Modifier.size(18.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 🔥 5. SERVICE LIST (Real cards)
+            // Service List
             items(filtered) { service ->
                 RealMarketplaceCard(service)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -248,20 +248,24 @@ fun ExploreScreen() {
 @Composable
 fun RealMarketplaceCard(service: Service) {
     val context = LocalContext.current
-    
-    // High-trust fallbacks for sparse provider data
-    val displayRating = if (service.rating > 0) service.rating.toString() else "4.8"
+
+    val displayRating  = if (service.rating > 0) service.rating.toString() else "4.8"
     val displayReviews = (service.id.hashCode().let { if (it < 0) -it else it } % 200 + 40).toString()
     val displayDuration = service.duration.ifEmpty { "45 mins" }
     val displayDistance = (service.id.hashCode().let { if (it < 0) -it else it } % 45 / 10.0 + 0.5).let { "%.1f".format(it) }
     val displayImg = service.imageUrl.ifEmpty { "https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=300" }
 
+    val cardBg   = MaterialTheme.colorScheme.surface
+    val onCard   = MaterialTheme.colorScheme.onSurface
+    val primary  = MaterialTheme.colorScheme.primary
+    val outline  = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
         shape = RoundedCornerShape(24.dp),
-        color = WorklyPureWhite,
+        color = cardBg,
         shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, WorklyPillGray)
+        border = BorderStroke(1.dp, outline)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box {
@@ -271,12 +275,11 @@ fun RealMarketplaceCard(service: Service) {
                     modifier = Modifier.size(100.dp).clip(RoundedCornerShape(16.dp)),
                     contentScale = ContentScale.Crop
                 )
-                // Trending Tag (show if rating is high)
                 if (displayRating.toDouble() >= 4.7) {
                     Surface(
                         modifier = Modifier.padding(6.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = WorklyBlueDeep
+                        color = primary
                     ) {
                         Text("Trending", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
@@ -284,17 +287,17 @@ fun RealMarketplaceCard(service: Service) {
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(service.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = WorklyTextDeep, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(service.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onCard, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(14.dp))
-                    Text(" $displayRating ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = WorklyTextDeep)
-                    Text("($displayReviews reviews)", fontSize = 12.sp, color = WorklyTextMuted)
+                    Text(" $displayRating ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = onCard)
+                    Text("($displayReviews reviews)", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("\u23f2\ufe0f $displayDuration", fontSize = 12.sp, color = WorklyTextMuted)
-                    Text(" \u2022 ", color = WorklyTextMuted)
-                    Text("\ud83d\udccd $displayDistance km away", fontSize = 12.sp, color = WorklyTextMuted)
+                    Text("⏲️ $displayDuration", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
+                    Text(" • ", color = onCard.copy(alpha = 0.3f))
+                    Text("📍 $displayDistance km away", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
@@ -302,7 +305,7 @@ fun RealMarketplaceCard(service: Service) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("\u20b9${service.price.toInt()}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = WorklyBlueDeep)
+                    Text("₹${service.price.toInt()}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = primary)
                     Surface(
                         onClick = {
                             context.startActivity(
@@ -317,7 +320,7 @@ fun RealMarketplaceCard(service: Service) {
                                 })
                         },
                         shape = RoundedCornerShape(12.dp),
-                        color = WorklyBlueDeep
+                        color = primary
                     ) {
                         Text("Book Now", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                     }
