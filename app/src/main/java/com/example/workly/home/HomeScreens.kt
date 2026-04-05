@@ -528,50 +528,94 @@ fun ProfileScreenContent(
 
         // 🔥 3. QUICK ACTIONS
         item {
+            var showAddressSheet by remember { mutableStateOf(false) }
+            var showSupportSheet by remember { mutableStateOf(false) }
+
             Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val actions = if (userRole == "provider") {
-                    listOf(
+                if (userRole == "provider") {
+                    val providerActions = listOf(
                         Triple("My Orders", Icons.Default.ReceiptLong, { context.startActivity(Intent(context, ProviderOrdersActivity::class.java)) }),
                         Triple("My Services", Icons.Default.Inventory2, { context.startActivity(Intent(context, MyServicesActivity::class.java)) }),
                         Triple("Add Service", Icons.Default.AddBusiness, { context.startActivity(Intent(context, AddServiceActivity::class.java)) })
                     )
+                    providerActions.forEach { (label, icon, action) ->
+                        Surface(
+                            modifier = Modifier.weight(1f).height(90.dp).clickable { action() },
+                            shape = RoundedCornerShape(20.dp),
+                            color = surfVar,
+                            shadowElevation = 1.dp
+                        ) {
+                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(icon, null, tint = primary, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = primary)
+                            }
+                        }
+                    }
                 } else {
-                    listOf(
-                        Triple("Bookings", Icons.Default.ReceiptLong, { context.startActivity(Intent(context, MyBookingsActivity::class.java)) }),
-                        Triple("Addresses", Icons.Default.LocationOn, { /* Navigate */ }),
-                        Triple("Support", Icons.Default.HelpCenter, { /* Navigate */ })
-                    )
-                }
-                
-                actions.forEach { (label, icon, action) ->
+                    // Bookings
                     Surface(
-                        modifier = Modifier.weight(1f).height(90.dp).clickable { action() },
-                        shape = RoundedCornerShape(20.dp),
-                        color = surfVar,
-                        shadowElevation = 1.dp
+                        modifier = Modifier.weight(1f).height(90.dp).clickable { context.startActivity(Intent(context, MyBookingsActivity::class.java)) },
+                        shape = RoundedCornerShape(20.dp), color = surfVar, shadowElevation = 1.dp
                     ) {
                         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(icon, null, tint = primary, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.ReceiptLong, null, tint = primary, modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = primary)
+                            Text("Bookings", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = primary)
+                        }
+                    }
+                    // Addresses
+                    Surface(
+                        modifier = Modifier.weight(1f).height(90.dp).clickable { showAddressSheet = true },
+                        shape = RoundedCornerShape(20.dp), color = surfVar, shadowElevation = 1.dp
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.LocationOn, null, tint = primary, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Addresses", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = primary)
+                        }
+                    }
+                    // Support
+                    Surface(
+                        modifier = Modifier.weight(1f).height(90.dp).clickable { showSupportSheet = true },
+                        shape = RoundedCornerShape(20.dp), color = surfVar, shadowElevation = 1.dp
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.HelpCenter, null, tint = primary, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Support", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = primary)
                         }
                     }
                 }
             }
+
+            // Quick action sheets
+            if (showAddressSheet) { AddressesSheet { showAddressSheet = false } }
+            if (showSupportSheet) { SupportSheet { showSupportSheet = false } }
         }
 
         // 🔥 4 & 5. SECTIONS
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 32.dp)) {
+
+                // ── Sheet visibility states ──
+                var showProfileInfo by remember { mutableStateOf(false) }
+                var showPaymentMethods by remember { mutableStateOf(false) }
+                var showSecurity by remember { mutableStateOf(false) }
+                var showNotifications by remember { mutableStateOf(false) }
+                var showLanguage by remember { mutableStateOf(false) }
+                var showPrivacyPolicy by remember { mutableStateOf(false) }
+                var showRateWorkly by remember { mutableStateOf(false) }
+                var showAboutWorkly by remember { mutableStateOf(false) }
                 
                 DashboardSection("Account Dashboard") {
-                    DashboardItem(Icons.Default.ManageAccounts, "Profile Information", "Update name, email & phone") {}
-                    DashboardItem(Icons.Default.Payment, "Payment Methods", "Manage cards & UPI") {}
-                    DashboardItem(Icons.Default.VpnKey, "Security", "Passwords & permissions") {}
+                    DashboardItem(Icons.Default.ManageAccounts, "Profile Information", "Update name, email & phone") { showProfileInfo = true }
+                    DashboardItem(Icons.Default.Payment, "Payment Methods", "Manage cards & UPI") { showPaymentMethods = true }
+                    DashboardItem(Icons.Default.VpnKey, "Security", "Passwords & permissions") { showSecurity = true }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -589,8 +633,8 @@ fun ProfileScreenContent(
                 }
 
                 DashboardSection("Preferences") {
-                    DashboardItem(Icons.Default.NotificationsActive, "Notifications", "Alerts & updates") {}
-                    DashboardItem(Icons.Default.Language, "Language", "English (India)") {}
+                    DashboardItem(Icons.Default.NotificationsActive, "Notifications", "Alerts & updates") { showNotifications = true }
+                    DashboardItem(Icons.Default.Language, "Language", "English (India)") { showLanguage = true }
                     DashboardItem(Icons.Default.DarkMode, "Appearance", themeSubtitle) {
                         showThemeSheet = true
                     }
@@ -613,14 +657,14 @@ fun ProfileScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 DashboardSection("Support & Trust") {
-                    DashboardItem(Icons.Default.Shield, "Privacy Policy", "How we protect your data") {}
-                    DashboardItem(Icons.Default.StarRate, "Rate Workly", "Share your feedback") {}
-                    DashboardItem(Icons.Default.Info, "About Workly", "Version 1.0.4 Premium") {}
+                    DashboardItem(Icons.Default.Shield, "Privacy Policy", "How we protect your data") { showPrivacyPolicy = true }
+                    DashboardItem(Icons.Default.StarRate, "Rate Workly", "Share your feedback") { showRateWorkly = true }
+                    DashboardItem(Icons.Default.Info, "About Workly", "Version 1.0.4 Premium") { showAboutWorkly = true }
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // 🔥 8. LOGOUT
+                // LOGOUT
                 Surface(
                     onClick = { onLogout() },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -638,6 +682,16 @@ fun ProfileScreenContent(
                         Text("Log Out", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
+
+                // ── Bottom Sheets ──
+                if (showProfileInfo) { ProfileInfoSheet { showProfileInfo = false } }
+                if (showPaymentMethods) { PaymentMethodsSheet { showPaymentMethods = false } }
+                if (showSecurity) { SecuritySheet { showSecurity = false } }
+                if (showNotifications) { NotificationsSheet { showNotifications = false } }
+                if (showLanguage) { LanguageSheet { showLanguage = false } }
+                if (showPrivacyPolicy) { PrivacyPolicySheet { showPrivacyPolicy = false } }
+                if (showRateWorkly) { RateWorklySheet { showRateWorkly = false } }
+                if (showAboutWorkly) { AboutWorklySheet { showAboutWorkly = false } }
             }
         }
     }

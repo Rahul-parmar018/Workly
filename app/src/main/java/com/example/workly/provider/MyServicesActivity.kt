@@ -28,6 +28,7 @@ import coil.compose.AsyncImage
 import com.example.workly.data.Service
 import com.example.workly.theme.ProfessionalBlue
 import com.example.workly.theme.TextPrimary
+import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
 import java.io.File
 

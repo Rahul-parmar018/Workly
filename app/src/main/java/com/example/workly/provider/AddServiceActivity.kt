@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
 import com.google.firebase.firestore.FirebaseFirestore
 
