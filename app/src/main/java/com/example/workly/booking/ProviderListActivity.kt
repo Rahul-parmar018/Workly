@@ -41,8 +41,12 @@ class ProviderListActivity : ComponentActivity() {
         val userLat = intent.getDoubleExtra("USER_LAT", 0.0)
         val userLon = intent.getDoubleExtra("USER_LON", 0.0)
 
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+            WorklyTheme(themeMode = themeMode) {
                 ProviderListScreen(
                     serviceName = serviceName,
                     serviceCategory = serviceCategory,

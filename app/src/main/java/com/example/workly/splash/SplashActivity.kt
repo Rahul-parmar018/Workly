@@ -20,6 +20,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
@@ -63,7 +64,7 @@ class SplashActivity : ComponentActivity() {
         val themeDataStore = ThemeDataStore(this)
 
         setContent {
-            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = themeDataStore.getInitialThemeMode())
             
             WorklyTheme(themeMode = themeMode) {
                 var showSplash by remember { mutableStateOf(true) }
@@ -175,7 +176,10 @@ fun PremiumSplashScreen() {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(BrandBlue, BrandBlueMid, BrandBlueDark)
+                    colors = if (isSystemInDarkTheme()) 
+                        listOf(Color(0xFF0F172A), Color(0xFF1E293B)) 
+                    else 
+                        listOf(BrandBlue, BrandBlueMid, BrandBlueDark)
                 )
             ),
         contentAlignment = Alignment.Center
@@ -313,7 +317,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
 
     HorizontalPager(
         state = pagerState,
-        modifier = Modifier.fillMaxSize().background(Color.White)
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) { pageIndex ->
         val page = pages[pageIndex]
 
@@ -425,7 +429,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -433,7 +437,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
                 
                 Text(
                     text = page.title,
-                    color = Color(0xFF1E293B),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold, // Clean, strong, classic
                     textAlign = TextAlign.Center,
@@ -445,7 +449,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
 
                 Text(
                     text = page.description,
-                    color = Color(0xFF64748B),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal, // Lighter, more spacing
                     textAlign = TextAlign.Center,
@@ -457,8 +461,8 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
                 // Classy Thin Trust Pill
                 Surface(
                     shape = RoundedCornerShape(50.dp),
-                    color = Color.White.copy(alpha = 0.9f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
                     shadowElevation = 1.dp,
                     modifier = Modifier.height(36.dp)
                 ) {
@@ -472,7 +476,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
                             Text(page.trustIcon, fontSize = 14.sp)
                         }
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(page.trustLine, color = Color(0xFF334155), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text(page.trustLine, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                 }
 

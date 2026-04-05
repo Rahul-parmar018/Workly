@@ -49,19 +49,17 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// ─── Workly Premium Color Palette (Legacy Aliases for Compatibility) ───────
-private val WorklyBlueDeep   = Color(0xFF1E2A78)
-private val WorklyBlueLight  = Color(0xFF2D3FA3)
-private val WorklyBgLight    = Color(0xFFEAF6FF)
-private val WorklyPureWhite  = Color(0xFFFFFFFF)
-private val WorklyPillGray   = Color(0xFFF1F5F9)
-private val WorklyTextDeep   = Color(0xFF0F172A)
-private val WorklyTextMuted  = Color(0xFF64748B)
+// Workly Premium Colors (Theme-aware aliases)
+@Composable
+fun getWorklyPrimary() = MaterialTheme.colorScheme.primary
+@Composable
+fun getWorklyOnSurface() = MaterialTheme.colorScheme.onSurface
+@Composable
+fun getWorklyBackground() = MaterialTheme.colorScheme.background
 
 private val CleaningGradient = Brush.verticalGradient(listOf(Color(0xFFEAF6FF), Color(0xFFFFFFFF)))
 private val ElectricGradient = Brush.verticalGradient(listOf(Color(0xFFFFF4E5), Color(0xFFFFE0B2)))
 private val PlumbingGradient = Brush.verticalGradient(listOf(Color(0xFFE6FFFA), Color(0xFFCCF2F4)))
-private val CtaGradient      = Brush.horizontalGradient(listOf(WorklyBlueDeep, WorklyBlueLight))
 
 // ─── Home Screen ───────────────────────────────────────────────────────────
 @OptIn(ExperimentalFoundationApi::class)
@@ -272,7 +270,7 @@ fun HomeScreenContent(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(CtaGradient)
+                            .background(Brush.horizontalGradient(listOf(primary, primary.copy(alpha = 0.8f))))
                             .clickable { /* Action */ },
                         contentAlignment = Alignment.Center
                     ) {
@@ -317,7 +315,7 @@ fun HomeScreenContent(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(WorklyBlueDeep)
+                    .background(primary)
                     .clickable { /* Action */ }
             ) {
                 Row(
@@ -340,7 +338,7 @@ fun HomeScreenContent(
                         Surface(shape = RoundedCornerShape(8.dp), color = Color.White) {
                             Text(
                                 "Use code FIRST20",
-                                color = WorklyBlueDeep,
+                                color = primary,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
@@ -506,17 +504,17 @@ fun ProfileScreenContent(
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                     shape = RoundedCornerShape(24.dp),
-                    color = WorklyBlueDeep,
+                    color = primary,
                     shadowElevation = 8.dp
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
                                 Text("Total Earnings", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Text("\u20b9$lifetimeEarnings", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                                Text("₹$lifetimeEarnings", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
                             }
                             Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.15f)) {
-                                Text("+ \u20b9500 today", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                Text("+ ₹500 today", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
@@ -729,7 +727,8 @@ fun PremiumServiceCard(title: String, gradient: Brush, iconUrl: String, glowPuls
             Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 AsyncImage(model = iconUrl, contentDescription = null, modifier = Modifier.size(64.dp), contentScale = ContentScale.Fit)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(title, color = Color(0xFF0F172A), fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                // Fixed hardcoded color here
+                Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             }
         }
     }

@@ -1,66 +1,51 @@
 package com.example.workly.home
 
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import coil.load
-import com.example.workly.R
-import com.example.workly.booking.BookingActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.example.workly.theme.ThemeDataStore
+import com.example.workly.theme.WorklyTheme
 
-class ServiceDetailActivity : AppCompatActivity() {
+class ServiceDetailActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_service_detail)
+        enableEdgeToEdge()
 
         val title = intent.getStringExtra("SERVICE_TITLE") ?: "Service"
         val desc = intent.getStringExtra("SERVICE_DESC") ?: "No description provided."
         val price = intent.getDoubleExtra("SERVICE_PRICE", 0.0)
         val duration = intent.getStringExtra("SERVICE_DURATION") ?: "1 hr"
-        val providerName = intent.getStringExtra("PROVIDER_NAME") ?: "Unknown Provider"
+        val providerName = intent.getStringExtra("PROVIDER_NAME") ?: "Unknown"
         val providerId = intent.getStringExtra("PROVIDER_ID") ?: ""
         val category = intent.getStringExtra("SERVICE_CATEGORY") ?: ""
         val serviceId = intent.getStringExtra("SERVICE_ID") ?: ""
         val imgUrl = intent.getStringExtra("SERVICE_IMG")
 
-        findViewById<TextView>(R.id.tv_title).text = title
-        findViewById<TextView>(R.id.tv_description).text = desc
-        findViewById<TextView>(R.id.tv_price).text = "₹${price.toInt()}"
-        findViewById<TextView>(R.id.tv_duration).text = "Duration: $duration"
-        findViewById<TextView>(R.id.tv_provider).text = "Provider: $providerName"
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
 
-        val ivService = findViewById<ImageView>(R.id.iv_service)
-        if (!imgUrl.isNullOrEmpty()) {
-            ivService.load(imgUrl)
-        }
+        setContent {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
 
-        findViewById<Button>(R.id.btn_book).setOnClickListener {
-            // Navigate to BookingActivity (or a refactored simplified version of it)
-            val bookIntent = Intent(this, BookingActivity::class.java).apply {
-                putExtra("SERVICE_TITLE", title)
-                putExtra("SERVICE_PRICE", price)
-                putExtra("SERVICE_CATEGORY", category)
-                putExtra("SERVICE_ID", serviceId)
-                putExtra("PROVIDER_NAME", providerName)
-                putExtra("PROVIDER_ID", providerId)
+            WorklyTheme(themeMode = themeMode) {
+                ServiceDetailScreen(
+                    title = title,
+                    description = desc,
+                    price = price,
+                    duration = duration,
+                    providerName = providerName,
+                    providerId = providerId,
+                    category = category,
+                    serviceId = serviceId,
+                    imgUrl = imgUrl,
+                    onBack = { finish() }
+                )
             }
-            startActivity(bookIntent)
-            finish()
-        }
-
-        findViewById<Button>(R.id.btn_chat).setOnClickListener {
-            val chatIntent = Intent(this, com.example.workly.chat.ChatActivity::class.java).apply {
-                putExtra("RECEIVER_NAME", providerName)
-                putExtra("RECEIVER_ID", providerId)
-            }
-            startActivity(chatIntent)
-        }
-        
-        findViewById<ImageView>(R.id.btn_back).setOnClickListener {
-            finish()
         }
     }
 }

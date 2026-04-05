@@ -2,90 +2,83 @@ package com.example.workly.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import com.example.workly.R
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.*
 import com.example.workly.home.HomeActivity
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
+import com.example.workly.theme.ThemeDataStore
+import com.example.workly.theme.WorklyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
-class ProviderLoginActivity : AppCompatActivity() {
+class ProviderLoginActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
-    private lateinit var progressBar: ProgressBar
+    private var isLoading by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_provider_login)
+        enableEdgeToEdge()
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-        progressBar = findViewById(R.id.progressBar)
 
-        val etEmail: TextInputEditText = findViewById(R.id.etEmail)
-        val etPassword: TextInputEditText = findViewById(R.id.etPassword)
-        val btnSignIn: MaterialButton = findViewById(R.id.btnSignIn)
-        val tvSignUp: TextView = findViewById(R.id.tvSignUp)
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
 
-        btnSignIn.setOnClickListener {
-            val email = etEmail.text.toString().trim()
-            val password = etPassword.text.toString()
+        setContent {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
 
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                progressBar.visibility = View.VISIBLE
-                btnSignIn.isEnabled = false
+            WorklyTheme(themeMode = themeMode) {
+                ProviderLoginScreen(
+                    onSignIn = { email, password ->
+                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                            isLoading = true
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        val userId = auth.currentUser?.uid
+                                        if (userId != null) {
+                                            db.collection("users").document(userId).get()
+                                                .addOnSuccessListener { userDoc ->
+                                                    if (userDoc.exists()) {
+                                                        val role = userDoc.getString("role") ?: "user"
+                                                        saveRoleLocally(role)
 
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val userId = auth.currentUser?.uid
-                            if (userId != null) {
-                                db.collection("users").document(userId).get()
-                                    .addOnSuccessListener { userDoc ->
-                                        if (userDoc.exists()) {
-                                            val role = userDoc.getString("role") ?: "user"
-                                            saveRoleLocally(role)
-
-                                            if (role == "provider") {
-                                                checkProviderApproval(userId)
-                                            } else {
-                                                progressBar.visibility = View.GONE
-                                                auth.signOut()
-                                                btnSignIn.isEnabled = true
-                                                Toast.makeText(this, "Not a provider account", Toast.LENGTH_SHORT).show()
-                                            }
-                                        } else {
-                                            progressBar.visibility = View.GONE
-                                            btnSignIn.isEnabled = true
-                                            Toast.makeText(this, "Profile not found", Toast.LENGTH_SHORT).show()
+                                                        if (role == "provider") {
+                                                            checkProviderApproval(userId)
+                                                        } else {
+                                                            isLoading = false
+                                                            auth.signOut()
+                                                            Toast.makeText(this, "Not a provider account", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    } else {
+                                                        isLoading = false
+                                                        Toast.makeText(this, "Profile not found", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
                                         }
+                                    } else {
+                                        isLoading = false
+                                        Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                                     }
-                            }
-                        } else {
-                            progressBar.visibility = View.GONE
-                            btnSignIn.isEnabled = true
-                            Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                }
                         }
-                    }
+                    },
+                    onBack = { finish() },
+                    isLoading = isLoading
+                )
             }
-        }
-
-        tvSignUp.setOnClickListener {
-            startActivity(Intent(this, ProviderRegisterActivity::class.java))
-            finish()
         }
     }
 
     private fun checkProviderApproval(uid: String) {
         db.collection("providers").document(uid).get()
             .addOnSuccessListener { provDoc ->
-                progressBar.visibility = View.GONE
+                isLoading = false
                 val approved = provDoc.getBoolean("isApproved") ?: false
                 if (approved) {
                     Toast.makeText(this, "Logged in as Provider", Toast.LENGTH_SHORT).show()
@@ -93,14 +86,12 @@ class ProviderLoginActivity : AppCompatActivity() {
                     finishAffinity()
                 } else {
                     auth.signOut()
-                    findViewById<MaterialButton>(R.id.btnSignIn).isEnabled = true
                     Toast.makeText(this, "Waiting for Approval", Toast.LENGTH_LONG).show()
                 }
             }
             .addOnFailureListener {
-                progressBar.visibility = View.GONE
+                isLoading = false
                 auth.signOut()
-                findViewById<MaterialButton>(R.id.btnSignIn).isEnabled = true
                 Toast.makeText(this, "Error checking approval", Toast.LENGTH_SHORT).show()
             }
     }

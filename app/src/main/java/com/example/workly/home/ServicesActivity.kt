@@ -46,9 +46,10 @@ class ServicesActivity : ComponentActivity() {
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val initialCategory = intent.getStringExtra("CATEGORY") ?: "All"
         val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
         
         setContent {
-            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
             WorklyTheme(themeMode = themeMode) {
                 ServicesScreen(
                     initialCategory = initialCategory,
@@ -94,6 +95,12 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
         matchesCategory && matchesSearch
     }
 
+    val bg = MaterialTheme.colorScheme.background
+    val surface = MaterialTheme.colorScheme.surface
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val primary = MaterialTheme.colorScheme.primary
+    val outline = MaterialTheme.colorScheme.outline
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,42 +108,44 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
                     Text(
                         if (selectedCategory == "All") "All Services" else selectedCategory,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = onSurface
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color(0xFF0F172A))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF8FAFC),
-                    titleContentColor = Color(0xFF0F172A)
+                    containerColor = surface,
+                    titleContentColor = onSurface
                 )
             )
         },
-        containerColor = Color(0xFFF8FAFC)
+        containerColor = bg
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             // Search bar
-            Surface(color = Color.White, shadowElevation = 2.dp) {
+            Surface(color = surface, shadowElevation = 2.dp) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                     placeholder = { Text("Search services...") },
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = TextSecondary) },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = onSurface.copy(alpha = 0.5f)) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) { Icon(Icons.Default.Close, null, tint = TextSecondary) }
+                            IconButton(onClick = { searchQuery = "" }) { Icon(Icons.Default.Close, null, tint = onSurface.copy(alpha = 0.5f)) }
                         }
                     },
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = BackgroundGray,
-                        unfocusedContainerColor = BackgroundGray,
+                        focusedContainerColor = bg,
+                        unfocusedContainerColor = bg,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = ProfessionalBlue
+                        focusedBorderColor = primary,
+                        focusedTextColor = onSurface,
+                        unfocusedTextColor = onSurface
                     ),
                     singleLine = true
                 )
@@ -153,14 +162,14 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
                     Surface(
                         modifier = Modifier.clickable { selectedCategory = cat },
                         shape = RoundedCornerShape(22.dp),
-                        color = if (isSelected) ProfessionalBlue else Color.White,
+                        color = if (isSelected) primary else surface,
                         shadowElevation = if (isSelected) 4.dp else 1.dp,
-                        border = if (!isSelected) BorderStroke(1.dp, Color.LightGray.copy(0.5f)) else null
+                        border = if (!isSelected) BorderStroke(1.dp, outline.copy(alpha = 0.1f)) else null
                     ) {
                         Text(
                             cat,
                             modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
-                            color = if (isSelected) Color.White else TextPrimary,
+                            color = if (isSelected) Color.White else onSurface,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 13.sp
                         )
@@ -176,12 +185,12 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
             ) {
                 Text(
                     "${filteredServices.size} services available",
-                    color = TextSecondary,
+                    color = onSurface.copy(alpha = 0.6f),
                     fontSize = 13.sp
                 )
                 if (selectedCategory != "All") {
                     TextButton(onClick = { selectedCategory = "All"; searchQuery = "" }) {
-                        Text("Clear", color = ProfessionalBlue, fontSize = 12.sp)
+                        Text("Clear", color = primary, fontSize = 12.sp)
                     }
                 }
             }
@@ -225,7 +234,7 @@ fun PremiumServiceCard(service: Service) {
                 })
             },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
             // Service image
@@ -265,7 +274,7 @@ fun PremiumServiceCard(service: Service) {
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 18.sp,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
@@ -275,13 +284,13 @@ fun PremiumServiceCard(service: Service) {
                 ) {
                     Text(
                         "₹${service.price.toInt()}+",
-                        color = ProfessionalBlue,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp
                     )
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = ProfessionalBlue
+                        color = MaterialTheme.colorScheme.primary
                     ) {
                         Icon(
                             Icons.Default.ChevronRight,

@@ -43,8 +43,12 @@ class TrackOrderActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val orderId = intent.getStringExtra("ORDER_ID") ?: ""
         
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+            WorklyTheme(themeMode = themeMode) {
                 SmartTrackingScreen(orderId) { finish() }
             }
         }

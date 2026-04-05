@@ -1,4 +1,4 @@
- package com.example.workly.booking
+package com.example.workly.booking
 
 import android.Manifest
 import android.app.DatePickerDialog
@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
@@ -80,7 +81,10 @@ class BookingActivity : ComponentActivity() {
         }
 
         setContent {
-            WorklyTheme {
+            val themeDataStore = remember { ThemeDataStore(this) }
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = themeDataStore.getInitialThemeMode())
+
+            WorklyTheme(themeMode = themeMode) {
                 BookingScreen(
                     serviceName = serviceName,
                     serviceCategory = serviceCategory,
@@ -95,6 +99,7 @@ class BookingActivity : ComponentActivity() {
                             putExtra("SERVICE_NAME", serviceName)
                             putExtra("SERVICE_PRICE", basePrice)
                             putExtra("PROVIDER_NAME", selectedProviderName)
+                            putExtra("PROVIDER_ID", selectedProviderId)
                             putExtra("BASE_PRICE", basePrice)
                         }
                         paymentLauncher.launch(payIntent)
@@ -138,7 +143,6 @@ class BookingActivity : ComponentActivity() {
             )
             
             docRef.set(booking).addOnSuccessListener {
-                // Initial chat setup
                 val chatId = if (userId < providerId) "${userId}_$providerId" else "${providerId}_$userId"
                 val initialMessage = "I have booked your service: $serviceTitle."
                 firestore.collection("chats").document(chatId).set(mapOf(
@@ -151,6 +155,11 @@ class BookingActivity : ComponentActivity() {
                     putExtra("SERVICE_NAME", serviceTitle)
                     putExtra("PROVIDER_NAME", providerName)
                     putExtra("BOOKING_ID", docRef.id)
+                    putExtra("DATE", savedDate)
+                    putExtra("TIME", savedTime)
+                    putExtra("ADDRESS", savedAddress)
+                    putExtra("PRICE", price)
+                    putExtra("PROVIDER_ID", providerId)
                 })
                 finish()
             }.addOnFailureListener {
@@ -182,6 +191,14 @@ fun BookingScreen(
     val timeSlots = listOf("9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM")
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
+    // Theme aliases
+    val bg = MaterialTheme.colorScheme.background
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val onSurf = MaterialTheme.colorScheme.onSurface
+    val onBg = MaterialTheme.colorScheme.onBackground
+    val surfVar = MaterialTheme.colorScheme.surfaceVariant
+
     val calendar = Calendar.getInstance()
     val datePickerDialog = remember {
         DatePickerDialog(context, { _, year, month, day ->
@@ -212,79 +229,184 @@ fun BookingScreen(
     }
 
     Scaffold(
+        containerColor = bg,
         topBar = {
             TopAppBar(
                 title = { Text("Book $serviceName", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = surface,
+                    titleContentColor = onSurf,
+                    navigationIconContentColor = onSurf
+                )
             )
         },
         bottomBar = {
             val canProceed = address.isNotBlank() && selectedDate.isNotBlank() && selectedTime.isNotBlank()
-            Surface(color = Color.White, shadowElevation = 12.dp) {
-                Button(
-                    onClick = { onFindPros(address, selectedDate, selectedTime, userLat, userLon) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).navigationBarsPadding(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = if (canProceed) ProfessionalBlue else Color.LightGray),
-                    enabled = canProceed
-                ) {
-                    Text("Proceed to Payment", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Surface(
+                color = surface, 
+                shadowElevation = 24.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.navigationBarsPadding()) {
+                    // Small subtle summary above the button
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Service Summary", color = onSurf.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            Text(serviceName, color = onSurf, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text("₹${basePrice.toInt()}", color = primary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                    }
+
+                    Button(
+                        onClick = { onFindPros(address, selectedDate, selectedTime, userLat, userLon) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(56.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (canProceed) primary else (if (isSystemInDarkTheme()) onSurf.copy(alpha = 0.08f) else onSurf.copy(alpha = 0.05f)),
+                            contentColor = if (canProceed) Color.White else onSurf.copy(alpha = 0.4f)
+                        ),
+                        enabled = canProceed,
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = if (canProceed) 4.dp else 0.dp)
+                    ) {
+                        Text("Proceed to Payment", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState()).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Address
-            Text("📍 Delivery Address", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            OutlinedTextField(
-                value = address,
-                onValueChange = { address = it; onAddressChange(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Enter your full address") },
-                shape = RoundedCornerShape(14.dp),
-                trailingIcon = {
-                    IconButton(onClick = { locationPermLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) }) {
-                        if (isLoadingLocation) CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        else Icon(Icons.Default.MyLocation, null, tint = ProfessionalBlue)
+            // Address Section
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("📍 Delivery Address", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onBg)
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it; onAddressChange(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Enter your full address", color = onSurf.copy(alpha = 0.4f)) },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primary,
+                        unfocusedBorderColor = onSurf.copy(alpha = 0.1f),
+                        focusedTextColor = onSurf,
+                        unfocusedTextColor = onSurf
+                    ),
+                    trailingIcon = {
+                        IconButton(onClick = { locationPermLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)) }) {
+                            if (isLoadingLocation) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = primary)
+                            else Icon(Icons.Default.MyLocation, null, tint = primary)
+                        }
+                    }
+                )
+            }
+
+            // Date Section
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("📅 Select Date", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onBg)
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() },
+                    shape = RoundedCornerShape(14.dp), 
+                    color = surfVar,
+                    tonalElevation = 1.dp
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarMonth, null, tint = primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(selectedDate.ifEmpty { "Pick a date" }, color = onSurf)
                     }
                 }
-            )
+            }
 
-            // Date picking
-            Text("📅 Select Date", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // Time Slots Section
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("⏰ Select Time", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onBg)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp)
+                ) {
+                    items(timeSlots.size) { idx ->
+                        val slot = timeSlots[idx]
+                        val isSelected = slot == selectedTime
+                        Surface(
+                            modifier = Modifier.clickable { selectedTime = slot; onDateTimeChange(selectedDate, slot) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) primary else surfVar,
+                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(alpha = 0.05f))
+                        ) {
+                            Text(
+                                slot, 
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp), 
+                                color = if (isSelected) Color.White else onSurf,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            // --- Fill Blank Space ---
+
+            // Special Instructions
+            var instructions by remember { mutableStateOf("") }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("📝 Special Instructions (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onBg)
+                OutlinedTextField(
+                    value = instructions,
+                    onValueChange = { instructions = it },
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    placeholder = { Text("Example: Gate code is 1234, or park in the driveway...", color = onSurf.copy(alpha = 0.4f), fontSize = 14.sp) },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primary,
+                        unfocusedBorderColor = onSurf.copy(alpha = 0.1f),
+                        focusedTextColor = onSurf,
+                        unfocusedTextColor = onSurf
+                    )
+                )
+            }
+
+            // Trust & Safety signals
             Surface(
-                modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() },
-                shape = RoundedCornerShape(14.dp), color = Color.White, shadowElevation = 1.dp
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = primary.copy(alpha = 0.03f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, primary.copy(alpha = 0.1f))
             ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = ProfessionalBlue)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(selectedDate.ifEmpty { "Pick a date" })
-                }
-            }
-
-            // Time Slots
-            Text("⏰ Select Time", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(timeSlots.size) { idx ->
-                    val slot = timeSlots[idx]
-                    val isSelected = slot == selectedTime
-                    Surface(
-                        modifier = Modifier.clickable { selectedTime = slot; onDateTimeChange(selectedDate, slot) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) ProfessionalBlue else Color.White,
-                        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
-                    ) {
-                        Text(slot, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), color = if (isSelected) Color.White else Color.Black)
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.VerifiedUser, null, tint = primary, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Workly Safety Guarantee", fontWeight = FontWeight.Bold, color = onSurf, fontSize = 14.sp)
+                    }
+                    
+                    val signals = listOf(
+                        Icons.Default.Verified to "Background-verified professionals",
+                        Icons.Default.AttachMoney to "Zero hidden costs • Fixed pricing",
+                        Icons.Default.Timer to "On-time arrival • 24/7 Support"
+                    )
+                    
+                    signals.forEach { (icon, text) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(icon, null, tint = onSurf.copy(alpha = 0.4f), modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text(text, color = onSurf.copy(alpha = 0.6f), fontSize = 12.sp)
+                        }
                     }
                 }
             }
+            
+            // Extra spacer to ensure scrolling behavior feels right
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

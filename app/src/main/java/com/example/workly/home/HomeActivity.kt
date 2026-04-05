@@ -32,10 +32,9 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val themeDataStore = ThemeDataStore(this)
-
         setContent {
-            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            val themeDataStore = remember { ThemeDataStore(this) }
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = themeDataStore.getInitialThemeMode())
             WorklyTheme(themeMode = themeMode) {
                 MainScreen()
             }

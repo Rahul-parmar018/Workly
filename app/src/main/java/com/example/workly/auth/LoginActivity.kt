@@ -2,57 +2,52 @@ package com.example.workly.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.*
 import com.example.workly.R
 import com.example.workly.admin.AdminDashboardActivity
 import com.example.workly.home.HomeActivity
+import com.example.workly.theme.ThemeDataStore
+import com.example.workly.theme.WorklyTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 
-import androidx.activity.enableEdgeToEdge
-
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
-    private lateinit var progressBar: ProgressBar
+    private var isLoading by mutableStateOf(false)
 
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode == RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            val account = task.getResult(ApiException::class.java)!!
-            firebaseAuthWithGoogle(account.idToken!!)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                firebaseAuthWithGoogle(account.idToken!!)
+            } catch (e: Exception) {
+                isLoading = false
+                Toast.makeText(this, "Google sign in failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         } else {
-            progressBar.visibility = View.GONE
+            isLoading = false
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_login)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-        progressBar = findViewById(R.id.progressBar)
-
-        val etEmail: TextInputEditText = findViewById(R.id.etEmail)
-        val etPassword: TextInputEditText = findViewById(R.id.etPassword)
-        val btnSignIn: MaterialButton = findViewById(R.id.btnSignIn)
-        val btnGoogleSignIn: MaterialButton = findViewById(R.id.btnGoogleSignIn)
-        val tvSignUp: TextView = findViewById(R.id.tvSignUp)
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -60,42 +55,45 @@ class LoginActivity : AppCompatActivity() {
             .build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        btnSignIn.setOnClickListener {
-            val email = etEmail.text.toString().trim()
-            val password = etPassword.text.toString()
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
 
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                progressBar.visibility = View.VISIBLE
-                btnSignIn.isEnabled = false
+        setContent {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
 
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            fetchRoleAndRedirect(auth.currentUser?.uid)
+            WorklyTheme(themeMode = themeMode) {
+                LoginScreen(
+                    onSignIn = { email, password ->
+                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                            isLoading = true
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        fetchRoleAndRedirect(auth.currentUser?.uid)
+                                    } else {
+                                        isLoading = false
+                                        val error = task.exception?.message ?: "Login failed"
+                                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                                    }
+                                }
                         } else {
-                            progressBar.visibility = View.GONE
-                            btnSignIn.isEnabled = true
-                            val error = task.exception?.message ?: "Login failed"
-                            Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
                         }
-                    }
-            } else {
-                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                    },
+                    onGoogleSignIn = {
+                        isLoading = true
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        }
+                    },
+                    onSignUp = {
+                        startActivity(Intent(this, RegisterActivity::class.java))
+                    },
+                    isLoading = isLoading
+                )
             }
-        }
-
-        btnGoogleSignIn.setOnClickListener {
-            progressBar.visibility = View.VISIBLE
-            googleSignInClient.signOut().addOnCompleteListener {
-                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-            }
-        }
-
-        tvSignUp.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
-
 
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -104,7 +102,7 @@ class LoginActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     fetchRoleAndRedirect(auth.currentUser?.uid)
                 } else {
-                    progressBar.visibility = View.GONE
+                    isLoading = false
                     Toast.makeText(this, "Google Sign-In failed", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -112,7 +110,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun fetchRoleAndRedirect(uid: String?) {
         if (uid == null) {
-            progressBar.visibility = View.GONE
+            isLoading = false
             return
         }
 
@@ -123,7 +121,6 @@ class LoginActivity : AppCompatActivity() {
                     saveRoleLocally(role)
                     handleRoleRedirection(uid, role)
                 } else {
-                    // Try to recover by creating a default user entry if it was missing
                     val userMap = hashMapOf(
                         "id" to uid,
                         "email" to (auth.currentUser?.email ?: ""),
@@ -136,13 +133,13 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
             .addOnFailureListener {
-                progressBar.visibility = View.GONE
+                isLoading = false
                 Toast.makeText(this, "Error fetching profile", Toast.LENGTH_SHORT).show()
             }
     }
 
     private fun handleRoleRedirection(uid: String, role: String) {
-        progressBar.visibility = View.GONE
+        isLoading = false
         when (role) {
             "admin" -> {
                 startActivity(Intent(this, AdminDashboardActivity::class.java))
@@ -151,7 +148,7 @@ class LoginActivity : AppCompatActivity() {
             "provider" -> {
                 checkProviderApproval(uid)
             }
-            else -> { // Standard user
+            else -> {
                 startActivity(Intent(this, HomeActivity::class.java))
                 finishAffinity()
             }
@@ -181,4 +178,3 @@ class LoginActivity : AppCompatActivity() {
         sharedPrefs.edit().putString("user_role", role).apply()
     }
 }
-
