@@ -52,6 +52,7 @@ class HomeRepository {
             .limit(6)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
+                    android.util.Log.e("HomeRepo", "Error fetching popular services: ${e.message}")
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
@@ -59,6 +60,7 @@ class HomeRepository {
                     val services = try {
                         snapshot.toObjects(Service::class.java)
                     } catch (ex: Exception) {
+                        android.util.Log.e("HomeRepo", "Error parsing services: ${ex.message}")
                         emptyList()
                     }
                     trySend(services)
