@@ -82,7 +82,14 @@ fun HomeScreenContent(
             .limit(10)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    firestoreServices = snapshot.toObjects(Service::class.java)
+                    firestoreServices = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(Service::class.java)
+                        } catch (e: Exception) {
+                            android.util.Log.e("HomeScreen", "Failed to map service ${doc.id}: ${e.message}")
+                            null
+                        }
+                    }
                 }
             }
     }

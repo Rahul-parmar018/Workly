@@ -65,8 +65,15 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
             .whereEqualTo("isActive", true)
             .addSnapshotListener { snapshot, e ->
                 if (e == null && snapshot != null) {
-                    val services = snapshot.toObjects(Service::class.java)
-                    allServices = services.sortedByDescending { it.createdAt }
+                    val mServices = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(Service::class.java)
+                        } catch (ex: Exception) {
+                            android.util.Log.e("ServicesActivity", "Failed to map service ${doc.id}: ${ex.message}")
+                            null
+                        }
+                    }
+                    allServices = mServices.sortedByDescending { it.createdAt }
                 }
             }
     }

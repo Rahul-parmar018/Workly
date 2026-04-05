@@ -29,7 +29,14 @@ fun ExploreScreen() {
             .whereEqualTo("isActive", true)
             .addSnapshotListener { snapshot, e ->
                 if (e == null && snapshot != null) {
-                    services = snapshot.toObjects(Service::class.java)
+                    services = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(Service::class.java)
+                        } catch (ex: Exception) {
+                            android.util.Log.e("ExploreScreen", "Failed to map service ${doc.id}: ${ex.message}")
+                            null
+                        }
+                    }
                 }
             }
     }

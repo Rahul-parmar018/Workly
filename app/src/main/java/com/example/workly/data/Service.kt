@@ -18,5 +18,7 @@ data class Service(
     val isApproved: Boolean = false,
     val status: String = "pending", // ["pending", "approved", "rejected"]
     val keywords: List<String> = emptyList(),
+    val imagePath: String = "",
+    val syncStatus: String = "synced",
     val createdAt: Timestamp = Timestamp.now()
 )
