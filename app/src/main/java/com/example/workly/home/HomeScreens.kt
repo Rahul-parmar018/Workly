@@ -691,54 +691,42 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
     }
 }
 
-// ─── Profile Screen ────────────────────────────────────────────────────────
+// ─── Profile Screen (Professional Dashboard) ──────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Unit) {
+fun ProfileScreenContent(
+    userName: String,
+    userRole: String,
+    onLogout: () -> Unit
+) {
     val context = LocalContext.current
     val user = FirebaseAuth.getInstance().currentUser
 
-    var lifetimeEarnings by remember { mutableIntStateOf(0) }
-    LaunchedEffect(user?.uid) {
-        if (userRole == "provider" && user != null) {
-            FirebaseFirestore.getInstance().collection("orders")
-                .whereEqualTo("providerId", user.uid)
-                .whereIn("status", listOf("accepted", "completed"))
-                .addSnapshotListener { snapshot, error ->
-                    if (error == null && snapshot != null) {
-                        var total = 0
-                        for (doc in snapshot.documents) {
-                            val amount = doc.getDouble("finalPrice") ?: doc.getDouble("price") ?: 0.0
-                            total += amount.toInt()
-                        }
-                        lifetimeEarnings = total
-                    }
-                }
-        }
-    }
+    var lifetimeEarnings by remember { mutableIntStateOf(6500) } // Mock for demo
+    var jobsCompleted by remember { mutableIntStateOf(12) }
+    var userRating by remember { mutableDoubleStateOf(4.8) }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(WorklyPureWhite),
-        contentPadding = PaddingValues(bottom = 100.dp)
+        contentPadding = PaddingValues(bottom = 120.dp)
     ) {
+        // 🔥 1. PROFILE HEADER (Dashboard Style)
         item {
-            // Profile header — premium blue gradient
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
-                    .background(CtaGradient)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(WorklyBgLight, WorklyPureWhite)
+                        )
+                    )
+                    .statusBarsPadding()
+                    .padding(vertical = 32.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
-                        .statusBarsPadding(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     var profileImage by remember { mutableStateOf<String?>(null) }
                     LaunchedEffect(user?.uid) {
                         user?.uid?.let { uid ->
@@ -747,13 +735,14 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                         }
                     }
                     val effectiveAvatar = profileImage
-                        ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=fff&color=1E2A78&bold=true&rounded=true&size=200"
+                        ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=1E2A78&color=fff&bold=true&rounded=true&size=200"
+
                     Surface(
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(100.dp),
                         shape = CircleShape,
-                        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.3f)),
-                        color = Color.White,
-                        shadowElevation = 8.dp
+                        border = BorderStroke(3.dp, WorklyPureWhite),
+                        color = WorklyPillGray,
+                        shadowElevation = 12.dp
                     ) {
                         AsyncImage(
                             model = effectiveAvatar,
@@ -762,82 +751,143 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                             contentScale = ContentScale.Crop
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(userName, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                    Text(user?.email ?: "your@email.com", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(userName, color = WorklyTextDeep, fontWeight = FontWeight.Black, fontSize = 24.sp)
+                    Text(user?.email ?: "account@workly.com", color = WorklyTextMuted, fontSize = 14.sp)
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Stats Row
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = RoundedCornerShape(20.dp), color = WorklyPureWhite, shadowElevation = 2.dp) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(16.dp))
+                                Text(" $userRating Rating", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WorklyTextDeep)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Surface(shape = RoundedCornerShape(20.dp), color = WorklyPureWhite, shadowElevation = 2.dp) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CheckCircle, null, tint = WorklyBlueDeep, modifier = Modifier.size(16.dp))
+                                Text(" $jobsCompleted Jobs", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WorklyTextDeep)
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        item {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PremiumSectionLabel("Account")
-                val bookingsLabel = when (userRole) {
-                    "provider" -> "My Orders"
-                    "admin" -> "All Orders"
-                    else -> "My Bookings"
-                }
-                val bookingsSubtitle = when (userRole) {
-                    "provider" -> "View incoming service orders"
-                    "admin"    -> "View & manage all orders"
-                    else       -> "View all your bookings"
-                }
-                PremiumProfileMenuItem(Icons.Default.ReceiptLong, bookingsLabel, bookingsSubtitle) {
-                    if (userRole == "provider") {
-                        context.startActivity(Intent(context, ProviderOrdersActivity::class.java))
-                    } else {
-                        context.startActivity(Intent(context, MyBookingsActivity::class.java))
-                    }
-                }
-                PremiumProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
-
-                if (userRole == "provider") {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    PremiumSectionLabel("Provider Tools")
-                    PremiumProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {
-                        context.startActivity(Intent(context, MyServicesActivity::class.java))
-                    }
-                    PremiumProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
-                        context.startActivity(Intent(context, AddServiceActivity::class.java))
-                    }
-                    PremiumProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings from completed orders") {
-                        context.startActivity(Intent(context, ProviderEarningsActivity::class.java))
-                    }
-                }
-
-                if (userRole == "admin") {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    PremiumSectionLabel("Management")
-                    PremiumProfileMenuItem(Icons.Default.AdminPanelSettings, "Admin Dashboard", "Manage approvals & providers") {
-                        context.startActivity(Intent(context, AdminDashboardActivity::class.java))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                PremiumSectionLabel("Preferences")
-                PremiumProfileMenuItem(Icons.Default.Notifications, "Notifications", "Push, SMS & email") {}
-                PremiumProfileMenuItem(Icons.Default.Palette, "Appearance", "Light Mode") {}
-
-                Spacer(modifier = Modifier.height(16.dp))
+        // 🔥 2. EARNINGS CARD (Provider Specific)
+        if (userRole == "provider") {
+            item {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onLogout() },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    color = WorklyBlueDeep,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Total Earnings", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("\u20b9$lifetimeEarnings", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                            }
+                            Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.15f)) {
+                                Text("+ \u20b9500 today", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // Mock growth indicator line
+                        Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.1f))) {
+                            Box(modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight().background(Color.White))
+                        }
+                    }
+                }
+            }
+        }
+
+        // 🔥 3. QUICK ACTIONS
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val actions = if (userRole == "provider") {
+                    listOf(
+                        Triple("My Orders", Icons.Default.ReceiptLong, { context.startActivity(Intent(context, ProviderOrdersActivity::class.java)) }),
+                        Triple("My Services", Icons.Default.Inventory2, { context.startActivity(Intent(context, MyServicesActivity::class.java)) }),
+                        Triple("Add Service", Icons.Default.AddBusiness, { context.startActivity(Intent(context, AddServiceActivity::class.java)) })
+                    )
+                } else {
+                    listOf(
+                        Triple("Bookings", Icons.Default.ReceiptLong, { context.startActivity(Intent(context, MyBookingsActivity::class.java)) }),
+                        Triple("Addresses", Icons.Default.LocationOn, { /* Navigate */ }),
+                        Triple("Support", Icons.Default.HelpCenter, { /* Navigate */ })
+                    )
+                }
+                
+                actions.forEach { (label, icon, action) ->
+                    Surface(
+                        modifier = Modifier.weight(1f).height(90.dp).clickable { action() },
+                        shape = RoundedCornerShape(20.dp),
+                        color = WorklyPillGray,
+                        shadowElevation = 1.dp
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(icon, null, tint = WorklyBlueDeep, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WorklyBlueDeep)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 🔥 4 & 5. SECTIONS (Flat List Style)
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 32.dp)) {
+                
+                DashboardSection("Account Dashboard") {
+                    DashboardItem(Icons.Default.ManageAccounts, "Profile Information", "Update name, email & phone") {}
+                    DashboardItem(Icons.Default.Payment, "Payment Methods", "Manage cards & UPI") {}
+                    DashboardItem(Icons.Default.VpnKey, "Security", "Passwords & permissions") {}
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                DashboardSection("Preferences") {
+                    DashboardItem(Icons.Default.NotificationsActive, "Notifications", "Alerts & updates") {}
+                    DashboardItem(Icons.Default.Language, "Language", "English (India)") {}
+                    DashboardItem(Icons.Default.DarkMode, "Appearance", "Light system") {}
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                DashboardSection("Support & Trust") {
+                    DashboardItem(Icons.Default.Shield, "Privacy Policy", "How we protect your data") {}
+                    DashboardItem(Icons.Default.StarRate, "Rate Workly", "Share your feedback") {}
+                    DashboardItem(Icons.Default.Info, "About Workly", "Version 1.0.4 Premium") {}
+                }
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // 🔥 8. LOGOUT
+                Surface(
+                    onClick = { onLogout() },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.Red.copy(alpha = 0.05f),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.1f))
+                    color = Color(0xFFFFEBEE),
+                    border = BorderStroke(1.dp, Color(0xFFFFCDD2))
                 ) {
                     Row(
-                        modifier = Modifier.padding(18.dp),
+                        modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.Logout, null, tint = Color.Red, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text("Sign Out", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(Icons.Default.Logout, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Log Out", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -846,48 +896,37 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
 }
 
 @Composable
-fun PremiumSectionLabel(text: String) {
-    Text(
-        text,
-        color = WorklyTextMuted,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 12.sp,
-        letterSpacing = 1.sp,
-        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-    )
+fun DashboardSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column {
+        Text(title, fontSize = 14.sp, fontWeight = FontWeight.Black, color = WorklyTextMuted, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = WorklyPureWhite,
+            border = BorderStroke(1.dp, WorklyPillGray)
+        ) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                content()
+            }
+        }
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PremiumProfileMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = WorklyPillGray
+fun DashboardItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = WorklyPureWhite,
-                modifier = Modifier.size(44.dp),
-                shadowElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = WorklyBlueDeep, modifier = Modifier.size(22.dp))
-                }
+        Surface(shape = CircleShape, color = WorklyBgLight, modifier = Modifier.size(36.dp)) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = WorklyBlueDeep, modifier = Modifier.size(18.dp))
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = WorklyTextDeep)
-                Text(subtitle, fontSize = 12.sp, color = WorklyTextMuted)
-            }
-            Icon(Icons.Default.ChevronRight, null, tint = WorklyTextMuted.copy(alpha = 0.4f))
         }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = WorklyTextDeep)
+            Text(subtitle, fontSize = 12.sp, color = WorklyTextMuted)
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = WorklyPillGray, modifier = Modifier.size(20.dp))
     }
 }
