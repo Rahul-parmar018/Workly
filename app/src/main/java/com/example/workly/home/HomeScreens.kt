@@ -49,16 +49,19 @@ import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
-// ─── Dimensional Void Color Palette ──────────────────────────────────────────
-private val VoidBlack       = Color(0xFF0E0E0E)
-private val SurfaceCard     = Color(0xFF201F1F)
-private val SurfaceCardLow  = Color(0xFF1C1B1B)
-private val SurfaceCardHigh = Color(0xFF2A2A2A)
-private val SurfaceHighest  = Color(0xFF353534)
-private val OnSurfaceLight  = Color(0xFFE5E2E1)
-private val OutlineGray     = Color(0xFF919191)
-private val BorderFaint     = Color.White.copy(alpha = 0.05f)
-private val NavGlass        = Color(0xFF1A1A1A).copy(alpha = 0.8f)
+// ─── Workly Premium Color Palette ──────────────────────────────────────────
+private val WorklyBlueDeep   = Color(0xFF1E2A78)
+private val WorklyBlueLight  = Color(0xFF2D3FA3)
+private val WorklyBgLight    = Color(0xFFEAF6FF)
+private val WorklyPureWhite  = Color(0xFFFFFFFF)
+private val WorklyPillGray   = Color(0xFFF1F5F9)
+private val WorklyTextDeep   = Color(0xFF0F172A)
+private val WorklyTextMuted  = Color(0xFF64748B)
+
+private val CleaningGradient = Brush.verticalGradient(listOf(Color(0xFFEAF6FF), Color(0xFFFFFFFF)))
+private val ElectricGradient = Brush.verticalGradient(listOf(Color(0xFFFFF4E5), Color(0xFFFFE0B2)))
+private val PlumbingGradient = Brush.verticalGradient(listOf(Color(0xFFE6FFFA), Color(0xFFCCF2F4)))
+private val CtaGradient      = Brush.horizontalGradient(listOf(WorklyBlueDeep, WorklyBlueLight))
 
 // ─── Home Screen ───────────────────────────────────────────────────────────
 @OptIn(ExperimentalFoundationApi::class)
@@ -105,415 +108,216 @@ fun HomeScreenContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(VoidBlack)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(WorklyBgLight.copy(alpha = 0.4f), WorklyPureWhite),
+                    center = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    radius = 1000f
+                )
+            )
             .padding(top = innerPadding.calculateTopPadding()),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
 
-        // ── Top App Bar ──────────────────────────────────────────────────────
+        // ── Header ───────────────────────────────────────────────────────────
         item {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF1A1A1A).copy(alpha = 0.95f), Color.Transparent)
-                        )
-                    )
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Menu icon
-                    Icon(
-                        Icons.Default.Menu,
-                        contentDescription = "Menu",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
-                    // App Name
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "WORKLY",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 4.sp,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 16.dp)
+                        "👋 Hi $firstName",
+                        color = WorklyTextDeep,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    // Profile Avatar
-                    Surface(
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.1f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
-                    ) {
-                        AsyncImage(
-                            model = effectiveAvatar,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    Text(
+                        "What do you need cleaned today?",
+                        color = WorklyTextMuted,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                // Profile Avatar
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = CircleShape,
+                    color = WorklyPillGray,
+                    shadowElevation = 4.dp
+                ) {
+                    AsyncImage(
+                        model = effectiveAvatar,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
         }
 
-        // ── Hero / Search ────────────────────────────────────────────────────
+        // ── Search + Trust Strip ─────────────────────────────────────────────
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 8.dp, bottom = 24.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "Command",
-                    color = Color.White,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    lineHeight = 52.sp,
-                    letterSpacing = (-1).sp
-                )
-                Text(
-                    "The Void.",
-                    color = OutlineGray,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    lineHeight = 52.sp,
-                    letterSpacing = (-1).sp
-                )
-                Spacer(modifier = Modifier.height(20.dp))
                 // Search bar
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { context.startActivity(Intent(context, ServicesActivity::class.java)) },
-                    shape = CircleShape,
-                    color = SurfaceCard,
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                    shape = RoundedCornerShape(28.dp),
+                    color = WorklyPillGray,
+                    shadowElevation = 0.dp // User wants it clean
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Search, null, tint = OutlineGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Search, null, tint = WorklyTextMuted, modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Search services...", color = OutlineGray.copy(alpha = 0.6f), fontSize = 15.sp)
+                        Text("Search for services...", color = WorklyTextMuted.copy(alpha = 0.7f), fontSize = 16.sp)
                     }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Mini Trust Strip
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "✔ Verified • 4.8★ Rated • 10k+ users",
+                        color = WorklyTextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
 
-        // ── Bento Grid — Row 1: Plumbing (large) + Cleaning (small) ─────────
+        // ── Service Grid (3D System) ──────────────────────────────────────────
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(320.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // LARGE: Plumbing card
-                BentoCard(
-                    modifier = Modifier.weight(1.6f).fillMaxHeight(),
-                    onClick = {
-                        context.startActivity(Intent(context, ServicesActivity::class.java).apply {
-                            putExtra("CATEGORY", "Plumbing")
-                        })
-                    }
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Glow effect
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(140.dp)
-                                .background(
-                                    Brush.radialGradient(listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)),
-                                    CircleShape
-                                )
-                        )
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(20.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-                            ) {
-                                Text(
-                                    "Premier Tier",
-                                    color = Color.White,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 2.sp,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Plumbing",
-                                color = Color.White,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "Precision hydraulic systems & emergency services.",
-                                color = OnSurfaceLight.copy(alpha = 0.6f),
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp
-                            )
-                        }
-                        Icon(
-                            Icons.Default.WaterDrop,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(18.dp)
-                                .size(36.dp)
-                        )
-                    }
-                }
-
-                // SMALL: Cleaning card
-                BentoCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    onClick = {
-                        context.startActivity(Intent(context, ServicesActivity::class.java).apply {
-                            putExtra("CATEGORY", "Cleaning")
-                        })
-                    }
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Surface(
-                                modifier = Modifier.size(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = SurfaceCardHigh
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.CleaningServices, null, tint = Color.White, modifier = Modifier.size(28.dp))
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("Cleaning", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Molecular-level sanitation.",
-                                color = OnSurfaceLight.copy(alpha = 0.55f),
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                        }
-                        // Rating box
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = SurfaceHighest.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("4.9", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                                Text("RATING", color = OutlineGray, fontSize = 8.sp, letterSpacing = 2.sp)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Spacing ──────────────────────────────────────────────────────────
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-
-        // ── Bento Grid — Row 2: Tech Support + Explore All ───────────────────
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(200.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Tech Support card
-                BentoCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    onClick = {
-                        context.startActivity(Intent(context, ServicesActivity::class.java).apply {
-                            putExtra("CATEGORY", "Tech")
-                        })
-                    }
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            Icons.Default.Memory,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.07f),
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(120.dp)
-                                .offset(x = 30.dp, y = 20.dp)
-                        )
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .padding(20.dp)
-                        ) {
-                            Text("Tech Support", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Hardware & software diagnostics.",
-                                color = OnSurfaceLight.copy(alpha = 0.55f),
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White,
-                                modifier = Modifier.clickable {
-                                    context.startActivity(Intent(context, ServicesActivity::class.java))
-                                }
-                            ) {
-                                Text(
-                                    "Connect Now",
-                                    color = Color(0xFF0E0E0E),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Explore All — White contrast card
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clickable { onSeeAllServices() },
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Explore\nAll Tiers",
-                            color = Color(0xFF3B3B3B),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 26.sp
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            val cats = listOf(
-                                Pair(Icons.Default.ElectricBolt, false),
-                                Pair(Icons.Default.Build, false),
-                                Pair(Icons.Default.Security, false),
-                                Pair(Icons.Default.Add, true)
-                            )
-                            cats.forEach { (icon, isDark) ->
-                                Surface(
-                                    modifier = Modifier.size(42.dp),
-                                    shape = CircleShape,
-                                    color = if (isDark) Color(0xFF1A1A1A) else Color(0xFFF0F0F0)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(icon, null,
-                                            tint = if (isDark) Color.White else Color(0xFF424242),
-                                            modifier = Modifier.size(20.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Spacing ──────────────────────────────────────────────────────────
-        item { Spacer(modifier = Modifier.height(24.dp)) }
-
-        // ── Upcoming Booking (if any) ────────────────────────────────────────
-        if (bookings.isNotEmpty()) {
-            item {
-                VoidSectionHeader("Upcoming Booking", null)
-                Spacer(modifier = Modifier.height(12.dp))
-                UpcomingBookingCard(bookings.first())
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-        }
-
-        // ── Top Rated Services ───────────────────────────────────────────────
-        item {
-            VoidSectionHeader("Top Rated Services") { onSeeAllServices() }
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionHeader("Popular Services")
             Spacer(modifier = Modifier.height(12.dp))
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(popularServices.size) { idx ->
-                    VoidServiceCard(popularServices[idx])
+                item {
+                    PremiumServiceCard(
+                        title = "Home Cleaning",
+                        gradient = CleaningGradient,
+                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/cleaning-vacuum-7170068-5813735.png",
+                        onClick = { /* Navigate */ }
+                    )
+                }
+                item {
+                    PremiumServiceCard(
+                        title = "Electric",
+                        gradient = ElectricGradient,
+                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/electricity-flash-5349603-4475459.png",
+                        glowPulse = true,
+                        onClick = { /* Navigate */ }
+                    )
+                }
+                item {
+                    PremiumServiceCard(
+                        title = "Plumbing",
+                        gradient = PlumbingGradient,
+                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/plumbing-9190184-7546377.png",
+                        rippleEffect = true,
+                        onClick = { /* Navigate */ }
+                    )
+                }
+                item {
+                    PremiumServiceCard(
+                        title = "Kitchen Cleaning",
+                        gradient = CleaningGradient,
+                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/dishwashing-7170077-5813744.png",
+                        onClick = { /* Navigate */ }
+                    )
                 }
             }
         }
 
-        // ── Stats Section ────────────────────────────────────────────────────
+        // ── Quick Book CTA ───────────────────────────────────────────────────
         item {
             Spacer(modifier = Modifier.height(32.dp))
-            VoidSectionHeader("Platform Stats", null)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                listOf(
-                    Pair("12k+", "Serviced"),
-                    Pair("14ms", "Response"),
-                    Pair("99.9%", "Success"),
-                    Pair("★ Gold", "Status")
-                ).forEach { (value, label) ->
-                    VoidStatCard(value = value, label = label, modifier = Modifier.weight(1f))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp)
+                        .shadow(12.dp, RoundedCornerShape(29.dp)),
+                    shape = RoundedCornerShape(29.dp),
+                    color = Color.Transparent
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(CtaGradient)
+                            .clickable { /* Action */ },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "⚡ Book Now",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "No booking fee • Cancel anytime",
+                    color = WorklyTextMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // ── Top Services ────────────────────────────────────────────────────────
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+            SectionHeader("Top Rated Services") { onSeeAllServices() }
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(popularServices.size) { idx ->
+                    PremiumServiceDetailCard(popularServices[idx])
                 }
             }
         }
 
-        // ── Promo Banner ─────────────────────────────────────────────────────
+        // ── Offer Banner ─────────────────────────────────────────────────────
         item {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 24.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF1A1A1A), Color(0xFF2A2A2A))
-                        )
-                    )
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
-                    .clickable { context.startActivity(Intent(context, ServicesActivity::class.java)) }
+                    .background(WorklyBlueDeep)
+                    .clickable { /* Action */ }
             ) {
                 Row(
                     modifier = Modifier.padding(20.dp),
@@ -524,96 +328,167 @@ fun HomeScreenContent(
                             "🎉 First Booking?",
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 17.sp
+                            fontSize = 18.sp
                         )
                         Text(
                             "Get 20% off your first service!",
-                            color = OnSurfaceLight.copy(alpha = 0.7f),
-                            fontSize = 13.sp
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Surface(shape = RoundedCornerShape(8.dp), color = Color.White) {
                             Text(
                                 "Use code FIRST20",
-                                color = Color(0xFF0E0E0E),
+                                color = WorklyBlueDeep,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                             )
                         }
                     }
                     Icon(
-                        Icons.Default.LocalOffer,
+                        Icons.Default.Celebration,
                         null,
-                        tint = Color.White.copy(alpha = 0.15f),
-                        modifier = Modifier.size(48.dp)
+                        tint = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(60.dp)
                     )
+                }
+            }
+        }
+
+        // ── Trust Pills ──────────────────────────────────────────────────────
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+            SectionHeader("Why Workly?")
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val trustItems = listOf("✔ Verified Professionals", "✔ Safe Products", "✔ 10,000+ Homes Cleaned", "✔ 24/7 Support")
+                items(trustItems.size) { idx ->
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = WorklyPillGray,
+                        modifier = Modifier.shadow(2.dp, RoundedCornerShape(50.dp))
+                    ) {
+                        Text(
+                            trustItems[idx],
+                            color = WorklyTextDeep,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Stats Section ────────────────────────────────────────────────────
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+            SectionHeader("Platform Stats")
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    Pair("12k+", "Serviced"),
+                    Pair("14ms", "Response"),
+                    Pair("99.9%", "Success")
+                ).forEach { (value, label) ->
+                    PremiumStatCard(value = value, label = label, modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
-// ─── Bento Card Container ──────────────────────────────────────────────────
+// ─── Premium Service Card (3D + Glow) ──────────────────────────────────────
 @Composable
-fun BentoCard(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
-    content: @Composable () -> Unit
+fun PremiumServiceCard(
+    title: String,
+    gradient: Brush,
+    iconUrl: String,
+    glowPulse: Boolean = false,
+    rippleEffect: Boolean = false,
+    onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-    ) {
-        content()
-    }
-}
-
-// ─── Void Section Header ───────────────────────────────────────────────────
-@Composable
-fun VoidSectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            title,
-            color = Color.White,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 18.sp
+    val infiniteTransition = rememberInfiniteTransition()
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
         )
-        if (onSeeAll != null) {
-            TextButton(onClick = onSeeAll) {
+    )
+    
+    val scale by animateFloatAsState(targetValue = 1f)
+
+    Surface(
+        modifier = Modifier
+            .size(140.dp, 160.dp)
+            .shadow(8.dp, RoundedCornerShape(24.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradient)
+        ) {
+            // Glow effect behind icon
+            if (glowPulse) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(80.dp)
+                        .background(
+                            Brush.radialGradient(listOf(Color.White.copy(alpha = glowAlpha), Color.Transparent)),
+                            CircleShape
+                        )
+                )
+            }
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AsyncImage(
+                    model = iconUrl,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    "See All",
-                    color = OutlineGray,
+                    title,
+                    color = WorklyTextDeep,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 1.sp
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
 }
 
-// ─── Keep old SectionHeader for compat ────────────────────────────────────
+// ─── Premium Service Detail Card (Top Services) ─────────────────────────────
 @Composable
-fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
-    VoidSectionHeader(title, onSeeAll)
-}
-
-// ─── Void Service Card ─────────────────────────────────────────────────────
-@Composable
-fun VoidServiceCard(service: Service) {
+fun PremiumServiceDetailCard(service: Service) {
     val context = LocalContext.current
     Surface(
         modifier = Modifier
-            .width(160.dp)
+            .width(260.dp)
+            .shadow(4.dp, RoundedCornerShape(20.dp))
             .clickable {
                 context.startActivity(
                     Intent(context, Class.forName("com.example.workly.home.ServiceDetailActivity")).apply {
@@ -623,121 +498,127 @@ fun VoidServiceCard(service: Service) {
                         putExtra("SERVICE_ID", service.id)
                         putExtra("SERVICE_DURATION", service.duration)
                         putExtra("SERVICE_DESC", service.description)
-                        putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getServiceCardImageUrl(service.title, service.category) })
-                        putExtra("PROVIDER_NAME", service.providerName)
-                        putExtra("PROVIDER_ID", service.providerId)
+                        putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { "https://placehold.co/600x400/1E2A78/FFFFFF?text=Service" })
                     })
             },
-        shape = RoundedCornerShape(18.dp),
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White
     ) {
         Column {
-            AsyncImage(
-                model = service.imageUrl.ifEmpty { getServiceCardImageUrl(service.title, service.category) },
-                contentDescription = service.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    service.title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 17.sp
+            Box {
+                AsyncImage(
+                    model = service.imageUrl.ifEmpty { "https://placehold.co/600x400/1E2A78/FFFFFF?text=Service" },
+                    contentDescription = service.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                    contentScale = ContentScale.Crop
                 )
+                // Slight gradient overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.2f))
+                            )
+                        )
+                )
+            }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(service.title, color = WorklyTextDeep, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(12.dp))
-                    Text(
-                        " " + if (service.rating > 0) service.rating.toString() else "4.8",
-                        fontSize = 11.sp,
-                        color = OutlineGray
-                    )
+                    Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(16.dp))
+                    Text(" 4.8 (2.1k reviews)", color = WorklyTextMuted, fontSize = 13.sp)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "₹${service.price.toInt()}+",
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("₹${service.price.toInt()}", color = WorklyBlueDeep, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("⏱ ${service.duration}", color = WorklyTextMuted, fontSize = 12.sp)
+                }
             }
         }
     }
 }
 
-// ─── Keep old PopularServiceCard as alias ─────────────────────────────────
+// ─── Premium Stat Card ──────────────────────────────────────────────────────
 @Composable
-fun PopularServiceCard(service: Service) = VoidServiceCard(service)
-
-// ─── Void Stat Card ─────────────────────────────────────────────────────────
-@Composable
-fun VoidStatCard(value: String, label: String, modifier: Modifier = Modifier) {
+fun PremiumStatCard(value: String, label: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceCardLow,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        shape = RoundedCornerShape(16.dp),
+        color = WorklyPillGray
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                label.uppercase(),
-                color = OutlineGray,
-                fontSize = 8.sp,
-                letterSpacing = 1.5.sp,
-                textAlign = TextAlign.Center
-            )
+            Text(value, color = WorklyBlueDeep, fontSize = 18.sp, fontWeight = FontWeight.Black)
+            Text(label.uppercase(), color = WorklyTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
     }
 }
 
-// ─── Upcoming Booking Card ──────────────────────────────────────────────────
+// ─── Section Header ────────────────────────────────────────────────────────
+@Composable
+fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, color = WorklyTextDeep, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+        if (onSeeAll != null) {
+            Text(
+                "See All",
+                color = WorklyBlueDeep,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier.clickable { onSeeAll() }
+            )
+        }
+    }
+}
+// ─── Upcoming Booking Card (Legacy but kept for logic) ──────────────────────
 @Composable
 fun UpcomingBookingCard(booking: Order) {
     val statusColor = when (booking.status) {
-        OrderStatus.ACCEPTED -> Color(0xFF00BCD4)
+        OrderStatus.ACCEPTED -> WorklyBlueDeep
         OrderStatus.PENDING  -> Color(0xFFFF9800)
         OrderStatus.COMPLETED -> Color(0xFF4CAF50)
-        else -> OutlineGray
+        else -> WorklyTextMuted
     }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = WorklyBgLight.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, WorklyBlueDeep.copy(alpha = 0.1f))
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color.White.copy(alpha = 0.08f),
+                color = WorklyPureWhite,
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Handyman, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Handyman, null, tint = WorklyBlueDeep, modifier = Modifier.size(24.dp))
                 }
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                val dateStr = booking.createdAt.toDate().toString()
-                Text(dateStr, color = OutlineGray, fontSize = 11.sp)
-                if (booking.providerName.isNotEmpty()) {
-                    Text("Pro: ${booking.providerName}", color = Color(0xFF64B5F6), fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                }
+                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = WorklyTextDeep)
+                Text("Scheduled for today", color = WorklyTextMuted, fontSize = 11.sp)
             }
             Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.12f)) {
                 Text(
@@ -764,13 +645,13 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(30.dp, RoundedCornerShape(28.dp)),
+            .shadow(16.dp, RoundedCornerShape(28.dp)),
         shape = RoundedCornerShape(28.dp),
-        color = Color(0xFF141414).copy(alpha = 0.98f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+        color = WorklyPureWhite.copy(alpha = 0.96f),
+        border = BorderStroke(1.dp, WorklyBlueDeep.copy(alpha = 0.05f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             items.forEachIndexed { index, (label, filledIcon, outlinedIcon) ->
@@ -782,26 +663,25 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
                         .clickable { onItemSelected(index) }
                         .padding(vertical = 4.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.height(36.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.height(34.dp)) {
                         if (isSelected) {
-                            // White glow pill behind active icon
                             Box(
                                 modifier = Modifier
-                                    .size(width = 60.dp, height = 32.dp)
-                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                    .size(width = 54.dp, height = 32.dp)
+                                    .background(WorklyBlueDeep.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
                             )
                         }
                         Icon(
                             if (isSelected) filledIcon else outlinedIcon,
                             contentDescription = label,
-                            tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.35f),
-                            modifier = Modifier.size(24.dp)
+                            tint = if (isSelected) WorklyBlueDeep else WorklyTextMuted,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         label,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.35f),
+                        color = if (isSelected) WorklyBlueDeep else WorklyTextMuted,
                         fontSize = 10.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -840,20 +720,16 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(VoidBlack),
+            .background(WorklyPureWhite),
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         item {
-            // Profile header — dark gradient
+            // Profile header — premium blue gradient
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF1A1A1A), VoidBlack)
-                        )
-                    )
+                    .background(CtaGradient)
             ) {
                 Column(
                     modifier = Modifier
@@ -871,12 +747,13 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                         }
                     }
                     val effectiveAvatar = profileImage
-                        ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=1a1a1a&color=fff&bold=true&rounded=true&size=200"
+                        ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=fff&color=1E2A78&bold=true&rounded=true&size=200"
                     Surface(
-                        modifier = Modifier.size(76.dp),
+                        modifier = Modifier.size(80.dp),
                         shape = CircleShape,
-                        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.2f)),
-                        color = SurfaceCard
+                        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.3f)),
+                        color = Color.White,
+                        shadowElevation = 8.dp
                     ) {
                         AsyncImage(
                             model = effectiveAvatar,
@@ -886,18 +763,18 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(userName, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                    Text(user?.email ?: "your@email.com", color = OutlineGray, fontSize = 13.sp)
+                    Text(userName, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                    Text(user?.email ?: "your@email.com", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                 }
             }
         }
 
         item {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                VoidSectionLabel("Account")
+                PremiumSectionLabel("Account")
                 val bookingsLabel = when (userRole) {
                     "provider" -> "My Orders"
                     "admin" -> "All Orders"
@@ -908,66 +785,59 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     "admin"    -> "View & manage all orders"
                     else       -> "View all your bookings"
                 }
-                VoidProfileMenuItem(Icons.Default.ReceiptLong, bookingsLabel, bookingsSubtitle) {
+                PremiumProfileMenuItem(Icons.Default.ReceiptLong, bookingsLabel, bookingsSubtitle) {
                     if (userRole == "provider") {
                         context.startActivity(Intent(context, ProviderOrdersActivity::class.java))
                     } else {
                         context.startActivity(Intent(context, MyBookingsActivity::class.java))
                     }
                 }
-                VoidProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
+                PremiumProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
 
                 if (userRole == "provider") {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    VoidSectionLabel("Provider Tools")
-                    VoidProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PremiumSectionLabel("Provider Tools")
+                    PremiumProfileMenuItem(Icons.Default.AddBusiness, "My Services", "Manage your listed services") {
                         context.startActivity(Intent(context, MyServicesActivity::class.java))
                     }
-                    VoidProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
+                    PremiumProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
                         context.startActivity(Intent(context, AddServiceActivity::class.java))
                     }
-                    VoidProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings from completed orders") {
+                    PremiumProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings from completed orders") {
                         context.startActivity(Intent(context, ProviderEarningsActivity::class.java))
                     }
                 }
 
                 if (userRole == "admin") {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    VoidSectionLabel("Management")
-                    VoidProfileMenuItem(Icons.Default.AdminPanelSettings, "Admin Dashboard", "Manage approvals & providers") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PremiumSectionLabel("Management")
+                    PremiumProfileMenuItem(Icons.Default.AdminPanelSettings, "Admin Dashboard", "Manage approvals & providers") {
                         context.startActivity(Intent(context, AdminDashboardActivity::class.java))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-                VoidSectionLabel("Preferences")
-                VoidProfileMenuItem(Icons.Default.Notifications, "Notifications", "Push, SMS & email") {}
-                VoidProfileMenuItem(Icons.Default.Language, "Language", "English") {}
-                VoidProfileMenuItem(Icons.Default.Palette, "Appearance", "Dark Mode") {}
-
-                Spacer(modifier = Modifier.height(4.dp))
-                VoidSectionLabel("Support")
-                VoidProfileMenuItem(Icons.Default.HelpOutline, "Help & Support", "FAQ, live chat") {}
-                VoidProfileMenuItem(Icons.Default.Star, "Rate the App", "Share your feedback") {}
-                VoidProfileMenuItem(Icons.Default.Info, "About Workly", "Version 1.0.0") {}
+                Spacer(modifier = Modifier.height(8.dp))
+                PremiumSectionLabel("Preferences")
+                PremiumProfileMenuItem(Icons.Default.Notifications, "Notifications", "Push, SMS & email") {}
+                PremiumProfileMenuItem(Icons.Default.Palette, "Appearance", "Light Mode") {}
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onLogout() },
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color.Red.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.2f))
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Red.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.1f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.Logout, null, tint = Color.Red, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sign Out", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Icon(Icons.Default.Logout, null, tint = Color.Red, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Sign Out", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -976,20 +846,20 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
 }
 
 @Composable
-fun VoidSectionLabel(text: String) {
+fun PremiumSectionLabel(text: String) {
     Text(
         text,
-        color = OutlineGray,
+        color = WorklyTextMuted,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 11.sp,
-        letterSpacing = 2.sp,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+        fontSize = 12.sp,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VoidProfileMenuItem(
+fun PremiumProfileMenuItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
@@ -998,35 +868,26 @@ fun VoidProfileMenuItem(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        shape = RoundedCornerShape(16.dp),
+        color = WorklyPillGray
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color.White.copy(alpha = 0.06f),
-                modifier = Modifier.size(40.dp)
+                shape = RoundedCornerShape(12.dp),
+                color = WorklyPureWhite,
+                modifier = Modifier.size(44.dp),
+                shadowElevation = 2.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(20.dp))
+                    Icon(icon, null, tint = WorklyBlueDeep, modifier = Modifier.size(22.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
-                Text(subtitle, fontSize = 12.sp, color = OutlineGray)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = WorklyTextDeep)
+                Text(subtitle, fontSize = 12.sp, color = WorklyTextMuted)
             }
-            Icon(Icons.Default.ChevronRight, null, tint = OutlineGray.copy(alpha = 0.5f))
+            Icon(Icons.Default.ChevronRight, null, tint = WorklyTextMuted.copy(alpha = 0.4f))
         }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProfileMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) = VoidProfileMenuItem(icon, title, subtitle, onClick)
