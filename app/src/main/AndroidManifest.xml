@@ -82,6 +82,7 @@
         <activity android:name=".chat.ChatActivity" android:exported="false" />
 
         <activity android:name=".booking.MyBookingsActivity" android:exported="false" />
+        <activity android:name=".booking.TrackOrderActivity" android:exported="false" />
 
         <!-- Provider & Admin Specific Auth -->
         <activity android:name=".auth.ProviderLoginActivity" android:exported="false" />
