@@ -116,6 +116,7 @@ fun MyBookingsScreen(onBack: () -> Unit) {
 
 @Composable
 fun BookingHistoryCard(booking: Order) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val statusColor = when (booking.status.lowercase()) {
         "pending" -> EnergyOrange
         "accepted" -> ProfessionalBlue
@@ -177,6 +178,23 @@ fun BookingHistoryCard(booking: Order) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Pro: ${booking.providerName}", color = ProfessionalBlue, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = {
+                    val intent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
+                        putExtra("RECEIVER_NAME", booking.providerName)
+                        putExtra("RECEIVER_ID", booking.providerId)
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Assignment, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Message Pro", fontWeight = FontWeight.Bold)
             }
         }
     }

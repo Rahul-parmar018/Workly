@@ -70,6 +70,7 @@ fun BookingSuccessScreen(
     price: Double,
     onGoHome: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -147,11 +148,18 @@ fun BookingSuccessScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = { /* Navigate to chat */ },
+                    onClick = {
+                        val activity = context as? ComponentActivity
+                        val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
+                            putExtra("RECEIVER_NAME", providerName)
+                            putExtra("RECEIVER_ID", activity?.intent?.getStringExtra("PROVIDER_ID") ?: "")
+                        }
+                        context.startActivity(chatIntent)
+                    },
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Assignment, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Chat Pro", fontWeight = FontWeight.Bold)
                 }

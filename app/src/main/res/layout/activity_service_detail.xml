@@ -112,12 +112,29 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:background="#ffffff"
         android:elevation="8dp"
         android:padding="16dp">
+        
+        <Button
+            android:id="@+id/btn_chat"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="56dp"
+            android:text="Chat"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1565C0"
+            android:backgroundTint="#E3F2FD"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:stateListAnimator="@null"/>
+
         <Button
             android:id="@+id/btn_book"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
+            android:layout_weight="2"
             android:layout_height="56dp"
             android:text="Book Service"
             android:textSize="16sp"

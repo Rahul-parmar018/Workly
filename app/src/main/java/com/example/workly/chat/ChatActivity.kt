@@ -35,11 +35,11 @@ class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val proName = intent.getStringExtra("PRO_NAME") ?: "Professional"
-        val proId = intent.getStringExtra("PRO_ID") ?: "pro_${proName.replace(" ", "_")}"
+        val receiverName = intent.getStringExtra("RECEIVER_NAME") ?: intent.getStringExtra("PRO_NAME") ?: "User"
+        val receiverId = intent.getStringExtra("RECEIVER_ID") ?: intent.getStringExtra("PRO_ID") ?: ""
         setContent {
             WorklyTheme {
-                ChatScreen(proName = proName, proId = proId, onBack = { finish() })
+                ChatScreen(receiverName = receiverName, receiverId = receiverId, onBack = { finish() })
             }
         }
     }
@@ -47,7 +47,7 @@ class ChatActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
+fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid ?: ""
@@ -58,9 +58,9 @@ fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     // Real-time message listener
-    LaunchedEffect(proId) {
-        if (userId.isNotEmpty() && proId.isNotEmpty()) {
-            val chatId = if (userId < proId) "${userId}_$proId" else "${proId}_$userId"
+    LaunchedEffect(receiverId) {
+        if (userId.isNotEmpty() && receiverId.isNotEmpty()) {
+            val chatId = if (userId < receiverId) "${userId}_$receiverId" else "${receiverId}_$userId"
             firestore.collection("chats").document(chatId).collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener { snapshot, _ ->
@@ -92,7 +92,7 @@ fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(proName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                                 Text("Online", fontSize = 12.sp, color = ElectricTeal)
                             }
                         }
@@ -141,7 +141,7 @@ fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
                         onClick = {
                             val text = messageText.trim()
                             if (text.isNotEmpty() && userId.isNotEmpty()) {
-                                sendChatMessage(firestore, userId, proId, text)
+                                sendChatMessage(firestore, userId, receiverId, text)
                                 messageText = ""
                             }
                         },
@@ -175,7 +175,7 @@ fun ChatScreen(proName: String, proId: String, onBack: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Start your conversation", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
-                    Text("with $proName", color = TextSecondary, fontSize = 14.sp)
+                    Text("with $receiverName", color = TextSecondary, fontSize = 14.sp)
                 }
             }
         } else {
@@ -254,5 +254,16 @@ fun sendChatMessage(
         content = content,
         timestamp = com.google.firebase.Timestamp.now()
     )
-    docRef.set(message)
+    
+    val parentRef = firestore.collection("chats").document(chatId)
+    val chatData = mapOf(
+        "lastMessage" to content,
+        "lastTimestamp" to com.google.firebase.Timestamp.now(),
+        "members" to listOf(senderId, receiverId)
+    )
+    
+    firestore.runBatch { batch ->
+        batch.set(docRef, message)
+        batch.set(parentRef, chatData, com.google.firebase.firestore.SetOptions.merge())
+    }
 }

@@ -10,8 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -176,6 +175,27 @@ fun OrderCard(order: Map<String, Any>) {
             ) {
                 Text(text = "Payout: ₹$price", fontSize = 16.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
                 
+                if (status != OrderStatus.CANCELLED && status != OrderStatus.COMPLETED) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    OutlinedButton(
+                        onClick = {
+                            val targetId = order["userId"]?.toString() ?: ""
+                            val targetName = order["userName"]?.toString() ?: "Customer"
+                            val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
+                                putExtra("RECEIVER_ID", targetId)
+                                putExtra("RECEIVER_NAME", targetName)
+                            }
+                            context.startActivity(chatIntent)
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Assignment, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Chat")
+                    }
+                }
+
                 if (status == OrderStatus.PENDING) {
                     Button(
                         onClick = {

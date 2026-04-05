@@ -50,6 +50,14 @@ class ServiceDetailActivity : AppCompatActivity() {
             startActivity(bookIntent)
             finish()
         }
+
+        findViewById<Button>(R.id.btn_chat).setOnClickListener {
+            val chatIntent = Intent(this, com.example.workly.chat.ChatActivity::class.java).apply {
+                putExtra("RECEIVER_NAME", providerName)
+                putExtra("RECEIVER_ID", providerId)
+            }
+            startActivity(chatIntent)
+        }
         
         findViewById<ImageView>(R.id.btn_back).setOnClickListener {
             finish()

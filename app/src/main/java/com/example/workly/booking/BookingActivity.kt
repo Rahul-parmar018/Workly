@@ -141,10 +141,34 @@ class BookingActivity : ComponentActivity() {
             )
             
             docRef.set(booking).addOnSuccessListener {
+                
+                // 💬 Auto-start Chat Session 
+                val chatId = if (userId < providerId) "${userId}_$providerId" else "${providerId}_$userId"
+                val initialMessage = "I have booked your service: $serviceTitle."
+                
+                val chatData = mapOf(
+                    "members" to listOf(userId, providerId),
+                    "lastMessage" to initialMessage,
+                    "lastTimestamp" to Timestamp.now()
+                )
+                
+                val msgData = mapOf(
+                    "id" to System.currentTimeMillis().toString(),
+                    "senderId" to userId,
+                    "content" to initialMessage,
+                    "timestamp" to Timestamp.now(),
+                    "read" to false
+                )
+
+                // Save to chats and messages
+                firestore.collection("chats").document(chatId).set(chatData, com.google.firebase.firestore.SetOptions.merge())
+                firestore.collection("chats").document(chatId).collection("messages").document(msgData["id"].toString()).set(msgData)
+
                 startActivity(Intent(this, BookingSuccessActivity::class.java).apply {
                     putExtra("SERVICE_NAME", serviceTitle)
                     putExtra("PROVIDER_NAME", providerName)
                     putExtra("BOOKING_ID", docRef.id)
+                    putExtra("PROVIDER_ID", providerId)
                     putExtra("DATE", savedDate)
                     putExtra("TIME", savedTime)
                     putExtra("ADDRESS", savedAddress)
