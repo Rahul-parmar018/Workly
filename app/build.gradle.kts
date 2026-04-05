@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.workly"
+    namespace = "com.workly.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.workly"
+        applicationId = "com.workly.app"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

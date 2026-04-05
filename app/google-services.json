@@ -7,14 +7,14 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1085790021515:android:102aaf2da7f77da91b718e",
+        "mobilesdk_app_id": "1:1085790021515:android:8852a4343215aa051b718e",
         "android_client_info": {
           "package_name": "com.example.workly"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1085790021515-62sluau9ajdk4vugq3u5da11rlrvdk6k.apps.googleusercontent.com",
+          "client_id": "1085790021515-155p8hpsfa861aivf3o64tc9n0jt1lho.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,7 +27,44 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1085790021515-62sluau9ajdk4vugq3u5da11rlrvdk6k.apps.googleusercontent.com",
+              "client_id": "1085790021515-155p8hpsfa861aivf3o64tc9n0jt1lho.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085790021515:android:435d077044ba01f81b718e",
+        "android_client_info": {
+          "package_name": "com.workly.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085790021515-dhapod2r13jqpvjprr966jidiqeo66i0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workly.app",
+            "certificate_hash": "5173ec9694d414055c18e1ad04ee0aee357fc438"
+          }
+        },
+        {
+          "client_id": "1085790021515-155p8hpsfa861aivf3o64tc9n0jt1lho.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO3YzH3dDIQbnZ8o6kcmBlUu66ojPDFRY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085790021515-155p8hpsfa861aivf3o64tc9n0jt1lho.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
