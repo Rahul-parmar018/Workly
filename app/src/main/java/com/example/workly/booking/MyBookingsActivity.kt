@@ -156,14 +156,79 @@ fun UserOrderCard(order: Order) {
     val context = LocalContext.current
     val status = (order.status ?: "pending").lowercase()
     
+    // Review State
+    var showReviewDialog by remember { mutableStateOf(false) }
+    var ratingState by remember { mutableIntStateOf(5) }
+    var reviewTextState by remember { mutableStateOf("") }
+    
     val statusColor = when (status) {
-        "pending" -> Color(0xFF64748B)      // Gray
-        "accepted" -> Color(0xFF3B82F6)     // Blue
-        "arriving" -> Color(0xFF8B5CF6)     // Purple
-        "started" -> Color(0xFF1E2A78)      // Dark Blue (Workly Brand)
-        "completed" -> Color(0xFF10B981)    // Green
-        "cancelled" -> Color(0xFFEF4444)    // Red
+        "pending" -> Color(0xFF64748B)
+        "accepted" -> Color(0xFF3B82F6)
+        "arriving" -> Color(0xFF8B5CF6)
+        "started" -> Color(0xFF1E2A78)
+        "completed" -> Color(0xFF10B981)
+        "cancelled" -> Color(0xFFEF4444)
         else -> Color(0xFF64748B)
+    }
+
+    if (showReviewDialog) {
+        AlertDialog(
+            onDismissRequest = { showReviewDialog = false },
+            title = { Text("Rate ${order.providerName}", fontWeight = FontWeight.Black) },
+            text = {
+                Column {
+                    Text("How was your experience?", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        for (i in 1..5) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Star",
+                                tint = if (i <= ratingState) Color(0xFFFFB300) else Color.LightGray,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clickable { ratingState = i }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = reviewTextState,
+                        onValueChange = { reviewTextState = it },
+                        placeholder = { Text("Write a brief review...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val db = FirebaseFirestore.getInstance()
+                        db.collection("orders").document(order.id)
+                            .update(mapOf(
+                                "rating" to ratingState,
+                                "reviewText" to reviewTextState,
+                                "isReviewed" to true
+                            )).addOnSuccessListener {
+                                showReviewDialog = false
+                                android.widget.Toast.makeText(context, "Review submitted!", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2A78))
+                ) {
+                    Text("Submit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReviewDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
     }
 
     Surface(
@@ -197,9 +262,18 @@ fun UserOrderCard(order: Order) {
             // Actions
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (status == "completed") {
-                    UserActionBtn(Icons.Default.Star, "Rate") { /* Rate logic */ }
+                    if (order.isReviewed) {
+                        Surface(color = Color(0xFFFFFBEB), shape = RoundedCornerShape(12.dp)) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, null, tint = Color(0xFFFFB300), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Rated ${order.rating} Stars", fontSize = 12.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Black)
+                            }
+                        }
+                    } else {
+                        UserActionBtn(Icons.Default.Star, "Rate") { showReviewDialog = true }
+                    }
                 } else if (status != "cancelled") {
-                    // TRACK BUTTON (Pulsing if Arriving/Started)
                     UserActionBtn(Icons.Default.Map, "Track Status") {
                         val intent = Intent(context, com.example.workly.booking.TrackOrderActivity::class.java).apply {
                             putExtra("ORDER_ID", order.id)

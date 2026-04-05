@@ -19,6 +19,12 @@ data class Order(
     var date: String = "",
     var time: String = "",
     var createdAt: Any? = null, // Handle both Long and Timestamp
+    
+    // Rating & Analytics Layer
+    var rating: Int = 0,
+    var reviewText: String = "",
+    var isReviewed: Boolean = false,
+    
     var acceptedAt: Any? = null,
     var completedAt: Any? = null
 ) {

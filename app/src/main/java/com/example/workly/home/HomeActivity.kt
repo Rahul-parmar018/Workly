@@ -26,10 +26,25 @@ import com.example.workly.auth.LoginActivity
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Fetch and register FCM API token
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                Log.d("FCM_TOKEN", "Token retrieved: $token")
+                val user = FirebaseAuth.getInstance().currentUser
+                if (user != null) {
+                    FirebaseFirestore.getInstance().collection("users").document(user.uid)
+                        .update("fcmToken", token)
+                }
+            }
+        }
+
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val themeDataStore = ThemeDataStore(this)
