@@ -31,7 +31,7 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            WorklyTheme {
+            WorklyTheme(darkTheme = false) {
                 MainScreen()
             }
         }
@@ -73,7 +73,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
         }
     }
 
-    Scaffold(containerColor = Color(0xFF0E0E0E)) { innerPadding ->
+    Scaffold(containerColor = Color(0xFFF8FAFC)) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
 
             // Content
