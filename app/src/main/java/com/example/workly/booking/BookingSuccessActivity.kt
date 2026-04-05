@@ -108,11 +108,14 @@ fun BookingSuccessScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(290.dp)
+                .height(320.dp) // Increased height slightly to accommodate status bar padding
                 .background(Brush.verticalGradient(listOf(ProfessionalBlue, ElectricTeal))),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.statusBarsPadding(), // Ensures content starts below status bar
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 // Success Icon with Glow and Pulse
                 Box(contentAlignment = Alignment.Center) {
                     // Soft Radial Glow
