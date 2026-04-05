@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFC"
-    tools:context=".admin.AllBookingsActivity">
+    android:background="#F8F9FE"
+    tools:context=".admin.UserDirectoryActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -13,40 +13,52 @@
         android:background="#FFFFFF"
         app:elevation="0dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="?attr/homeAsUpIndicator"
-            app:title="All Transactions"
+            app:title="User Directory"
             app:titleTextColor="#1E293B" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:paddingHorizontal="16dp"
             android:paddingBottom="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="20dp"
-                android:text="System Booking Registry"
-                android:textColor="#64748B"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05"
-                android:textAllCaps="true" />
+                android:hint="Search by name or email"
+                app:startIconDrawable="@android:drawable/ic_menu_search"
+                app:hintEnabled="false"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:boxBackgroundColor="#F1F5F9"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:paddingVertical="12dp"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:paddingHorizontal="20dp"
+                android:layout_marginTop="12dp"
                 android:scrollbars="none">
 
                 <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupStatus"
+                    android:id="@+id/chipGroupRoles"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:singleSelection="true">
@@ -57,43 +69,34 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="All Orders"
+                        android:text="All Roles"
                         app:chipBackgroundColor="#EEF2FF"
                         app:chipStrokeWidth="0dp" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chipPending"
+                        android:id="@+id/chipUsers"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Pending"
+                        android:text="Users"
                         app:chipBackgroundColor="#EEF2FF"
                         app:chipStrokeWidth="0dp" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chipAccepted"
+                        android:id="@+id/chipProviders"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="In Progress"
+                        android:text="Providers"
                         app:chipBackgroundColor="#EEF2FF"
                         app:chipStrokeWidth="0dp" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chipCompleted"
+                        android:id="@+id/chipAdmins"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Completed"
-                        app:chipBackgroundColor="#EEF3FF"
-                        app:chipStrokeWidth="0dp" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chipCancelled"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Cancelled"
+                        android:text="Admins"
                         app:chipBackgroundColor="#EEF2FF"
                         app:chipStrokeWidth="0dp" />
 
@@ -104,13 +107,13 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvBookings"
+        android:id="@+id/rvUsers"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:padding="16dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        tools:listitem="@layout/item_admin_booking" />
+        tools:listitem="@layout/item_admin_user" />
 
     <ProgressBar
         android:id="@+id/progressBar"

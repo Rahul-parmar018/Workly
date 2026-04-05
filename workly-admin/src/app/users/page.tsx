@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Users as UsersIcon, 
@@ -10,39 +10,63 @@ import {
   MoreHorizontal,
   Mail,
   UserCheck,
-  ShieldAlert
+  ShieldAlert,
+  Trash2,
+  ShieldCheck,
+  ShieldX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const usersData = usersSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setUsers(usersData);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(usersData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      setLoading(false);
+    });
 
-    fetchUsers();
+    return () => unsubscribe();
   }, []);
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return;
+    try {
+      await updateDoc(doc(db, "users", userId), { role: newRole });
+    } catch (err) {
+       alert("Failed to update role");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to PERMANENTLY delete this user? This cannot be undone.")) return;
+    try {
+      await deleteDoc(doc(db, "users", userId));
+    } catch (err) {
+      alert("Failed to delete user");
+    }
+  };
+
+  const filteredUsers = users.filter(user => 
+    (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Users Management</h1>
-          <p className="text-sm font-medium text-text-muted mt-1">Manage and view all registered users from Firestore.</p>
+          <p className="text-sm font-medium text-text-muted mt-1">Manage system access and privileges.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -50,6 +74,8 @@ export default function UsersPage() {
             <input 
               type="text" 
               placeholder="Search users..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-bg-surface border border-border-color rounded-xl pl-10 pr-4 py-2 text-sm text-text-primary focus:outline-none focus:border-maxton-blue transition-all w-64 shadow-sm"
             />
           </div>
@@ -88,12 +114,12 @@ export default function UsersPage() {
                     <td className="px-6 py-4 text-right"><div className="h-8 w-8 bg-border-color/50 rounded-lg ml-auto" /></td>
                   </tr>
                 ))
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-text-muted font-medium">No users found in the database.</td>
+                  <td colSpan={4} className="px-6 py-20 text-center text-text-muted font-medium">No users found.</td>
                 </tr>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-bg-body/40 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -125,9 +151,32 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-body rounded-xl border border-transparent hover:border-border-color transition-all">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {user.role === "admin" ? (
+                          <button 
+                            onClick={() => handleRoleChange(user.id, "user")}
+                            className="p-2 text-maxton-blue hover:bg-maxton-blue/10 rounded-xl transition-colors"
+                            title="Demote to User"
+                          >
+                            <ShieldX className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleRoleChange(user.id, "admin")}
+                            className="p-2 text-maxton-green hover:bg-maxton-green/10 rounded-xl transition-colors"
+                            title="Promote to Admin"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="p-2 text-maxton-red hover:bg-maxton-red/10 rounded-xl transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
