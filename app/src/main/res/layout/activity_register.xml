@@ -4,80 +4,86 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F9FC"
+    android:background="@drawable/auth_bg_gradient"
     tools:context=".auth.RegisterActivity">
 
-    <View
-        android:id="@+id/headerBackground"
-        android:layout_width="match_parent"
-        android:layout_height="220dp"
-        android:background="#1A237E"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <LinearLayout
-        android:id="@+id/llHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:gravity="center"
-        android:orientation="vertical"
+    <!-- Logo Circle at Top -->
+    <ImageView
+        android:id="@+id/ivLogo"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="40dp"
+        android:src="@drawable/workly_logo"
+        android:background="@drawable/circle_white_bg"
+        android:padding="16dp"
+        android:elevation="12dp"
+        android:scaleType="centerInside"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Join Workly"
-            android:textColor="#FFFFFF"
-            android:textSize="32sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Create your professional profile"
-            android:textColor="#C5CAE9"
-            android:textSize="14sp" />
-    </LinearLayout>
-
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
+    <!-- App Title -->
+    <TextView
+        android:id="@+id/tvAppTitle"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="10dp"
+        android:text="Join Workly"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
+
+    <!-- White Card Form -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/bottomSheetCard"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        app:cardBackgroundColor="#FFFFFF"
         app:cardCornerRadius="32dp"
-        app:cardElevation="8dp"
-        app:layout_constraintTop_toBottomOf="@id/llHeader">
+        app:cardElevation="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvAppTitle">
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:overScrollMode="never">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="28dp"
-                android:background="#FFFFFF">
+                android:paddingStart="28dp"
+                android:paddingEnd="28dp"
+                android:paddingTop="28dp"
+                android:paddingBottom="32dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="I am a..."
+                    android:text="Create Account"
                     android:textColor="#1A237E"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textAllCaps="true"
-                    android:letterSpacing="0.1" />
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Fill your information below"
+                    android:textColor="#78909C"
+                    android:textSize="14sp" />
+
+                <!-- Role Toggle -->
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/toggleRole"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="20dp"
                     app:singleSelection="true"
                     app:checkedButton="@+id/btnRoleUser">
 
@@ -85,27 +91,37 @@
                         android:id="@+id/btnRoleUser"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="0dp"
-                        android:layout_height="56dp"
+                        android:layout_height="52dp"
                         android:layout_weight="1"
                         android:text="Client"
+                        android:textStyle="bold"
+                        app:strokeColor="#1A237E"
                         app:cornerRadius="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRoleProvider"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="0dp"
-                        android:layout_height="56dp"
+                        android:layout_height="52dp"
                         android:layout_weight="1"
                         android:text="Provider"
+                        android:textStyle="bold"
+                        app:strokeColor="#1A237E"
                         app:cornerRadius="12dp" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
+                    android:layout_marginTop="20dp"
                     android:hint="Full Name"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    app:boxStrokeColor="#1A237E"
+                    app:hintTextColor="#1A237E"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etName"
                         android:layout_width="match_parent"
@@ -116,9 +132,15 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:hint="Email"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginTop="14dp"
+                    android:hint="Email Address"
+                    app:boxStrokeColor="#1A237E"
+                    app:hintTextColor="#1A237E"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEmail"
                         android:layout_width="match_parent"
@@ -129,10 +151,16 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
                     android:hint="Password"
+                    app:boxStrokeColor="#1A237E"
+                    app:hintTextColor="#1A237E"
                     app:passwordToggleEnabled="true"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etPassword"
                         android:layout_width="match_parent"
@@ -143,41 +171,45 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRegister"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginTop="28dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
                     android:text="Create Account"
+                    android:textColor="#FFFFFF"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    app:cornerRadius="18dp"
+                    app:cornerRadius="14dp"
                     app:backgroundTint="#1A237E" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnGoogleSignIn"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="56dp"
                     android:layout_marginTop="12dp"
                     android:text="Sign up with Google"
                     android:textColor="#455A64"
-                    app:icon="@android:drawable/btn_star_big_on"
-                    app:iconTint="#FFC107" />
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="#CFD8DC"
+                    app:strokeWidth="1dp" />
+
+                <TextView
+                    android:id="@+id/tvSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:gravity="center"
+                    android:text="Already have an account? Sign In"
+                    android:textColor="#1A237E"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="8dp" />
 
             </LinearLayout>
         </ScrollView>
     </com.google.android.material.card.MaterialCardView>
-
-    <TextView
-        android:id="@+id/tvSignIn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:text="Already have an account? Sign In"
-        android:textColor="#1F2937"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -187,6 +219,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:elevation="30dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

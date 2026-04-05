@@ -8,14 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -72,26 +73,8 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
         }
     }
 
-    Scaffold(containerColor = BackgroundGray) { innerPadding ->
+    Scaffold(containerColor = Color(0xFF0E0E0E)) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-
-            // Subtle background mesh
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(ProfessionalBlue.copy(alpha = 0.08f), Color.Transparent),
-                        center = Offset(size.width * 0.85f, 0f),
-                        radius = size.width * 0.7f
-                    )
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(EnergyOrange.copy(alpha = 0.06f), Color.Transparent),
-                        center = Offset(0f, size.height * 0.5f),
-                        radius = size.width * 0.5f
-                    )
-                )
-            }
 
             // Content
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 96.dp)) {
@@ -128,8 +111,38 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                     onItemSelected = { selectedItem = it }
                 )
             }
+
+            // FAB — Bolt button (only on Home tab)
+            if (selectedItem == 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 100.dp, end = 24.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clickable {
+                                context.startActivity(Intent(context, ServicesActivity::class.java))
+                            },
+                        shape = CircleShape,
+                        color = Color.White,
+                        shadowElevation = 16.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Bolt,
+                                contentDescription = "Quick Book",
+                                tint = Color(0xFF0E0E0E),
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
+
 }
 
 fun performLogout(context: Context) {
