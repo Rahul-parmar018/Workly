@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Users, 
-  ClipboardList, 
-  CalendarCheck, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  CalendarCheck,
+  Settings,
   LogOut,
   ChevronRight
 } from "lucide-react";
@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { name: "Work Logs", icon: ClipboardList, href: "/work-logs" },
-  { name: "Bookings", icon: CalendarCheck, href: "/bookings" },
   { name: "Users", icon: Users, href: "/users" },
+  { name: "Providers", icon: ClipboardList, href: "/providers" },
+  { name: "Bookings", icon: CalendarCheck, href: "/bookings" },
   { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
@@ -45,8 +45,8 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "group flex items-center justify-between p-3 rounded-xl transition-all duration-300",
-                isActive 
-                  ? "bg-maxton-blue text-white shadow-lg shadow-maxton-blue/20" 
+                isActive
+                  ? "bg-maxton-blue text-white shadow-lg shadow-maxton-blue/20"
                   : "hover:bg-bg-body text-text-secondary hover:text-maxton-blue"
               )}
             >

@@ -98,7 +98,8 @@ class AddServiceRepository(private val context: Context) {
             "imageUrl" to imageUrl,
             "providerId" to user.uid,
             "providerName" to providerName,
-            "isApproved" to true,
+            "isApproved" to false,
+            "status" to "pending",
             "createdAt" to System.currentTimeMillis(),
             "keywords" to (title + " " + category).lowercase().split(" ")
                 .map { it.trim() }.filter { it.length > 2 }.distinct()
