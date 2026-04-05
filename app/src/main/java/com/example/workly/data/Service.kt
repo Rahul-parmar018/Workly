@@ -15,7 +15,8 @@ data class Service(
     val providerName: String = "",
     val rating: Double = 0.0,
     val totalOrders: Int = 0,
-    val isActive: Boolean = true,
+    val isApproved: Boolean = false,
+    val status: String = "pending", // ["pending", "approved", "rejected"]
     val keywords: List<String> = emptyList(),
     val imagePath: String = "",
     val syncStatus: String = "synced",

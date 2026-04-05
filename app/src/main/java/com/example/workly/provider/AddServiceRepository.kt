@@ -42,8 +42,11 @@ class AddServiceRepository(private val context: Context) {
             "syncStatus" to "synced", // Only local, so "synced" status is fine for UI
             "providerId" to user.uid,
             "providerName" to providerName,
-            "isActive" to true,
-            "createdAt" to Timestamp.now()
+            "isApproved" to false,
+            "status" to "pending",
+            "createdAt" to System.currentTimeMillis(),
+            "keywords" to (title + " " + category).lowercase().split(" ")
+                .map { it.trim() }.filter { it.length > 2 }.distinct()
         )
 
         docRef.set(serviceData)
