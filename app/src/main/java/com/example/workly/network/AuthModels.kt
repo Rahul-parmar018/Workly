@@ -25,3 +25,25 @@ data class AuthResponse(
     val user: UserData?,
     val error: String?
 )
+
+data class WalletOverviewResponse(
+    val availableForPayout: Double,
+    val pendingEscrow: Double,
+    val totalEarnings: Double,
+    val currency: String,
+    val transactions: List<TransactionData>
+)
+
+data class TransactionData(
+    val type: String,
+    val amount: Double,
+    val status: String,
+    val createdAt: String,
+    val referenceId: String
+)
+
+data class WithdrawalRequest(
+    val amount: Double,
+    val requestId: String,
+    val payoutMethod: Map<String, String>
+)

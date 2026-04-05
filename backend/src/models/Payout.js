@@ -2,10 +2,14 @@ import mongoose from 'mongoose';
 
 const PayoutSchema = new mongoose.Schema(
   {
+    requestId: {
+      type: String, // UUID for idempotency
+      required: true,
+      unique: true,
+    },
     payment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Payment',
-      required: true,
     },
     provider: {
       type: mongoose.Schema.Types.ObjectId,
@@ -13,8 +17,13 @@ const PayoutSchema = new mongoose.Schema(
       required: true,
     },
     transferId: {
-      type: String, // Razorpay Transfer ID
-      required: true,
+      type: String, // Razorpay Transfer ID (optional if manual payout)
+      sparse: true,
+      unique: true,
+    },
+    externalPayoutId: {
+      type: String, // Bank/Razorpay payout reference
+      sparse: true,
       unique: true,
     },
     amount: {
@@ -23,17 +32,29 @@ const PayoutSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['ON_HOLD', 'RELEASED', 'REVERSED', 'FAILED'],
-      default: 'ON_HOLD',
+      enum: ['REQUESTED', 'PROCESSING', 'SUCCESS', 'FAILED', 'CANCELLED'],
+      default: 'REQUESTED',
     },
+    enqueued: {
+      type: Boolean,
+      default: false,
+    },
+    processingStartedAt: Date,
     onHoldUntil: Date,
     releaseAt: Date, // Window expiry time
     releasedAt: Date, // Real release time
     failureReason: String,
+    failureLog: [
+      {
+        timestamp: { type: Date, default: Date.now },
+        error: String,
+      },
+    ],
     retryCount: {
       type: Number,
       default: 0,
     },
+    nextRetryAt: Date,
   },
   { timestamps: true }
 );
