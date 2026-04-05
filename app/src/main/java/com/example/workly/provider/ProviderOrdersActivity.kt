@@ -122,10 +122,11 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
 @Composable
 fun OrderCard(order: Map<String, Any>) {
     val db = FirebaseFirestore.getInstance()
+    val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
     val orderId = order["id"]?.toString() ?: ""
     val serviceTitle = order["serviceName"]?.toString() ?: "Order Task"
     val userName = order["userName"]?.toString() ?: "Customer"
-    val price = order["price"]?.toString() ?: "0"
+    val price = order["finalPrice"]?.toString() ?: order["price"]?.toString() ?: "0"
     val status = order["status"]?.toString() ?: OrderStatus.PENDING
     
     var isProcessing by remember { mutableStateOf(false) }
@@ -187,6 +188,12 @@ fun OrderCard(order: Map<String, Any>) {
                                         "status" to OrderStatus.ACCEPTED,
                                         "acceptedAt" to System.currentTimeMillis()
                                     ))
+                                    
+                                    // ✅ Increment provider's earnings in their profile doc
+                                    val providerRef = db.collection("providers").document(user.uid)
+                                    val currentEarnings = transaction.get(providerRef).getDouble("earnings") ?: 0.0
+                                    val orderPrice = price.toDoubleOrNull() ?: 0.0
+                                    transaction.update(providerRef, "earnings", currentEarnings + orderPrice)
                                 }
                                 null
                             }.addOnCompleteListener { isProcessing = false }

@@ -81,4 +81,33 @@ class AddServiceRepository(private val context: Context) {
             null
         }
     }
+
+    fun deleteService(serviceId: String, onComplete: (Boolean) -> Unit) {
+        db.collection("services").document(serviceId).delete()
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+
+    fun updateService(
+        id: String,
+        title: String,
+        category: String,
+        location: String,
+        duration: String,
+        price: Int,
+        onComplete: (Boolean) -> Unit
+    ) {
+        db.collection("services").document(id).update(
+            mapOf(
+                "title" to title,
+                "category" to category,
+                "location" to location,
+                "duration" to duration,
+                "price" to price.toDouble(),
+                "keywords" to (title + " " + category).lowercase().split(" ")
+                    .map { it.trim() }.filter { it.length > 2 }.distinct()
+            )
+        ).addOnSuccessListener { onComplete(true) }
+         .addOnFailureListener { onComplete(false) }
+    }
 }

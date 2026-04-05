@@ -5,6 +5,7 @@ import android.widget.Toast
 import com.example.workly.provider.MyServicesActivity
 import com.example.workly.provider.AddServiceActivity
 import com.example.workly.provider.ProviderOrdersActivity
+import com.example.workly.provider.ProviderEarningsActivity
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import androidx.compose.animation.core.*
@@ -110,10 +111,17 @@ fun HomeScreenContent(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Avatar
-                    val avatarUrl = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=ffffff&color=1565C0&bold=true&rounded=true&size=120"
+                    var userImage by remember { mutableStateOf<String?>(null) }
+                    LaunchedEffect(user?.uid) {
+                        user?.uid?.let { uid ->
+                            FirebaseFirestore.getInstance().collection("users").document(uid).get()
+                                .addOnSuccessListener { doc -> userImage = doc.getString("imageUrl") }
+                        }
+                    }
+                    val effectiveAvatar = userImage ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=ffffff&color=1565C0&bold=true&rounded=true&size=120"
                     Surface(modifier = Modifier.size(48.dp), shape = CircleShape, color = Color.White.copy(0.2f)) {
                         AsyncImage(
-                            model = avatarUrl,
+                            model = effectiveAvatar,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                             contentScale = ContentScale.Crop
@@ -456,18 +464,19 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
     
     LaunchedEffect(user?.uid) {
         if (userRole == "provider" && user != null) {
-            FirebaseFirestore.getInstance().collection("orders")
-                .whereEqualTo("providerId", user.uid)
-                .whereEqualTo("status", "completed")
-                .addSnapshotListener { snapshot, error ->
-                    if (error == null && snapshot != null) {
-                        var total = 0
-                        for (doc in snapshot.documents) {
-                            total += doc.getLong("price")?.toInt() ?: 0
-                        }
-                        lifetimeEarnings = total
-                    }
-                }
+                        FirebaseFirestore.getInstance().collection("orders")
+                            .whereEqualTo("providerId", user.uid)
+                            .whereIn("status", listOf("accepted", "completed"))
+                            .addSnapshotListener { snapshot, error ->
+                                if (error == null && snapshot != null) {
+                                    var total = 0
+                                    for (doc in snapshot.documents) {
+                                        val amount = doc.getDouble("finalPrice") ?: doc.getDouble("price") ?: 0.0
+                                        total += amount.toInt()
+                                    }
+                                    lifetimeEarnings = total
+                                }
+                            }
         }
     }
 
@@ -488,9 +497,17 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    var profileImage by remember { mutableStateOf<String?>(null) }
+                    LaunchedEffect(user?.uid) {
+                        user?.uid?.let { uid ->
+                            FirebaseFirestore.getInstance().collection("users").document(uid).get()
+                                .addOnSuccessListener { doc -> profileImage = doc.getString("imageUrl") }
+                        }
+                    }
+                    val effectiveAvatar = profileImage ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=1565C0&color=fff&bold=true&rounded=true&size=200"
                     Surface(modifier = Modifier.size(76.dp), shape = CircleShape, border = BorderStroke(3.dp, Color.White)) {
                         AsyncImage(
-                            model = avatarUrl,
+                            model = effectiveAvatar,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                             contentScale = ContentScale.Crop
@@ -527,7 +544,6 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     }
                 }
                 ProfileMenuItem(Icons.Default.LocationOn, "Saved Addresses", "Home, work & more") {}
-                ProfileMenuItem(Icons.Default.CreditCard, "Payment Methods", "Cards, UPI & wallet") {}
 
                 // ── Provider-specific section ──
                 if (userRole == "provider") {
@@ -539,7 +555,9 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     ProfileMenuItem(Icons.Default.PostAdd, "Add Service", "Create a new service listing") {
                         context.startActivity(Intent(context, AddServiceActivity::class.java))
                     }
-                    ProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings collected from completed orders") {}
+                    ProfileMenuItem(Icons.Default.AccountBalanceWallet, "Earnings", "₹$lifetimeEarnings collected from completed orders") {
+                        context.startActivity(Intent(context, ProviderEarningsActivity::class.java))
+                    }
                 }
 
                 // ── Admin-only section ──

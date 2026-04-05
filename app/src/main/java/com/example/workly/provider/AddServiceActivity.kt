@@ -1,6 +1,7 @@
 package com.example.workly.provider
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.net.Uri
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.workly.theme.WorklyTheme
+import com.google.firebase.firestore.FirebaseFirestore
 
 // ── Hard-coded high-contrast colors (no theme dependency for critical UI) ──
 private val CardBg = Color.White
@@ -62,7 +64,17 @@ class AddServiceActivity : ComponentActivity() {
                     override fun <T : androidx.lifecycle.ViewModel> create(c: Class<T>): T =
                         AddServiceViewModel(repo) as T
                 })
-                AddServiceScreen(vm) { finish() }
+
+                val editMode = intent.getBooleanExtra("EDIT_MODE", false)
+                val serviceId = intent.getStringExtra("SERVICE_ID") ?: ""
+
+                LaunchedEffect(editMode, serviceId) {
+                    if (editMode && serviceId.isNotEmpty()) {
+                        vm.loadService(serviceId)
+                    }
+                }
+
+                AddServiceScreen(vm, editMode, serviceId) { finish() }
             }
         }
     }
@@ -70,7 +82,7 @@ class AddServiceActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
+fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, serviceId: String = "", onBack: () -> Unit) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var isLocating by remember { mutableStateOf(false) }
@@ -79,7 +91,7 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.values.all { it }) {
-            // Permissions granted, triggered by the click usually
+            // Permissions granted
         }
     }
 
@@ -106,11 +118,7 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
                 }
             } else {
                 isLocating = false
-                Toast.makeText(context, "Location not available. Ensure GPS is ON.", Toast.LENGTH_SHORT).show()
             }
-        }.addOnFailureListener {
-            isLocating = false
-            Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -121,6 +129,7 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
     val duration by vm.duration.collectAsState()
     val price by vm.price.collectAsState()
     val imageUri by vm.imageUri.collectAsState()
+    val imageUrl by vm.imageUrl.collectAsState()
 
     val cities = listOf("Ahmedabad", "Surat", "Vadodara", "Rajkot", "Mumbai", "Delhi", "Bangalore", "Pune")
     val durations = listOf("1 hr", "2 hr", "3 hr", "4 hr", "5 hr")
@@ -130,13 +139,13 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
         vm.imageUri.value = uri
     }
 
-    val formValid = imageUri != null && title.isNotBlank() && category.isNotBlank() &&
+    val formValid = (imageUri != null || (editMode && imageUrl.isNotEmpty())) && title.isNotBlank() && category.isNotBlank() &&
             location.isNotBlank() && duration.isNotBlank() && price.isNotBlank()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Service", fontWeight = FontWeight.Bold, color = TextDark) },
+                title = { Text(if (editMode) "Update Service" else "Create Service", fontWeight = FontWeight.Bold, color = TextDark) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = TextDark) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBg)
             )
@@ -148,52 +157,37 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // ═══════════════ IMAGE UPLOAD (TOP — MANDATORY) ═══════════════
+                // Image picker logic
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (imageUri == null) Color(0xFFE8EDF2) else Color.Transparent)
-                        .then(
-                            if (imageUri == null)
-                                Modifier.border(2.dp, BluePrimary.copy(0.4f), RoundedCornerShape(16.dp))
-                            else Modifier
-                        )
+                        .background(if (imageUri == null && imageUrl.isEmpty()) Color(0xFFE8EDF2) else Color.Transparent)
                         .clickable { picker.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (imageUri != null) {
                         AsyncImage(imageUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        // Edit badge
-                        Surface(
-                            Modifier.align(Alignment.BottomEnd).padding(10.dp),
-                            shape = CircleShape,
-                            color = Color.Black.copy(0.65f)
-                        ) {
-                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.padding(8.dp).size(18.dp))
-                        }
+                    } else if (imageUrl.isNotEmpty()) {
+                        AsyncImage(imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.AddAPhoto, null, tint = BluePrimary, modifier = Modifier.size(44.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text("Tap to upload photo", fontWeight = FontWeight.Bold, color = BluePrimary, fontSize = 15.sp)
-                            Text("Required for listing", color = TextMuted, fontSize = 12.sp)
+                            Text("Tap to upload photo", fontWeight = FontWeight.Bold, color = BluePrimary)
                         }
                     }
                 }
 
-                // ═══════════════ SERVICE INFO ═══════════════
                 SectionCard("Service Details") {
                     StrongTextField(title, { vm.title.value = it }, "Service Title", "e.g. Expert AC Repair")
-
                     var catOpen by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(catOpen, { catOpen = !catOpen }) {
                         StrongReadonlyField(category, "Category", catOpen, Modifier.menuAnchor())
                         ExposedDropdownMenu(catOpen, { catOpen = false }, Modifier.background(CardBg)) {
                             categories.forEach {
                                 DropdownMenuItem(
-                                    text = { Text(it, color = TextDark, fontWeight = FontWeight.Medium) },
+                                    text = { Text(it, color = TextDark) },
                                     onClick = { vm.category.value = it; catOpen = false }
                                 )
                             }
@@ -201,155 +195,69 @@ fun AddServiceScreen(vm: AddServiceViewModel, onBack: () -> Unit) {
                     }
                 }
 
-                // ═══════════════ LOCATION & DURATION ═══════════════
                 SectionCard("Location & Time") {
-                    var locOpen by remember { mutableStateOf(false) }
-                    val filtered = cities.filter { it.contains(location, true) }
-                    ExposedDropdownMenuBox(locOpen, { locOpen = !locOpen }) {
-                        OutlinedTextField(
-                            location, { vm.location.value = it; locOpen = true },
-                            label = { Text("City", color = TextMuted) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            colors = strongFieldColors(),
-                            singleLine = true,
-                            trailingIcon = {
-                                if (isLocating) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = BluePrimary)
-                                } else {
-                                    IconButton(onClick = { fetchCityName() }) {
-                                        Icon(Icons.Default.MyLocation, "Auto Location", tint = BluePrimary)
-                                    }
-                                }
-                            }
-                        )
-                        if (filtered.isNotEmpty() && location.isNotEmpty()) {
-                            ExposedDropdownMenu(locOpen, { locOpen = false }, Modifier.background(CardBg)) {
-                                filtered.forEach {
-                                    DropdownMenuItem(
-                                        text = { Text(it, color = TextDark, fontWeight = FontWeight.Medium) },
-                                        onClick = { vm.location.value = it; locOpen = false }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    var durOpen by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(durOpen, { durOpen = !durOpen }) {
-                        StrongReadonlyField(duration, "Duration", durOpen, Modifier.menuAnchor())
-                        ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(CardBg)) {
-                            durations.forEach {
-                                DropdownMenuItem(
-                                    text = { Text(it, color = TextDark, fontWeight = FontWeight.Medium) },
-                                    onClick = { vm.duration.value = it; durOpen = false }
-                                )
-                            }
-                        }
-                    }
+                   StrongTextField(location, { vm.location.value = it }, "City", "e.g. Surat")
+                   var durOpen by remember { mutableStateOf(false) }
+                   ExposedDropdownMenuBox(durOpen, { durOpen = !durOpen }) {
+                       StrongReadonlyField(duration, "Duration", durOpen, Modifier.menuAnchor())
+                       ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(CardBg)) {
+                           durations.forEach {
+                               DropdownMenuItem(
+                                   text = { Text(it, color = TextDark) },
+                                   onClick = { vm.duration.value = it; durOpen = false }
+                               )
+                           }
+                       }
+                   }
                 }
 
-                // ═══════════════ PRICING ═══════════════
                 SectionCard("Pricing") {
                     OutlinedTextField(
                         price, { if (it.all { c -> c.isDigit() }) vm.price.value = it },
-                        label = { Text("Base Price (₹)", color = TextMuted) },
+                        label = { Text("Base Price (₹)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        prefix = { Text("₹ ", fontWeight = FontWeight.Bold, color = TextDark) },
+                        prefix = { Text("₹ ") },
                         colors = strongFieldColors(),
                         singleLine = true
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
-
-                // ═══════════════ PUBLISH BUTTON ═══════════════
                 Button(
-                    onClick = { vm.publishService() },
+                    onClick = { if (editMode) vm.updateService(serviceId) else vm.publishService() },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BlueDark,
-                        contentColor = Color.White,
-                        disabledContainerColor = Color(0xFFBDBDBD)
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = BlueDark),
                     enabled = formValid && state !is AddServiceState.Loading
                 ) {
-                    Text("Publish Service", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(if (editMode) "Update Service" else "Publish Service", fontWeight = FontWeight.Bold)
                 }
-
                 Spacer(Modifier.height(40.dp))
             }
 
-            // ═══════════════ LOADING OVERLAY (BLOCKS UI) ═══════════════
             if (state is AddServiceState.Loading) {
-                Surface(
-                    Modifier.fillMaxSize().clickable(enabled = true) {},
-                    color = Color.Black.copy(0.45f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(CardBg)) {
-                            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = BluePrimary, strokeWidth = 4.dp)
-                                Spacer(Modifier.height(20.dp))
-                                Text("Publishing your service...", fontWeight = FontWeight.Bold, color = TextDark)
-                                Text("This may take a moment", color = TextMuted, fontSize = 12.sp)
-                            }
-                        }
-                    }
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(0.4f)), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color.White)
                 }
             }
         }
     }
 
-    // ═══════════════ ERROR DIALOG ═══════════════
-    if (state is AddServiceState.Error) {
-        AlertDialog(
-            onDismissRequest = { vm.resetState() },
-            title = { Text("Something went wrong", fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F)) },
-            text = { Text((state as AddServiceState.Error).message, color = TextDark, fontSize = 14.sp) },
-            confirmButton = {
-                Button(onClick = { vm.resetState(); vm.publishService() }, colors = ButtonDefaults.buttonColors(BluePrimary)) {
-                    Text("Retry", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { vm.resetState() }) { Text("Cancel", color = TextMuted) }
-            },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = CardBg
-        )
-    }
-
-    // ═══════════════ SUCCESS DIALOG ═══════════════
     if (state is AddServiceState.Success) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Published!", fontWeight = FontWeight.Bold, color = GreenSuccess) },
-            text = { Text((state as AddServiceState.Success).message, color = TextDark) },
+            title = { Text("Success") },
+            text = { Text((state as AddServiceState.Success).message) },
             confirmButton = {
-                Button(onClick = { vm.resetState(); onBack() }, colors = ButtonDefaults.buttonColors(GreenSuccess)) {
-                    Text("Done", fontWeight = FontWeight.Bold)
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = CardBg
+                Button(onClick = { vm.resetState(); onBack() }) { Text("Done") }
+            }
         )
     }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// REUSABLE COMPONENTS — HIGH CONTRAST
-// ══════════════════════════════════════════════════════════════════
-
 @Composable
-fun SectionCard(label: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(CardBg),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
+private fun SectionCard(label: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(CardBg), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextDark)
             content()
@@ -358,37 +266,15 @@ fun SectionCard(label: String, content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-fun StrongTextField(value: String, onChange: (String) -> Unit, label: String, placeholder: String) {
-    OutlinedTextField(
-        value, onChange,
-        label = { Text(label, color = TextMuted) },
-        placeholder = { Text(placeholder, color = Color(0xFFAAAAAA)) },
-        modifier = Modifier.fillMaxWidth(),
-        colors = strongFieldColors(),
-        singleLine = true
-    )
+private fun StrongTextField(value: String, onChange: (String) -> Unit, label: String, placeholder: String) {
+    OutlinedTextField(value, onChange, label = { Text(label) }, placeholder = { Text(placeholder) }, modifier = Modifier.fillMaxWidth(), colors = strongFieldColors(), singleLine = true)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StrongReadonlyField(value: String, label: String, expanded: Boolean, modifier: Modifier = Modifier) {
-    OutlinedTextField(
-        value, {},
-        readOnly = true,
-        label = { Text(label, color = TextMuted) },
-        modifier = modifier.fillMaxWidth(),
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-        colors = strongFieldColors()
-    )
+private fun StrongReadonlyField(value: String, label: String, expanded: Boolean, modifier: Modifier = Modifier) {
+    OutlinedTextField(value, {}, readOnly = true, label = { Text(label) }, modifier = modifier.fillMaxWidth(), trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, colors = strongFieldColors())
 }
 
 @Composable
-fun strongFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = TextDark,
-    unfocusedTextColor = TextDark,
-    focusedBorderColor = BluePrimary,
-    unfocusedBorderColor = Color(0xFFCCCCCC),
-    focusedLabelColor = BluePrimary,
-    unfocusedLabelColor = TextMuted,
-    cursorColor = BluePrimary
-)
+private fun strongFieldColors() = OutlinedTextFieldDefaults.colors(focusedTextColor = TextDark, unfocusedTextColor = TextDark, focusedBorderColor = BluePrimary, unfocusedBorderColor = Color(0xFFCCCCCC))

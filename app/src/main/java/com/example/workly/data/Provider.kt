@@ -17,5 +17,6 @@ data class Provider(
     val reviewsCount: Int = 0,
     val bio: String = "",
     val phone: String = "",
+    val imageUrl: String = "",
     val isActive: Boolean = true
 )

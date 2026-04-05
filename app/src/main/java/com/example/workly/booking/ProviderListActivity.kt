@@ -192,7 +192,8 @@ fun ProviderListScreen(
 
 @Composable
 fun ProviderCard(provider: Provider, score: Double, onClick: () -> Unit) {
-    val avatarUrl = "https://ui-avatars.com/api/?name=${provider.name.replace(" ", "+")}&background=1565C0&color=fff&size=200&bold=true&rounded=true"
+    val fallbackAvatar = "https://ui-avatars.com/api/?name=${provider.name.replace(" ", "+")}&background=1565C0&color=fff&size=200&bold=true&rounded=true"
+    val effectiveAvatar = if (provider.imageUrl.isNotEmpty()) provider.imageUrl else fallbackAvatar
 
     Card(
         modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)).clickable(onClick = onClick),
@@ -201,9 +202,9 @@ fun ProviderCard(provider: Provider, score: Double, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Avatar from ui-avatars.com
+                // Avatar from ui-avatars.com or custom upload
                 AsyncImage(
-                    model = avatarUrl,
+                    model = effectiveAvatar,
                     contentDescription = provider.name,
                     modifier = Modifier.size(68.dp).clip(CircleShape),
                     contentScale = ContentScale.Crop

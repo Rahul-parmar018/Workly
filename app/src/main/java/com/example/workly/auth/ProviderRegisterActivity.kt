@@ -62,7 +62,8 @@ class ProviderRegisterActivity : AppCompatActivity() {
 
                                 val businessMap = hashMapOf(
                                     "id" to userId,
-                                    "isApproved" to false, // Business approval
+                                    "isApproved" to true, // Auto-approved for development
+                                    "status" to "approved",
                                     "earnings" to 0,
                                     "createdAt" to System.currentTimeMillis()
                                 )
@@ -73,7 +74,7 @@ class ProviderRegisterActivity : AppCompatActivity() {
                                 batch.commit()
                                     .addOnSuccessListener {
                                         progressBar.visibility = View.GONE
-                                        Toast.makeText(this, "Provider Account Created. Awaiting Approval.", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(this, "Provider Account Created Successfully!", Toast.LENGTH_LONG).show()
                                         startActivity(Intent(this, HomeActivity::class.java))
                                         finishAffinity()
                                     }

@@ -1,10 +1,12 @@
 package com.example.workly.provider
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.workly.data.Service
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +29,7 @@ class AddServiceViewModel(private val repository: AddServiceRepository) : ViewMo
     val duration = MutableStateFlow("")
     val price = MutableStateFlow("")
     val imageUri = MutableStateFlow<Uri?>(null)
+    val imageUrl = MutableStateFlow("") 
 
     private val _uiState = MutableStateFlow<AddServiceState>(AddServiceState.Idle)
     val uiState: StateFlow<AddServiceState> = _uiState.asStateFlow()
@@ -42,14 +45,12 @@ class AddServiceViewModel(private val repository: AddServiceRepository) : ViewMo
 
         viewModelScope.launch {
             try {
-                // 1. Save locally
                 val localPath = repository.saveImageToInternalStorage(uri)
                 if (localPath == null) {
                     _uiState.value = AddServiceState.Error("Failed to save image locally")
                     return@launch
                 }
 
-                // 2. Save directly to Firestore (Simplified for college project)
                 val providerName = auth.currentUser?.displayName ?: "Professional Provider"
                 
                 repository.saveService(
@@ -71,6 +72,40 @@ class AddServiceViewModel(private val repository: AddServiceRepository) : ViewMo
             } catch (e: Exception) {
                 _uiState.value = AddServiceState.Error(e.message ?: "Unknown error occurred")
             }
+        }
+    }
+
+    fun loadService(serviceId: String) {
+        _uiState.value = AddServiceState.Loading
+        viewModelScope.launch {
+            FirebaseFirestore.getInstance().collection("services").document(serviceId).get()
+                .addOnSuccessListener { doc ->
+                    title.value = doc.getString("title") ?: ""
+                    category.value = doc.getString("category") ?: ""
+                    location.value = doc.getString("location") ?: ""
+                    duration.value = doc.getString("duration") ?: ""
+                    price.value = (doc.getDouble("price")?.toInt() ?: 0).toString()
+                    imageUrl.value = doc.getString("imageUrl") ?: ""
+                    _uiState.value = AddServiceState.Idle
+                }
+                .addOnFailureListener {
+                    _uiState.value = AddServiceState.Error("Failed to load service")
+                }
+        }
+    }
+
+    fun updateService(serviceId: String) {
+        _uiState.value = AddServiceState.Loading
+        repository.updateService(
+            id = serviceId,
+            title = title.value,
+            category = category.value,
+            location = location.value,
+            duration = duration.value,
+            price = price.value.toIntOrNull() ?: 0
+        ) { success ->
+            if (success) _uiState.value = AddServiceState.Success("Service updated successfully!")
+            else _uiState.value = AddServiceState.Error("Update failed")
         }
     }
 

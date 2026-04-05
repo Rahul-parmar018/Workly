@@ -1,5 +1,6 @@
 package com.example.workly.provider
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -83,7 +84,7 @@ fun MyServicesScreen(vm: MyServicesViewModel, onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(servicesList, key = { it.id }) { service ->
-                        ServiceCard(service)
+                        ServiceCard(service, vm)
                     }
                 }
             }
@@ -92,7 +93,8 @@ fun MyServicesScreen(vm: MyServicesViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun ServiceCard(service: Service) {
+fun ServiceCard(service: Service, vm: MyServicesViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val title = service.title
     val price = service.price.toInt()
     val imagePath = service.imagePath
@@ -147,6 +149,29 @@ fun ServiceCard(service: Service) {
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+
+            // ⚙️ Actions: Edit & Delete
+            Row(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    // Logic to open Edit
+                    val intent = Intent(context, AddServiceActivity::class.java).apply {
+                        putExtra("SERVICE_ID", service.id)
+                        putExtra("EDIT_MODE", true)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = ProfessionalBlue, modifier = Modifier.size(20.dp))
+                }
+                
+                IconButton(onClick = {
+                    vm.deleteService(service.id)
+                }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(0.7f), modifier = Modifier.size(20.dp))
+                }
             }
         }
     }

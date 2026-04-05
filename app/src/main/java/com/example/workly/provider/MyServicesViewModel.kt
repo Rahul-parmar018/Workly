@@ -47,4 +47,12 @@ class MyServicesViewModel(private val repository: AddServiceRepository) : ViewMo
                 _isLoading.value = false
             }
     }
+
+    fun deleteService(serviceId: String) {
+        repository.deleteService(serviceId) { success ->
+            if (!success) {
+                Log.e("MyServicesVM", "Failed to delete service $serviceId")
+            }
+        }
+    }
 }

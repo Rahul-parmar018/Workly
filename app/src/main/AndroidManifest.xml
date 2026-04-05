@@ -92,6 +92,7 @@
         <activity android:name=".provider.MyServicesActivity" android:exported="false" />
         <activity android:name=".provider.AddServiceActivity" android:exported="false" />
         <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
+        <activity android:name=".provider.ProviderEarningsActivity" android:exported="false" />
 
 
 
