@@ -6,6 +6,9 @@ import com.google.firebase.firestore.ServerTimestamp
 object OrderStatus {
     const val PENDING = "pending"
     const val ACCEPTED = "accepted"
+    const val ASSIGNED = "assigned"   // Provider assigned definitively
+    const val ARRIVING = "arriving"   // Provider on the way
+    const val STARTED = "started"     // Job in progress
     const val COMPLETED = "completed"
     const val CANCELLED = "cancelled"
 }
@@ -28,6 +31,7 @@ data class Booking(
     val time: String = "",
     val durationHours: Int = 1,
     val address: String = "",
+    val userPhone: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val basePrice: Double = 0.0,
@@ -67,6 +71,7 @@ data class Booking(
         "time" to time,
         "durationHours" to durationHours,
         "address" to address,
+        "userPhone" to userPhone,
         "latitude" to latitude,
         "longitude" to longitude,
         "basePrice" to basePrice,

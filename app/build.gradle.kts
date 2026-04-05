@@ -75,8 +75,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
 
-    // Location
+    // Location & Maps
     implementation(libs.play.services.location)
+    implementation("org.maplibre.gl:android-sdk:10.0.2")
 
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -100,5 +101,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
 }

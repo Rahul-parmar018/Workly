@@ -13,6 +13,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -21,10 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.workly.R
 import com.example.workly.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -48,54 +47,61 @@ import kotlinx.coroutines.launch
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
+// ── Brand Colors ─────────────────────────────────────────────────────────────
+private val BrandBlue     = Color(0xFF1A237E)
+private val BrandBlueMid  = Color(0xFF0D47A1)
+private val BrandBlueDark = Color(0xFF01579B)
+private val BrandGlow     = Color(0xFF3F51B5).copy(alpha = 0.4f)
+private val TrustGreen    = Color(0xFF4CAF50)
+
 class SplashActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        val themeDataStore = ThemeDataStore(this)
 
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            
+            WorklyTheme(themeMode = themeMode) {
                 var showSplash by remember { mutableStateOf(true) }
                 val auth = FirebaseAuth.getInstance()
                 val currentUser = remember { auth.currentUser }
 
                 LaunchedEffect(Unit) {
-                    delay(2500) // Slightly longer for animation
-                    
+                    delay(2800)
+
                     if (currentUser != null) {
                         val db = FirebaseFirestore.getInstance()
                         db.collection("users").document(currentUser.uid).get()
                             .addOnSuccessListener { userDoc ->
                                 if (userDoc.exists()) {
                                     val role = userDoc.getString("role") ?: "user"
-                                    
                                     when (role) {
                                         "admin" -> {
                                             startActivity(Intent(this@SplashActivity, com.example.workly.admin.AdminDashboardActivity::class.java))
                                             finish()
                                         }
                                         "provider" -> {
-                                            // Check approval status for providers
-                                            db.collection("providers").document(currentUser.uid).get()
+                                            val db2 = FirebaseFirestore.getInstance()
+                                            db2.collection("providers").document(currentUser.uid).get()
                                                 .addOnSuccessListener { provDoc ->
                                                     val approved = provDoc.getBoolean("isApproved") ?: false
                                                     if (approved) {
                                                         startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
-                                                        finish()
                                                     } else {
-                                                        // If not approved, we might want to still show splash/onboarding or a msg
-                                                        // For now, let's send to login/auth hub to avoid getting stuck
                                                         startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
-                                                        finish()
                                                     }
+                                                    finish()
                                                 }
                                                 .addOnFailureListener {
                                                     startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
                                                     finish()
                                                 }
                                         }
-                                        else -> { // Standard user
+                                        else -> {
                                             startActivity(Intent(this@SplashActivity, HomeActivity::class.java))
                                             finish()
                                         }
@@ -104,20 +110,17 @@ class SplashActivity : ComponentActivity() {
                                     showSplash = false
                                 }
                             }
-                            .addOnFailureListener {
-                                showSplash = false
-                            }
+                            .addOnFailureListener { showSplash = false }
                     } else {
-                        // No user session, show onboarding
                         showSplash = false
                     }
                 }
 
                 Crossfade(targetState = showSplash, label = "SplashFade") { isSplash ->
                     if (isSplash) {
-                        SplashScreen()
+                        PremiumSplashScreen()
                     } else {
-                        OnboardingScreen(
+                        PremiumOnboardingScreen(
                             onGetStarted = {
                                 startActivity(Intent(this@SplashActivity, com.example.workly.auth.AuthSelectionActivity::class.java))
                                 finish()
@@ -130,126 +133,367 @@ class SplashActivity : ComponentActivity() {
     }
 }
 
+// ─── Premium Splash Screen ────────────────────────────────────────────────────
 @Composable
-fun SplashScreen() {
-    var startAnimation by remember { mutableStateOf(false) }
-    val alphaAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1500), label = "alpha"
+fun PremiumSplashScreen() {
+    var started by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+
+    val logoScale by animateFloatAsState(
+        targetValue = if (started) 1f else 0.85f,
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "logoScale"
     )
-    val scaleAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1.1f else 0.5f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "scale"
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(600),
+        label = "logoAlpha"
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(700, delayMillis = 400),
+        label = "textAlpha"
+    )
+    val taglineAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(700, delayMillis = 700),
+        label = "taglineAlpha"
     )
 
     LaunchedEffect(Unit) {
-        startAnimation = true
+        started = true
+        // Animate progress bar
+        val steps = 50
+        repeat(steps) {
+            delay(40)
+            progress = (it + 1f) / steps
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(ProfessionalBlue, ProfessionalBlueDark)
+                Brush.verticalGradient(
+                    colors = listOf(BrandBlue, BrandBlueMid, BrandBlueDark)
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
+        // Soft radial glow behind logo
+        Box(
+            modifier = Modifier
+                .size(280.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(BrandGlow, Color.Transparent)
+                    ),
+                    CircleShape
+                )
+        )
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo / Icon
+            // Logo circle
             Surface(
                 modifier = Modifier
-                    .size(140.dp)
-                    .scale(scaleAnim.value)
-                    .shadow(elevation = 20.dp, shape = CircleShape),
+                    .size(120.dp)
+                    .scale(logoScale)
+                    .alpha(logoAlpha),
                 shape = CircleShape,
-                color = Color.White
-            ) {
-                 Box(contentAlignment = Alignment.Center) {
-                     Icon(
-                         imageVector = Icons.Default.Build,
-                         contentDescription = "Logo",
-                         modifier = Modifier.size(60.dp),
-                         tint = ProfessionalBlue
-                     )
-                 }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Text(
-                text = "Workly",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
                 color = Color.White,
-                modifier = Modifier.alpha(alphaAnim.value)
-            )
-            
+                shadowElevation = 24.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.workly_logo),
+                        contentDescription = "Workly Logo",
+                        modifier = Modifier
+                            .size(72.dp)
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // App name
             Text(
-                text = "Professional Services on Demand",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier.alpha(alphaAnim.value)
+                "Workly",
+                color = Color.White,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-1).sp,
+                modifier = Modifier.alpha(textAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Tagline
+            Text(
+                "Trusted Home Services in Minutes",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .alpha(taglineAlpha)
+                    .padding(horizontal = 40.dp)
             )
         }
-        
-        // Loading indicator at bottom
-        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 60.dp)) {
-             CircularProgressIndicator(
-                 color = EnergyOrange,
-                 modifier = Modifier.size(32.dp),
-                 strokeWidth = 3.dp
-             )
+
+        // Progress bar at bottom
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 56.dp)
+                .padding(horizontal = 60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.2f)
+            )
         }
     }
 }
 
-
+// ─── Premium Onboarding Screen ────────────────────────────────────────────────
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnboardingScreen(onGetStarted: () -> Unit) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    val scope = rememberCoroutineScope()
+fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
+    val pages = listOf(
+        OnboardPage(
+            id = "cleaning",
+            imageRes = R.drawable.onboard_cleaning,
+            title = "Spotless cleaning,\nwithout the effort.",
+            description = "Book trusted cleaners instantly.",
+            trustLine = "10,000+ homes serviced",
+            trustIcon = "✔",
+            bgStart = Color(0xFFF8FAFC),
+            bgEnd = Color(0xFFEEF2FF),
+            ctaText = "Continue →"
+        ),
+        OnboardPage(
+            id = "electrician",
+            imageRes = R.drawable.onboard_electrician,
+            title = "Reliable electrical help,\nwhenever you need it.",
+            description = "Safe, instant electrical help anytime.",
+            trustLine = "4.8 average rating",
+            trustIcon = "⭐",
+            bgStart = Color(0xFFFFF7ED),
+            bgEnd = Color(0xFFFFEDD5),
+            ctaText = "Continue →"
+        ),
+        OnboardPage(
+            id = "plumbing",
+            imageRes = R.drawable.onboard_plumbing,
+            title = "Quick, clean\nplumbing solutions.",
+            description = "Verified plumbers for installs & repairs.",
+            trustLine = "Background-verified professionals",
+            trustIcon = "✔",
+            bgStart = Color(0xFFF0FDFA),
+            bgEnd = Color(0xFFCCFBF1),
+            ctaText = "Get Started →",
+            microCopy = "No booking fee • Cancel anytime"
+        )
+    )
 
-    Scaffold(
-        containerColor = Color.White
-    ) { innerPadding ->
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val scope = rememberCoroutineScope()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize().background(Color.White)
+    ) { pageIndex ->
+        val page = pages[pageIndex]
+
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Slider Section
-            HorizontalPager(
-                state = pagerState,
+            // HERO SECTION (NO BOX - FULL IMMERSIVE)
+            Box(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-            ) { page ->
-                OnboardingPage(page = page)
+                    .weight(1f) // Fills top half flexibly
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(page.bgStart, page.bgEnd),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    ),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // Soft Depth Layer Backdrop (makes background feel slightly faded/deep)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.4f)),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
+                )
+
+                // Rive/Lottie equivalent Compose Animations
+                val infiniteTransition = rememberInfiniteTransition(label = "page_anim")
+                val breathingScale by infiniteTransition.animateFloat(
+                    initialValue = 0.99f,
+                    targetValue = 1.01f, // Extremely subtle focus
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2800, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "breathing"
+                )
+
+                val floatOffset by infiniteTransition.animateFloat(
+                    initialValue = -4f,
+                    targetValue = 4f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(3500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "floating"
+                )
+                
+                val glowPulse by infiniteTransition.animateFloat(
+                    initialValue = 0.3f,
+                    targetValue = 0.8f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "glowPulse"
+                )
+
+                // Interactive Elements / Alive Scene Environment (Subtle focus)
+                if (page.id == "cleaning") {
+                    // Minimal sparkles near mop head
+                    Text("✨", fontSize = 24.sp, modifier = Modifier.align(Alignment.BottomStart).padding(start = 120.dp, bottom = 120.dp).offset(y = floatOffset.dp).alpha(glowPulse))
+                    Text("✨", fontSize = 16.sp, modifier = Modifier.align(Alignment.BottomStart).padding(start = 90.dp, bottom = 90.dp).offset(y = (floatOffset * 1.5f).dp).alpha(glowPulse * 0.7f))
+                } else if (page.id == "electrician") {
+                    // Soft glow pulse moving
+                    Text("⚡", fontSize = 32.sp, color = Color(0xFFFFB300), modifier = Modifier.align(Alignment.CenterEnd).padding(end = 90.dp, bottom = 60.dp).scale(glowPulse + 0.3f).alpha(glowPulse))
+                } else if (page.id == "plumbing") {
+                    // Gentle water drops trickling
+                    Text("💧", fontSize = 24.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(end = 40.dp, bottom = 110.dp).offset(y = (floatOffset * 2.5f).dp).alpha(glowPulse))
+                }
+
+                // 3D Character Illustration (FULL BLEED)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Image(
+                        painter = painterResource(id = page.imageRes),
+                        contentDescription = page.title,
+                        modifier = Modifier
+                            .fillMaxWidth(1.05f) // Full bleed width stretching past edges slightly
+                            .fillMaxHeight(0.85f)
+                            .scale(breathingScale)
+                            .offset(y = 12.dp), // Pull exactly onto floor
+                        contentScale = ContentScale.FillWidth
+                    )
+                    
+                    // Soft Ellipse Ground Shadow (Simulates 25-40px Blur at 10-15% Opacity)
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth(0.65f).height(28.dp)) {
+                        drawOval(
+                            Brush.radialGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent) // Very soft 12% opacity
+                            ),
+                            size = size
+                        )
+                    }
+                }
             }
 
-            // Bottom Section
-            Row(
+            // EXACT SPACING SYSTEM IMPLEMENTATION
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .background(Color.White)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Indicators
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    repeat(3) { iteration ->
-                         val isSelected = pagerState.currentPage == iteration
-                         val width by animateDpAsState(if (isSelected) 24.dp else 8.dp, label = "width")
-                         val color by animateColorAsState(if (isSelected) ProfessionalBlue else Color.LightGray, label = "color")
+                Spacer(modifier = Modifier.height(24.dp)) // Hero → Heading: 24px
+                
+                Text(
+                    text = page.title,
+                    color = Color(0xFF1E293B),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold, // Clean, strong, classic
+                    textAlign = TextAlign.Center,
+                    lineHeight = 34.sp,
+                    letterSpacing = (-0.5).sp
+                )
 
+                Spacer(modifier = Modifier.height(12.dp)) // Heading → Subtext
+
+                Text(
+                    text = page.description,
+                    color = Color(0xFF64748B),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal, // Lighter, more spacing
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp)) // Subtext → Trust pill
+
+                // Classy Thin Trust Pill
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = Color.White.copy(alpha = 0.9f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 14.dp)
+                    ) {
+                        if (page.trustIcon == "✔") {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                        } else {
+                            Text(page.trustIcon, fontSize = 14.sp)
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(page.trustLine, color = Color(0xFF334155), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp)) // Trust pill → CTA
+
+                // Pagination Dots (Dynamically switching width shapes)
+                Row(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    repeat(pages.size) { i ->
+                        val isSelected = pagerState.currentPage == i
+                        val width by animateDpAsState(
+                            targetValue = if (isSelected) 24.dp else 8.dp,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            label = "dot_width"
+                        )
+                        val color by animateColorAsState(
+                            targetValue = if (isSelected) BrandBlue else Color(0xFFCFD8DC),
+                            label = "dot_color"
+                        )
                         Box(
                             modifier = Modifier
                                 .height(8.dp)
@@ -260,97 +504,80 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                     }
                 }
 
-                // FAB / Next Button
-                FloatingActionButton(
+                // CTA Button (Interaction Gradient)
+                val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val buttonScale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1f, label = "btn_scale")
+
+                Button(
                     onClick = {
-                        scope.launch {
-                            if (pagerState.currentPage < 2) {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            } else {
-                                onGetStarted()
-                            }
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        if (pageIndex < pages.size - 1) {
+                            scope.launch { pagerState.animateScrollToPage(pageIndex + 1) }
+                        } else {
+                            onGetStarted()
                         }
                     },
-                    containerColor = ProfessionalBlue,
-                    contentColor = Color.White,
-                    shape = CircleShape
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp)
+                        .scale(buttonScale),
+                    shape = RoundedCornerShape(29.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    interactionSource = interactionSource,
+                    elevation = null // Disable native elevation to handle explicitly
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Next"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shadow(elevation = 8.dp, shape = RoundedCornerShape(29.dp), spotColor = Color(0xFF1E293B), ambientColor = Color(0xFF1E293B))
+                            .background(
+                                Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF1E293B))), // Sophisticated slate
+                                RoundedCornerShape(29.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            page.ctaText,
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                if (page.microCopy != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        page.microCopy,
+                        color = Color(0xFF90A4AE),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp)) // CTA → bottom: 16px
             }
         }
     }
 }
 
-@Composable
-fun OnboardingPage(page: Int) {
-    val title = when (page) {
-        0 -> "Spotless Cleaning"
-        1 -> "Expert Electricians"
-        2 -> "Reliable Plumbing"
-        else -> ""
-    }
+// ─── Configuration ────────────────────────────────────────────────────────────
+data class OnboardPage(
+    val id: String,
+    val imageRes: Int,
+    val title: String,
+    val description: String,
+    val trustLine: String,
+    val trustIcon: String,
+    val bgStart: Color,
+    val bgEnd: Color,
+    val ctaText: String,
+    val microCopy: String? = null
+)
 
-    val description = when (page) {
-        0 -> "Hire top-rated professional cleaners to make your space shine effortlessly."
-        1 -> "Safe and reliable electrical repairs and installations at your doorstep."
-        2 -> "Fast and efficient plumbing services for all your repair and maintenance needs."
-        else -> ""
-    }
-    
-    val imageRes = when(page) {
-        0 -> com.example.workly.R.drawable.img_service_cleaner
-        1 -> com.example.workly.R.drawable.img_service_electrician
-        2 -> com.example.workly.R.drawable.img_service_plumber
-        else -> com.example.workly.R.drawable.img_service_cleaner
-    }
+// ─── Legacy wrappers (kept for safety) ────────────────────────────────────────
+@Composable fun SplashScreen() = PremiumSplashScreen()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(vertical = 32.dp, horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Image Area
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
-                .clip(RoundedCornerShape(32.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-             Image(
-                 painter = painterResource(id = imageRes),
-                 contentDescription = title,
-                 modifier = Modifier.fillMaxSize(),
-                 contentScale = ContentScale.Fit
-             )
-        }
-        
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Text Content
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            color = TextPrimary
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = TextSecondary,
-            lineHeight = 24.sp
-        )
-    }
-}
+@Composable fun OnboardingPage(page: Int) {}

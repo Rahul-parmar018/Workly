@@ -23,6 +23,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 
+import androidx.activity.enableEdgeToEdge
+
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
@@ -42,6 +44,7 @@ class RegisterActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_register)
 
         auth = FirebaseAuth.getInstance()

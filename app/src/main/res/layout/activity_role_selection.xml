@@ -6,81 +6,131 @@
     android:layout_height="match_parent"
     android:background="@drawable/auth_bg_gradient">
 
-    <ImageView
-        android:id="@+id/ivLogo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="80dp"
-        android:src="@drawable/workly_logo"
-        android:background="@drawable/circle_white_bg"
-        android:padding="20dp"
-        android:elevation="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+    <!-- Top Text -->
     <TextView
         android:id="@+id/tvSelectRole"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="Welcome to Workly"
+        android:layout_marginTop="64dp"
+        android:text="Choose Your Role"
         android:textColor="@android:color/white"
-        android:textSize="26sp"
-        android:textStyle="bold"
+        android:textSize="32sp"
+        android:fontFamily="sans-serif-black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tvSelectRoleDesc"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Choose how you want to continue:"
+        android:text="Select who you are to continue"
         android:textColor="#E0E0E0"
-        android:textSize="16sp"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvSelectRole" />
 
+    <!-- Center Hero Area for 3D characters -->
+    <ImageView
+        android:id="@+id/ivHeroAvatars"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/user_pfp"
+        app:layout_constraintTop_toBottomOf="@id/tvSelectRoleDesc"
+        app:layout_constraintBottom_toTopOf="@id/roleSelectionContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Role Selection Buttons (Circular) -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:id="@+id/roleSelectionContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="80dp"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        android:layout_marginBottom="40dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintBottom_toTopOf="@id/tvTagline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUser"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:text="👤 Continue as User"
-            android:textColor="#1A237E"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            app:backgroundTint="@android:color/white"
-            app:cornerRadius="32dp"
-            android:elevation="8dp" />
+        <!-- User Role Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="20dp">
+            
+            <ImageView
+                android:id="@+id/btnUser"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:background="@drawable/circle_black_transparent"
+                android:src="@drawable/user_pfp"
+                android:padding="20dp"
+                android:scaleType="centerCrop"
+                android:elevation="8dp" 
+                android:clickable="true"
+                android:focusable="true"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnProvider"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginTop="20dp"
-            android:text="🔧 Continue as Service Provider"
-            android:textColor="@android:color/white"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            app:backgroundTint="#00000000"
-            app:cornerRadius="32dp"
-            app:strokeColor="@android:color/white"
-            app:strokeWidth="2dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="User"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp"/>
+        </LinearLayout>
+
+        <!-- Provider Role Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="20dp">
+            
+            <ImageView
+                android:id="@+id/btnProvider"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:background="@drawable/circle_black_transparent"
+                android:src="@drawable/user_pfp"
+                android:padding="20dp"
+                android:scaleType="centerCrop"
+                android:elevation="8dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Provider"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp"/>
+        </LinearLayout>
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvTagline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="40dp"
+        android:text="Because your day deserves better."
+        android:textColor="@android:color/white"
+        android:textSize="28sp"
+        android:fontFamily="sans-serif-black"
+        android:lineSpacingExtra="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

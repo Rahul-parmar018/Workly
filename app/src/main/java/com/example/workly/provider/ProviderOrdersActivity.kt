@@ -1,6 +1,9 @@
 package com.example.workly.provider
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -8,22 +11,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.data.OrderStatus
-import com.example.workly.theme.ElectricTeal
-import com.example.workly.theme.EnergyOrange
 import com.example.workly.theme.ProfessionalBlue
-import com.example.workly.theme.TextPrimary
 import com.example.workly.theme.WorklyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,7 +40,7 @@ class ProviderOrdersActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WorklyTheme {
-                ProviderOrdersScreen(onBack = { finish() })
+                ProviderOrdersScreenFinal(onBack = { finish() })
             }
         }
     }
@@ -43,7 +48,7 @@ class ProviderOrdersActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProviderOrdersScreen(onBack: () -> Unit) {
+fun ProviderOrdersScreenFinal(onBack: () -> Unit) {
     val db = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser
     var ordersList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
@@ -56,7 +61,7 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        android.util.Log.e("ProviderOrders", "Error: ${error.message}")
+                        Log.e("ProviderOrders", "Error: ${error.message}")
                         isLoading = false
                         return@addSnapshotListener
                     }
@@ -77,40 +82,39 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Incoming Orders", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                title = { 
+                    Column {
+                        Text("Operative Console", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Color(0xFF0F172A))
+                        Text("High-priority service tasks", fontSize = 12.sp, color = Color(0xFF64748B))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
-                )
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
-        containerColor = Color(0xFFF5F7FA)
+        containerColor = Color(0xFFF8FAFC)
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ProfessionalBlue)
             } else if (ordersList.isEmpty()) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(Icons.Default.Assignment, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-                    Spacer(Modifier.height(16.dp))
-                    Text("No orders received yet.", color = Color.Gray, fontWeight = FontWeight.Medium)
+                Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.AssignmentLate, null, Modifier.size(80.dp), Color(0xFFE2E8F0))
+                    Spacer(Modifier.height(24.dp))
+                    Text("No active requests", color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     items(ordersList) { order ->
-                        OrderCard(order)
+                        PremiumProviderCard(order)
                     }
                 }
             }
@@ -119,137 +123,203 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun OrderCard(order: Map<String, Any>) {
+fun PremiumProviderCard(order: Map<String, Any>) {
     val db = FirebaseFirestore.getInstance()
-    val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+    val user = FirebaseAuth.getInstance().currentUser ?: return
     val orderId = order["id"]?.toString() ?: ""
-    val serviceTitle = order["serviceName"]?.toString() ?: "Order Task"
-    val userName = order["userName"]?.toString() ?: "Customer"
-    val price = order["finalPrice"]?.toString() ?: order["price"]?.toString() ?: "0"
-    val status = order["status"]?.toString() ?: OrderStatus.PENDING
     
-    var isProcessing by remember { mutableStateOf(false) }
+    // 🔥 DATA FIX: Use serviceName instead of generic Title
+    val serviceTitle = order["serviceName"]?.toString() ?: order["serviceTitle"]?.toString() ?: "Service Job"
+    
+    val userName = order["userName"]?.toString() ?: "Customer"
+    val userPhone = order["userPhone"]?.toString() ?: ""
+    val address = order["address"]?.toString() ?: "Location not provided"
+    val bookingTime = "${order["date"]} at ${order["time"]}"
+    val price = order["finalPrice"]?.toString() ?: order["price"]?.toString() ?: "0"
+    val status = (order["status"]?.toString() ?: OrderStatus.PENDING).lowercase()
+    
+    var isBusy by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Header Row: Service + Badge
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = serviceTitle, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = TextPrimary)
-                    Text(text = "From: $userName", fontSize = 13.sp, color = Color.Gray)
+                    Text(text = serviceTitle, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color(0xFF0F172A))
+                    Spacer(Modifier.height(4.dp))
+                    Text(text = "Booked by $userName", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
                 }
-                Text(
-                    text = status.uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = when(status) {
-                        OrderStatus.COMPLETED -> Color(0xFF2E7D32)
-                        OrderStatus.ACCEPTED -> ProfessionalBlue
-                        else -> EnergyOrange
-                    },
-                    modifier = Modifier
-                        .background(
-                            when(status) {
-                                OrderStatus.COMPLETED -> Color(0xFFE8F5E9)
-                                OrderStatus.ACCEPTED -> ProfessionalBlue.copy(0.1f)
-                                else -> EnergyOrange.copy(0.1f)
-                            },
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                )
+                ModernStatusBadge(status)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color.LightGray.copy(0.3f))
-            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Operative Info Cluster
+            OperativeRow(Icons.Default.LocationOn, address)
+            Spacer(Modifier.height(8.dp))
+            OperativeRow(Icons.Default.AccessTime, bookingTime)
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Payout: ₹$price", fontSize = 16.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
+            // Pricing & Action Cluster
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Potential Earning", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text("₹$price", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E2A78))
+                }
                 
-                if (status != OrderStatus.CANCELLED && status != OrderStatus.COMPLETED) {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    OutlinedButton(
-                        onClick = {
-                            val targetId = order["userId"]?.toString() ?: ""
-                            val targetName = order["userName"]?.toString() ?: "Customer"
-                            val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
-                                putExtra("RECEIVER_ID", targetId)
-                                putExtra("RECEIVER_NAME", targetName)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (status != OrderStatus.COMPLETED && status != OrderStatus.CANCELLED) {
+                        Surface(
+                            onClick = { if (userPhone.isNotEmpty()) context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$userPhone"))) },
+                            shape = CircleShape, color = Color(0xFFF1F5F9), modifier = Modifier.size(52.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Phone, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(24.dp))
                             }
-                            context.startActivity(chatIntent)
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Assignment, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Chat")
+                        }
+                        Surface(
+                            onClick = {
+                                val intent = Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
+                                    putExtra("RECEIVER_ID", order["userId"]!!.toString())
+                                    putExtra("RECEIVER_NAME", userName)
+                                }
+                                context.startActivity(intent)
+                            },
+                            shape = CircleShape, color = Color(0xFFF1F5F9), modifier = Modifier.size(52.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Chat, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
+            }
 
-                if (status == OrderStatus.PENDING) {
-                    Button(
-                        onClick = {
-                            isProcessing = true
-                            db.runTransaction { transaction ->
-                                val ref = db.collection("orders").document(orderId)
-                                val snap = transaction.get(ref)
-                                if (snap.getString("status") == OrderStatus.PENDING) {
-                                    transaction.update(ref, mapOf(
-                                        "status" to OrderStatus.ACCEPTED,
-                                        "acceptedAt" to System.currentTimeMillis()
-                                    ))
-                                    
-                                    // ✅ Increment provider's earnings in their profile doc
-                                    val providerRef = db.collection("providers").document(user.uid)
-                                    val currentEarnings = transaction.get(providerRef).getDouble("earnings") ?: 0.0
-                                    val orderPrice = price.toDoubleOrNull() ?: 0.0
-                                    transaction.update(providerRef, "earnings", currentEarnings + orderPrice)
-                                }
-                                null
-                            }.addOnCompleteListener { isProcessing = false }
-                        },
-                        enabled = !isProcessing,
-                        colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-                    ) {
-                        if (isProcessing) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                        else Text("Accept", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🔥 COMPONENT: HERO ACTION BUTTON (The Fix)
+            if (status != OrderStatus.COMPLETED && status != OrderStatus.CANCELLED) {
+                HeroActionEngine(
+                    status = status,
+                    orderId = orderId,
+                    price = price,
+                    providerId = user.uid,
+                    onBusy = { isBusy = true },
+                    onDone = { isBusy = false }
+                )
+            } else if (status == OrderStatus.COMPLETED) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color(0xFFF1F5F9)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("Task Successfully Finalized ✨", color = Color(0xFF10B981), fontWeight = FontWeight.Black, fontSize = 16.sp)
                     }
-                } else if (status == OrderStatus.ACCEPTED) {
-                    Button(
-                        onClick = {
-                            isProcessing = true
-                            db.runTransaction { transaction ->
-                                val ref = db.collection("orders").document(orderId)
-                                val snap = transaction.get(ref)
-                                if (snap.getString("status") == OrderStatus.ACCEPTED) {
-                                    transaction.update(ref, mapOf(
-                                        "status" to OrderStatus.COMPLETED,
-                                        "completedAt" to System.currentTimeMillis()
-                                    ))
-                                }
-                                null
-                            }.addOnCompleteListener { isProcessing = false }
-                        },
-                        enabled = !isProcessing,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-                    ) {
-                        if (isProcessing) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                        else Text("Complete", fontWeight = FontWeight.Bold)
-                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OperativeRow(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E2A78))
+        Spacer(Modifier.width(10.dp))
+        Text(text, fontSize = 13.sp, color = Color(0xFF475569), fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun ModernStatusBadge(status: String) {
+    val (color, label) = when(status) {
+        "pending" -> Color(0xFFFF9800) to "New Request"
+        "accepted" -> Color(0xFF2196F3) to "Ready"
+        "arriving" -> Color(0xFF9C27B0) to "On Way"
+        "started" -> Color(0xFF3F51B5) to "In Service"
+        "completed" -> Color(0xFF4CAF50) to "Completed"
+        else -> Color.Gray to status.uppercase()
+    }
+    
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            color = color,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun HeroActionEngine(
+    status: String,
+    orderId: String,
+    price: String,
+    providerId: String,
+    onBusy: () -> Unit,
+    onDone: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    var updating by remember { mutableStateOf(false) }
+
+    val (label, targetStatus) = when (status) {
+        "pending" -> "Accept Request" to "accepted"
+        "accepted" -> "Go to Customer 🚗" to "arriving"
+        "arriving" -> "Begin Service 🛠️" to "started"
+        "started" -> "Finish Job ✅" to "completed"
+        else -> "" to ""
+    }
+
+    if (label.isNotEmpty()) {
+        val gradient = Brush.horizontalGradient(listOf(Color(0xFF1E2A78), Color(0xFF2D3FA3)))
+        
+        Button(
+            onClick = {
+                updating = true
+                onBusy()
+                if (targetStatus == "completed") {
+                    db.runTransaction { tr ->
+                        val oRef = db.collection("orders").document(orderId)
+                        val pRef = db.collection("providers").document(providerId)
+                        tr.update(oRef, mapOf("status" to "completed", "completedAt" to System.currentTimeMillis()))
+                        val earn = tr.get(pRef).getDouble("earnings") ?: 0.0
+                        tr.update(pRef, "earnings", earn + (price.toDoubleOrNull() ?: 0.0))
+                    }.addOnCompleteListener { updating = false; onDone() }
+                } else {
+                    db.collection("orders").document(orderId)
+                        .update("status", targetStatus)
+                        .addOnCompleteListener { updating = false; onDone() }
+                }
+            },
+            enabled = !updating,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            contentPadding = PaddingValues(0.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(gradient),
+                contentAlignment = Alignment.Center
+            ) {
+                if (updating) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 3.dp)
+                } else {
+                    Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                 }
             }
         }

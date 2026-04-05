@@ -43,9 +43,13 @@ class ServicesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val initialCategory = intent.getStringExtra("CATEGORY") ?: "All"
+        val themeDataStore = ThemeDataStore(this)
+        
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+            WorklyTheme(themeMode = themeMode) {
                 ServicesScreen(
                     initialCategory = initialCategory,
                     onBackClick = { finish() }
@@ -96,21 +100,22 @@ fun ServicesScreen(initialCategory: String = "All", onBackClick: () -> Unit) {
                 title = {
                     Text(
                         if (selectedCategory == "All") "All Services" else selectedCategory,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color(0xFF0F172A))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
+                    containerColor = Color(0xFFF8FAFC),
+                    titleContentColor = Color(0xFF0F172A)
                 )
             )
         },
-        containerColor = BackgroundGray
+        containerColor = Color(0xFFF8FAFC)
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             // Search bar
