@@ -4,112 +4,133 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
-    app:cardCornerRadius="20dp"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="24dp"
+    app:cardBackgroundColor="#FFFFFF"
     app:cardElevation="2dp"
-    app:strokeColor="#ECEFF1"
-    app:strokeWidth="1dp">
+    app:strokeWidth="1dp"
+    app:strokeColor="#F1F5F9">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#FFFFFF">
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivService"
-            android:layout_width="86dp"
-            android:layout_height="86dp"
-            android:scaleType="centerCrop"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Workly.Rounded"
-            tools:src="@drawable/img_service_cleaner" />
-
+        android:orientation="vertical"
+        android:padding="20dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/tvTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="#263238"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                tools:text="Expert Sofa Cleaning" />
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivService"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerCrop"
+                android:background="#F8FAFC"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Workly.Rounded"
+                tools:src="@android:drawable/ic_menu_gallery" />
 
-            <TextView
-                android:id="@+id/tvCategory"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="#78909C"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textAllCaps="true"
-                tools:text="Cleaning" />
-
-            <TextView
-                android:id="@+id/tvPrice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#2E7D32"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                tools:text="₹1,299.00" />
-
-            <!-- Actions Row -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
 
-                <!-- Reject Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnReject"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="12dp"
-                    android:text="Reject"
-                    android:textColor="#D32F2F"
-                    android:textSize="12sp"
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Service Title"
+                    android:textColor="#334155"
+                    android:textSize="16sp"
                     android:textStyle="bold"
-                    app:icon="@android:drawable/ic_menu_close_clear_cancel"
-                    app:iconSize="14dp"
-                    app:iconTint="#D32F2F"
-                    app:cornerRadius="8dp" />
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
-                <!-- Approve Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnApprove"
-                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                <TextView
+                    android:id="@+id/tvCategory"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="12dp"
-                    android:text="Approve"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="CATEGORY"
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp"
                     android:textStyle="bold"
-                    app:backgroundTint="#43A047"
-                    app:cornerRadius="8dp" />
+                    android:letterSpacing="0.05" />
 
+                <TextView
+                    android:id="@+id/tvPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="₹1,299"
+                    android:textColor="#6366F1"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="#FEF3C7"
+                app:cardElevation="0dp">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="PENDING"
+                    android:textColor="#D97706"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#F1F5F9"
+            android:layout_marginTop="20dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReject"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="0.8"
+                android:layout_marginEnd="8dp"
+                android:text="Decline"
+                android:textColor="#EF4444"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:rippleColor="#FEE2E2" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApprove"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1.2"
+                android:text="Verify &amp; Activate"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="#10B981"
+                app:cornerRadius="14dp"
+                app:elevation="0dp" />
+
+        </LinearLayout>
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

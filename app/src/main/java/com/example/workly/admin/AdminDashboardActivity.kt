@@ -10,11 +10,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.workly.R
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QuerySnapshot
 import android.content.Intent
 import com.example.workly.data.Booking
 import com.example.workly.data.OrderStatus
-import com.google.android.material.button.MaterialButton
+import java.util.*
 
 class AdminDashboardActivity : AppCompatActivity() {
 
@@ -22,6 +21,9 @@ class AdminDashboardActivity : AppCompatActivity() {
     
     private lateinit var tvTotalUsers: TextView
     private lateinit var tvTotalRevenue: TextView
+    private lateinit var tvTodayRevenue: TextView
+    private lateinit var tvNewUsers: TextView
+    private lateinit var tvActiveProviders: TextView
     private lateinit var tvServicePendingCount: TextView
     private lateinit var tvNoPending: TextView
     private lateinit var progressBar: ProgressBar
@@ -41,6 +43,9 @@ class AdminDashboardActivity : AppCompatActivity() {
         // Initialize UI
         tvTotalUsers = findViewById(R.id.tvTotalUsers)
         tvTotalRevenue = findViewById(R.id.tvTotalRevenue)
+        tvTodayRevenue = findViewById(R.id.tvTodayRevenue)
+        tvNewUsers = findViewById(R.id.tvNewUsers)
+        tvActiveProviders = findViewById(R.id.tvActiveProviders)
         tvServicePendingCount = findViewById(R.id.tvServicePendingCount)
         tvNoPending = findViewById(R.id.tvNoPending)
         progressBar = findViewById(R.id.progressBar)
@@ -64,8 +69,9 @@ class AdminDashboardActivity : AppCompatActivity() {
         }
 
         btnUserDirectory.setOnClickListener {
-             Toast.makeText(this, "User Management coming soon in next update!", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, UserDirectoryActivity::class.java))
         }
+
         
         rvPendingProviders = findViewById(R.id.rvPendingProviders)
 
@@ -81,6 +87,7 @@ class AdminDashboardActivity : AppCompatActivity() {
 
         loadDashboardData()
         loadAnalytics()
+        loadProviderStats()
     }
 
     private fun loadDashboardData() {
@@ -94,27 +101,52 @@ class AdminDashboardActivity : AppCompatActivity() {
                 allUsersList.addAll(newUsers)
                 tvTotalUsers.text = allUsersList.size.toString()
                 
+                // Estimate active base (placeholder for a real createdAt logic if added)
+                tvNewUsers.text = "${allUsersList.count { u -> u.role != "admin" }} Active Base"
+                
                 checkPendingProviders() 
             }
         }
     }
 
     private fun loadAnalytics() {
+        val startOfDay = getStartOfDayTimestamp()
+
         // 1. Revenue Aggregation
         db.collection("orders")
             .whereEqualTo("status", OrderStatus.COMPLETED)
             .addSnapshotListener { snapshot, _ ->
                 var total = 0.0
-                snapshot?.documents?.forEach { total += it.getDouble("finalPrice") ?: 0.0 }
-                tvTotalRevenue.text = "₹${"%,.2f".format(total)}"
+                var todayTotal = 0.0
+                
+                snapshot?.documents?.forEach { doc ->
+                    val price = doc.getDouble("finalPrice") ?: 0.0
+                    val createdAt = doc.getLong("createdAt") ?: 0L
+                    
+                    total += price
+                    if (createdAt >= startOfDay) {
+                        todayTotal += price
+                    }
+                }
+                tvTotalRevenue.text = "₹${"%,.0f".format(total)}"
+                tvTodayRevenue.text = "+ ₹${"%,.0f".format(todayTotal)} Today"
             }
 
-        // 2. Pending Service Requests (The Rapido-style approval system)
+        // 2. Pending Service Requests
         db.collection("services")
             .whereEqualTo("isApproved", false)
             .addSnapshotListener { snapshot, _ ->
                 val count = snapshot?.size() ?: 0
-                tvServicePendingCount.text = if (count > 0) "$count Pending Requests" else "No Pending Requests"
+                tvServicePendingCount.text = if (count > 0) "$count Requests" else "0 Requests"
+            }
+    }
+
+    private fun loadProviderStats() {
+        db.collection("providers")
+            .whereEqualTo("isApproved", true)
+            .addSnapshotListener { snapshot, _ ->
+                val count = snapshot?.size() ?: 0
+                tvActiveProviders.text = count.toString()
             }
     }
 
@@ -144,6 +176,15 @@ class AdminDashboardActivity : AppCompatActivity() {
             }
     }
 
+    private fun getStartOfDayTimestamp(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
+
     private fun approveProvider(provider: PendingProviderData) {
         db.collection("providers").document(provider.providerId).update("isApproved", true)
             .addOnSuccessListener { Toast.makeText(this, "Provider Approved!", Toast.LENGTH_SHORT).show() }
@@ -157,6 +198,3 @@ class AdminDashboardActivity : AppCompatActivity() {
             }
     }
 }
-
-
-

@@ -1,5 +1,7 @@
 package com.example.workly.admin
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,8 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.workly.R
 import com.example.workly.data.Booking
 import com.example.workly.data.OrderStatus
-import java.text.SimpleDateFormat
-import java.util.*
+import com.google.android.material.card.MaterialCardView
 
 class AdminBookingAdapter(
     private var bookings: List<Booking>,
@@ -19,6 +20,7 @@ class AdminBookingAdapter(
     class BookingViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvBookingId: TextView = view.findViewById(R.id.tvBookingId)
         val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val cardStatus: MaterialCardView = view.findViewById(R.id.cardStatus)
         val tvServiceName: TextView = view.findViewById(R.id.tvServiceName)
         val tvUserName: TextView = view.findViewById(R.id.tvUserName)
         val tvDateTime: TextView = view.findViewById(R.id.tvDateTime)
@@ -33,22 +35,25 @@ class AdminBookingAdapter(
     override fun onBindViewHolder(holder: BookingViewHolder, position: Int) {
         val booking = bookings[position]
         
-        holder.tvBookingId.text = "ID: #${booking.id.takeLast(6).uppercase()}"
+        holder.tvBookingId.text = "#${booking.id.takeLast(8).uppercase()}"
         holder.tvServiceName.text = booking.serviceName
-        holder.tvUserName.text = "Customer: ${booking.userName}"
+        holder.tvUserName.text = booking.userName
         holder.tvDateTime.text = "${booking.date}, ${booking.time}"
-        holder.tvAmount.text = "₹${"%.2f".format(booking.finalPrice)}"
+        holder.tvAmount.text = "₹${"%,.0f".format(booking.finalPrice)}"
         
-        // Status Styling
+        // Professional Status Styling
         holder.tvStatus.text = booking.status.uppercase()
-        val bgRes = when (booking.status) {
-            OrderStatus.PENDING -> R.drawable.bg_status_pending
-            OrderStatus.ACCEPTED -> R.drawable.bg_status_accepted
-            OrderStatus.COMPLETED -> R.drawable.bg_status_completed
-            OrderStatus.CANCELLED -> R.drawable.bg_status_cancelled
-            else -> R.drawable.bg_status_pending
+        
+        val (bgColor, textColor) = when (booking.status) {
+            OrderStatus.PENDING -> "#FEF3C7" to "#D97706"    // Amber
+            OrderStatus.ACCEPTED -> "#DBEAFE" to "#2563EB"   // Blue
+            OrderStatus.COMPLETED -> "#D1FAE5" to "#059669"  // Green
+            OrderStatus.CANCELLED -> "#FEE2E2" to "#DC2626"  // Red
+            else -> "#F1F5F9" to "#64748B"                   // Slate
         }
-        holder.tvStatus.setBackgroundResource(bgRes)
+        
+        holder.cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor(bgColor)))
+        holder.tvStatus.setTextColor(Color.parseColor(textColor))
         
         holder.itemView.setOnClickListener { onItemClick(booking) }
     }
