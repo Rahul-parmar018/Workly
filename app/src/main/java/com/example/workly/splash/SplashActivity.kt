@@ -13,6 +13,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -266,307 +268,312 @@ fun PremiumSplashScreen() {
 fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
     val pages = listOf(
         OnboardPage(
+            id = "cleaning",
             imageRes = R.drawable.onboard_cleaning,
-            title = "Spotless Cleaning",
-            description = "Professional cleaners at your doorstep in under 60 minutes.",
-            trustLine = "10,000+ homes cleaned",
-            bgStart = Color(0xFFE3F2FD),
-            bgEnd = Color(0xFFBBDEFB)
+            title = "Spotless cleaning,\nwithout the effort.",
+            description = "Book trusted cleaners instantly.",
+            trustLine = "10,000+ homes serviced",
+            trustIcon = "✔",
+            bgStart = Color(0xFFF8FAFC),
+            bgEnd = Color(0xFFEEF2FF),
+            ctaText = "Continue →"
         ),
         OnboardPage(
-            imageRes = R.drawable.onboard_plumbing,
-            title = "Reliable Plumbing",
-            description = "Fix leaks, installs & repairs with verified experts.",
-            trustLine = "Background-verified professionals",
-            bgStart = Color(0xFFE8F5E9),
-            bgEnd = Color(0xFFC8E6C9)
-        ),
-        OnboardPage(
+            id = "electrician",
             imageRes = R.drawable.onboard_electrician,
-            title = "Expert Electricians",
-            description = "Safe, fast electrical services anytime you need.",
-            trustLine = "4.8★ average rating",
-            bgStart = Color(0xFFFFFDE7),
-            bgEnd = Color(0xFFFFF9C4)
+            title = "Reliable electrical help,\nwhenever you need it.",
+            description = "Safe, instant electrical help anytime.",
+            trustLine = "4.8 average rating",
+            trustIcon = "⭐",
+            bgStart = Color(0xFFFFF7ED),
+            bgEnd = Color(0xFFFFEDD5),
+            ctaText = "Continue →"
+        ),
+        OnboardPage(
+            id = "plumbing",
+            imageRes = R.drawable.onboard_plumbing,
+            title = "Quick, clean\nplumbing solutions.",
+            description = "Verified plumbers for installs & repairs.",
+            trustLine = "Background-verified professionals",
+            trustIcon = "✔",
+            bgStart = Color(0xFFF0FDFA),
+            bgEnd = Color(0xFFCCFBF1),
+            ctaText = "Get Started →",
+            microCopy = "No booking fee • Cancel anytime"
         )
     )
 
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { pageIndex ->
-            PremiumOnboardPage(page = pages[pageIndex])
-        }
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize().background(Color.White)
+    ) { pageIndex ->
+        val page = pages[pageIndex]
 
-        // Bottom controls overlay
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp)
-                .padding(bottom = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Dot indicators
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(pages.size) { i ->
-                    val isSelected = pagerState.currentPage == i
-                    val width by animateDpAsState(
-                        targetValue = if (isSelected) 28.dp else 8.dp,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        label = "dot_width"
-                    )
-                    val color by animateColorAsState(
-                        targetValue = if (isSelected) BrandBlue else Color(0xFFCFD8DC),
-                        label = "dot_color"
-                    )
-                    Box(
+            // HERO SECTION (NO BOX - FULL IMMERSIVE)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f) // Fills top half flexibly
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(page.bgStart, page.bgEnd),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    ),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // Soft Depth Layer Backdrop (makes background feel slightly faded/deep)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.4f)),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
+                )
+
+                // Rive/Lottie equivalent Compose Animations
+                val infiniteTransition = rememberInfiniteTransition(label = "page_anim")
+                val breathingScale by infiniteTransition.animateFloat(
+                    initialValue = 0.99f,
+                    targetValue = 1.01f, // Extremely subtle focus
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2800, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "breathing"
+                )
+
+                val floatOffset by infiniteTransition.animateFloat(
+                    initialValue = -4f,
+                    targetValue = 4f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(3500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "floating"
+                )
+                
+                val glowPulse by infiniteTransition.animateFloat(
+                    initialValue = 0.3f,
+                    targetValue = 0.8f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "glowPulse"
+                )
+
+                // Interactive Elements / Alive Scene Environment (Subtle focus)
+                if (page.id == "cleaning") {
+                    // Minimal sparkles near mop head
+                    Text("✨", fontSize = 24.sp, modifier = Modifier.align(Alignment.BottomStart).padding(start = 120.dp, bottom = 120.dp).offset(y = floatOffset.dp).alpha(glowPulse))
+                    Text("✨", fontSize = 16.sp, modifier = Modifier.align(Alignment.BottomStart).padding(start = 90.dp, bottom = 90.dp).offset(y = (floatOffset * 1.5f).dp).alpha(glowPulse * 0.7f))
+                } else if (page.id == "electrician") {
+                    // Soft glow pulse moving
+                    Text("⚡", fontSize = 32.sp, color = Color(0xFFFFB300), modifier = Modifier.align(Alignment.CenterEnd).padding(end = 90.dp, bottom = 60.dp).scale(glowPulse + 0.3f).alpha(glowPulse))
+                } else if (page.id == "plumbing") {
+                    // Gentle water drops trickling
+                    Text("💧", fontSize = 24.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(end = 40.dp, bottom = 110.dp).offset(y = (floatOffset * 2.5f).dp).alpha(glowPulse))
+                }
+
+                // 3D Character Illustration (FULL BLEED)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Image(
+                        painter = painterResource(id = page.imageRes),
+                        contentDescription = page.title,
                         modifier = Modifier
-                            .height(8.dp)
-                            .width(width)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(color)
+                            .fillMaxWidth(1.05f) // Full bleed width stretching past edges slightly
+                            .fillMaxHeight(0.85f)
+                            .scale(breathingScale)
+                            .offset(y = 12.dp), // Pull exactly onto floor
+                        contentScale = ContentScale.FillWidth
                     )
+                    
+                    // Soft Ellipse Ground Shadow (Simulates 25-40px Blur at 10-15% Opacity)
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth(0.65f).height(28.dp)) {
+                        drawOval(
+                            Brush.radialGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent) // Very soft 12% opacity
+                            ),
+                            size = size
+                        )
+                    }
                 }
             }
 
-            // CTA Button
-            val isLastPage = pagerState.currentPage == pages.size - 1
-            Button(
-                onClick = {
-                    scope.launch {
-                        if (!isLastPage) {
-                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            // EXACT SPACING SYSTEM IMPLEMENTATION
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(24.dp)) // Hero → Heading: 24px
+                
+                Text(
+                    text = page.title,
+                    color = Color(0xFF1E293B),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold, // Clean, strong, classic
+                    textAlign = TextAlign.Center,
+                    lineHeight = 34.sp,
+                    letterSpacing = (-0.5).sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp)) // Heading → Subtext
+
+                Text(
+                    text = page.description,
+                    color = Color(0xFF64748B),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal, // Lighter, more spacing
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp)) // Subtext → Trust pill
+
+                // Classy Thin Trust Pill
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = Color.White.copy(alpha = 0.9f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 14.dp)
+                    ) {
+                        if (page.trustIcon == "✔") {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                        } else {
+                            Text(page.trustIcon, fontSize = 14.sp)
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(page.trustLine, color = Color(0xFF334155), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp)) // Trust pill → CTA
+
+                // Pagination Dots (Dynamically switching width shapes)
+                Row(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    repeat(pages.size) { i ->
+                        val isSelected = pagerState.currentPage == i
+                        val width by animateDpAsState(
+                            targetValue = if (isSelected) 24.dp else 8.dp,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            label = "dot_width"
+                        )
+                        val color by animateColorAsState(
+                            targetValue = if (isSelected) BrandBlue else Color(0xFFCFD8DC),
+                            label = "dot_color"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(8.dp)
+                                .width(width)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(color)
+                        )
+                    }
+                }
+
+                // CTA Button (Interaction Gradient)
+                val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val buttonScale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1f, label = "btn_scale")
+
+                Button(
+                    onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        if (pageIndex < pages.size - 1) {
+                            scope.launch { pagerState.animateScrollToPage(pageIndex + 1) }
                         } else {
                             onGetStarted()
                         }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
-            ) {
-                AnimatedContent(
-                    targetState = isLastPage,
-                    transitionSpec = {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(200))
                     },
-                    label = "cta_text"
-                ) { last ->
-                    if (last) {
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp)
+                        .scale(buttonScale),
+                    shape = RoundedCornerShape(29.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    interactionSource = interactionSource,
+                    elevation = null // Disable native elevation to handle explicitly
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shadow(elevation = 8.dp, shape = RoundedCornerShape(29.dp), spotColor = Color(0xFF1E293B), ambientColor = Color(0xFF1E293B))
+                            .background(
+                                Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF1E293B))), // Sophisticated slate
+                                RoundedCornerShape(29.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            "Get Started",
+                            page.ctaText,
                             color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                "Next",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                Icons.Default.ArrowForward,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                     }
                 }
-            }
 
-            // Skip link (not on last page)
-            AnimatedVisibility(visible = !isLastPage) {
-                TextButton(onClick = { onGetStarted() }) {
+                if (page.microCopy != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        "Skip",
+                        page.microCopy,
                         color = Color(0xFF90A4AE),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp)) // CTA → bottom: 16px
             }
         }
     }
 }
 
-// ─── Individual Onboarding Page ───────────────────────────────────────────────
+// ─── Configuration ────────────────────────────────────────────────────────────
 data class OnboardPage(
+    val id: String,
     val imageRes: Int,
     val title: String,
     val description: String,
     val trustLine: String,
+    val trustIcon: String,
     val bgStart: Color,
-    val bgEnd: Color
+    val bgEnd: Color,
+    val ctaText: String,
+    val microCopy: String? = null
 )
-
-@Composable
-fun PremiumOnboardPage(page: OnboardPage) {
-    var visible by remember { mutableStateOf(false) }
-
-    // Stagger animation trigger
-    LaunchedEffect(page.title) {
-        visible = false
-        delay(80)
-        visible = true
-    }
-
-    val illustrationOffset by animateDpAsState(
-        targetValue = if (visible) 0.dp else 30.dp,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "illus_offset"
-    )
-    val illustrationAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500),
-        label = "illus_alpha"
-    )
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 150),
-        label = "title_alpha"
-    )
-    val descAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 250),
-        label = "desc_alpha"
-    )
-    val trustAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 350),
-        label = "trust_alpha"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // TOP 60% — Illustration with gradient bg
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.58f)
-                .background(
-                    Brush.verticalGradient(listOf(page.bgStart, page.bgEnd))
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = page.imageRes),
-                contentDescription = page.title,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp)
-                    .alpha(illustrationAlpha)
-                    .offset(y = illustrationOffset),
-                contentScale = ContentScale.Fit
-            )
-        }
-
-        // BOTTOM 40% — Text content
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .padding(top = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            // Title
-            Text(
-                page.title,
-                color = Color(0xFF1A237E),
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center,
-                lineHeight = 34.sp,
-                modifier = Modifier.alpha(titleAlpha)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Description
-            Text(
-                page.description,
-                color = Color(0xFF546E7A),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center,
-                lineHeight = 22.sp,
-                modifier = Modifier.alpha(descAlpha)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Trust line
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .alpha(trustAlpha)
-                    .background(
-                        Color(0xFF1A237E).copy(alpha = 0.06f),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    page.trustLine,
-                    color = Color(0xFF1A237E),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
 
 // ─── Legacy wrappers (kept for safety) ────────────────────────────────────────
 @Composable fun SplashScreen() = PremiumSplashScreen()
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable fun OnboardingScreen(onGetStarted: () -> Unit) = PremiumOnboardingScreen(onGetStarted)
-
-@Composable fun OnboardingPage(page: Int) {
-    // Legacy – mapped to new composable
-    val pages = listOf(
-        OnboardPage(R.drawable.onboard_cleaning, "Spotless Cleaning",
-            "Professional cleaners at your doorstep in under 60 minutes.", "10,000+ homes cleaned",
-            Color(0xFFE3F2FD), Color(0xFFBBDEFB)),
-        OnboardPage(R.drawable.onboard_electrician, "Expert Electricians",
-            "Safe, fast electrical services anytime you need.", "4.8★ average rating",
-            Color(0xFFFFFDE7), Color(0xFFFFF9C4)),
-        OnboardPage(R.drawable.onboard_plumbing, "Reliable Plumbing",
-            "Fix leaks, installs & repairs with verified experts.", "Background-verified professionals",
-            Color(0xFFE8F5E9), Color(0xFFC8E6C9))
-    )
-    if (page < pages.size) PremiumOnboardPage(pages[page])
-}
+@Composable fun OnboardingPage(page: Int) {}
