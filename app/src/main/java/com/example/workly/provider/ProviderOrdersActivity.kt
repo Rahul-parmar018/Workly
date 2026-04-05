@@ -38,8 +38,12 @@ class ProviderOrdersActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+            WorklyTheme(themeMode = themeMode) {
                 ProviderOrdersScreenFinal(onBack = { finish() })
             }
         }

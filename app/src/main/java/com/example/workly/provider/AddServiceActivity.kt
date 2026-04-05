@@ -57,8 +57,12 @@ class AddServiceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+            WorklyTheme(themeMode = themeMode) {
                 val repo = remember { AddServiceRepository(this@AddServiceActivity) }
                 val vm: AddServiceViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                     override fun <T : androidx.lifecycle.ViewModel> create(c: Class<T>): T =

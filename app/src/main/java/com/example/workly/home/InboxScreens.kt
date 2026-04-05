@@ -152,7 +152,7 @@ fun InboxScreen() {
             }
         }
 
-        // 🔥 QUICK FILTER (TABS)
+        // QUICK FILTER (TABS)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -234,7 +234,7 @@ fun ChatListItem(chat: ChatPreview) {
                 Surface(
                     modifier = Modifier.align(Alignment.BottomEnd).size(14.dp).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                     shape = CircleShape,
-                    color = Color(0xFF10B981) // Online Green
+                    color = Color(0xFF10B981) // Online Green (Solid in both themes)
                 ) {}
             }
         }

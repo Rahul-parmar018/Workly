@@ -11,8 +11,12 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -75,15 +79,36 @@ fun WorklyTheme(
     }
 
     // Performance-first animation scopes
-    val animatedBackground by animateColorAsState(targetColorScheme.background, tween(300), label = "background")
-    val animatedSurface by animateColorAsState(targetColorScheme.surface, tween(300), label = "surface")
-    val animatedPrimaryContainer by animateColorAsState(targetColorScheme.primaryContainer, tween(300), label = "primaryContainer")
+    // We use a flag to skip animation on the very first composition to prevent "flashing"
+    var isInitialComposition by remember { mutableStateOf(true) }
+    
+    val animationDuration = if (isInitialComposition) 0 else 300
+    
+    val animatedBackground by animateColorAsState(
+        targetColorScheme.background, 
+        tween(animationDuration), 
+        label = "background"
+    )
+    val animatedSurface by animateColorAsState(
+        targetColorScheme.surface, 
+        tween(animationDuration), 
+        label = "surface"
+    )
+    val animatedPrimaryContainer by animateColorAsState(
+        targetColorScheme.primaryContainer, 
+        tween(animationDuration), 
+        label = "primaryContainer"
+    )
 
     val finalColorScheme = targetColorScheme.copy(
         background = animatedBackground,
         surface = animatedSurface,
         primaryContainer = animatedPrimaryContainer
     )
+    
+    LaunchedEffect(Unit) {
+        isInitialComposition = false
+    }
 
     // Edge-to-Edge and Status Bar Sync
     val view = LocalView.current

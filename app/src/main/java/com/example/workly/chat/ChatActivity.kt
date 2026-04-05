@@ -44,8 +44,12 @@ class ChatActivity : ComponentActivity() {
         enableEdgeToEdge()
         val receiverName = intent.getStringExtra("RECEIVER_NAME") ?: intent.getStringExtra("PRO_NAME") ?: "User"
         val receiverId = intent.getStringExtra("RECEIVER_ID") ?: intent.getStringExtra("PRO_ID") ?: ""
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+            WorklyTheme(themeMode = themeMode) {
                 ChatScreen(receiverName = receiverName, receiverId = receiverId, onBack = { finish() })
             }
         }
@@ -81,12 +85,19 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         }
     }
 
+    val bg        = MaterialTheme.colorScheme.background
+    val primary   = MaterialTheme.colorScheme.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val surface   = MaterialTheme.colorScheme.surface
+    val surfVar   = MaterialTheme.colorScheme.surfaceVariant
+    val outline   = MaterialTheme.colorScheme.outline
+
     Scaffold(
-        containerColor = Color(0xFFF1F5F9), // Light background like WhatsApp
+        containerColor = bg,
         topBar = {
             Column {
-                // 🔥 1. HEADER (Upgrade)
-                Surface(shadowElevation = 6.dp, color = Color.White) {
+                // Header (Upgrade)
+                Surface(shadowElevation = 6.dp, color = surface) {
                     TopAppBar(
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -94,114 +105,117 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                                     Surface(
                                         modifier = Modifier.fillMaxSize(),
                                         shape = CircleShape,
-                                        color = Color(0xFFF1F5F9)
+                                        color = surfVar
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Person, null, tint = Color(0xFF1E2A78))
+                                            Icon(Icons.Default.Person, null, tint = primary)
                                         }
                                     }
                                     // Verified Badge
                                     Surface(
                                         modifier = Modifier.align(Alignment.BottomEnd).size(14.dp),
                                         shape = CircleShape,
-                                        color = Color.White
+                                        color = surface
                                     ) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(12.dp))
+                                        Icon(Icons.Default.CheckCircle, null, tint = primary, modifier = Modifier.size(12.dp))
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                                        Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = onSurface)
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2D3FA3))
+                                        Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primary)
                                     }
-                                    Text("\ud83d\udfe2 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = Color(0xFF64748B))
+                                    Text("🟢 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = onSurface.copy(alpha = 0.6f))
                                 }
                             }
                         },
                         navigationIcon = {
                             IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color(0xFF0F172A))
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
                             }
-                        }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = surface)
                     )
                 }
 
-                // 🔥 2. SERVICE CONTEXT CARD (Sticky)
+                // Sticky Service Context Card
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.White,
+                    color = surface,
                     shadowElevation = 2.dp,
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    border = BorderStroke(1.dp, outline.copy(alpha = 0.1f))
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFF1F5F9), modifier = Modifier.size(40.dp)) {
+                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(alpha = 0.08f), modifier = Modifier.size(40.dp)) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.CleaningServices, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.CleaningServices, null, tint = primary, modifier = Modifier.size(20.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Full Home Cleaning", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("\u20b91499 \u2022 3 hrs", fontSize = 12.sp, color = Color(0xFF64748B))
+                            Text("Full Home Cleaning", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = onSurface)
+                            Text("₹1499 \u2022 3 hrs", fontSize = 12.sp, color = onSurface.copy(alpha = 0.5f))
                         }
-                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFEAF6FF)) {
-                            Text("Accepted", color = Color(0xFF1E2A78), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(alpha = 0.12f)) {
+                            Text("Accepted", color = primary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                         }
                     }
                 }
             }
         },
         bottomBar = {
-            Column(modifier = Modifier.background(Color.White).navigationBarsPadding().imePadding()) {
-                // 🔥 4. QUICK ACTIONS
+            Column(modifier = Modifier.background(surface).navigationBarsPadding().imePadding()) {
+                // Quick Actions
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val actions = listOf("\ud83d\udccd Share Location", "\ud83d\udcde Call Provider", "\u274c Cancel Booking")
+                    val actions = listOf("📍 Share Location", "📞 Call Provider", "❌ Cancel Booking")
                     items(actions) { action ->
                         Surface(
                             modifier = Modifier.clickable { /* Action */ },
                             shape = RoundedCornerShape(50.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            color = Color.White
+                            border = BorderStroke(1.dp, outline.copy(alpha = 0.1f)),
+                            color = surface
                         ) {
-                            Text(action, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), color = Color(0xFF1E2A78))
+                            Text(action, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), color = primary)
                         }
                     }
                 }
 
-                // 🔥 5. INPUT BAR (Upgraded)
+                // Input Bar (Upgraded)
                 Row(
                     modifier = Modifier.padding(bottom = 12.dp, start = 12.dp, end = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(shape = CircleShape, color = Color(0xFFF1F5F9), modifier = Modifier.size(48.dp).clickable { /* Attach */ }) {
+                    Surface(shape = CircleShape, color = surfVar, modifier = Modifier.size(48.dp).clickable { /* Attach */ }) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Add, null, tint = Color(0xFF1E2A78))
+                            Icon(Icons.Default.Add, null, tint = primary)
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(24.dp),
-                        color = Color(0xFFF1F5F9)
+                        color = surfVar
                     ) {
                         OutlinedTextField(
                             value = messageText,
                             onValueChange = { messageText = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Type a message...", color = Color(0xFF64748B), fontSize = 15.sp) },
+                            placeholder = { Text("Type a message...", color = onSurface.copy(alpha = 0.4f), fontSize = 15.sp) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedBorderColor = Color.Transparent,
-                                focusedBorderColor = Color.Transparent
+                                focusedBorderColor = Color.Transparent,
+                                focusedTextColor = onSurface,
+                                unfocusedTextColor = onSurface
                             ),
                             maxLines = 3
                         )
@@ -216,7 +230,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                             }
                         },
                         shape = CircleShape,
-                        color = Color(0xFF1E2A78),
+                        color = primary,
                         modifier = Modifier.size(50.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -228,21 +242,21 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         }
     ) { innerPadding ->
         if (messages.isEmpty()) {
-            // 🔥 6. EMPTY STATE (Upgrade)
+            // Empty State
             Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 40.dp)) {
-                    Surface(shape = CircleShape, color = Color(0xFFEAF6FF), modifier = Modifier.size(80.dp)) {
+                    Surface(shape = CircleShape, color = primary.copy(alpha = 0.08f), modifier = Modifier.size(80.dp)) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.QuestionAnswer, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(40.dp))
+                            Icon(Icons.Default.QuestionAnswer, null, tint = primary, modifier = Modifier.size(40.dp))
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Start chatting with your provider", fontWeight = FontWeight.Black, fontSize = 18.sp, textAlign = TextAlign.Center)
+                    Text("Start chatting with your provider", fontWeight = FontWeight.Black, fontSize = 18.sp, textAlign = TextAlign.Center, color = onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Ask about timing, special requirements, or preparation before they arrive.", fontSize = 14.sp, color = Color(0xFF64748B), textAlign = TextAlign.Center)
+                    Text("Ask about timing, special requirements, or preparation before they arrive.", fontSize = 14.sp, color = onSurface.copy(alpha = 0.5f), textAlign = TextAlign.Center)
                 }
             }
         } else {
@@ -263,13 +277,16 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
 @Composable
 fun WhatsAppChatBubble(message: Message, isMe: Boolean) {
     val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(message.timestamp.toDate())
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val onSurface = MaterialTheme.colorScheme.onSurface
     
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
         Surface(
-            color = if (isMe) Color(0xFF1E2A78) else Color.White,
+            color = if (isMe) primary else surface,
             shape = RoundedCornerShape(
                 topStart = 16.dp, topEnd = 16.dp,
                 bottomStart = if (isMe) 16.dp else 2.dp,
@@ -280,7 +297,7 @@ fun WhatsAppChatBubble(message: Message, isMe: Boolean) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(
                     text = message.content,
-                    color = if (isMe) Color.White else Color(0xFF0F172A),
+                    color = if (isMe) Color.White else onSurface,
                     fontSize = 15.sp,
                     modifier = Modifier.widthIn(max = 240.dp)
                 )
@@ -291,7 +308,7 @@ fun WhatsAppChatBubble(message: Message, isMe: Boolean) {
                     Text(
                         text = timeStr,
                         fontSize = 10.sp,
-                        color = if (isMe) Color.White.copy(0.7f) else Color(0xFF64748B),
+                        color = if (isMe) Color.White.copy(0.7f) else onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.padding(top = 4.dp)
                     )
                     if (isMe) {

@@ -33,8 +33,13 @@ class PaymentActivity : ComponentActivity() {
         val basePrice = intent.getDoubleExtra("BASE_PRICE", price)
         val providerName = intent.getStringExtra("PROVIDER_NAME") ?: "Professional"
 
+        val themeDataStore = ThemeDataStore(this)
+        val initialThemeMode = themeDataStore.getInitialThemeMode()
+
         setContent {
-            WorklyTheme {
+            val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = initialThemeMode)
+
+            WorklyTheme(themeMode = themeMode) {
                 PaymentScreen(
                     serviceName = serviceName,
                     price = price,
@@ -74,25 +79,33 @@ fun PaymentScreen(
         Triple("Cash", Icons.Default.Money, "Pay after service")
     )
 
+    // Theme aliases
+    val bg = MaterialTheme.colorScheme.background
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val onSurf = MaterialTheme.colorScheme.onSurface
+    val surfVar = MaterialTheme.colorScheme.surfaceVariant
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Checkout", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundGray,
-                    titleContentColor = TextPrimary
+                    containerColor = surface,
+                    titleContentColor = onSurf,
+                    navigationIconContentColor = onSurf
                 )
             )
         },
-        containerColor = BackgroundGray,
+        containerColor = bg,
         bottomBar = {
-            Surface(color = Color.White, shadowElevation = 12.dp) {
+            Surface(color = surface, shadowElevation = 24.dp) {
                 Button(
                     onClick = { isLoading = true; onPaymentComplete(selectedMethod) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).navigationBarsPadding(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(58.dp).navigationBarsPadding(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = primary),
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
@@ -111,47 +124,47 @@ fun PaymentScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             // Order summary
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(Color.White)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Order Summary", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
-                    Spacer(modifier = Modifier.height(14.dp))
-                    SummaryRow("Service", serviceName)
-                    SummaryRow("Professional", providerName, valueColor = ProfessionalBlue)
+            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(surface), border = androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(0.05f))) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("Order Summary", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SummaryRow("Service", serviceName, onSurf = onSurf)
+                    SummaryRow("Professional", providerName, valueColor = primary, onSurf = onSurf)
                     if (basePrice != price) {
-                        SummaryRow("Base Price", "₹${basePrice.toInt()}", valueColor = TextSecondary)
-                        SummaryRow("Pro Rate", "₹${price.toInt()}/hr")
+                        SummaryRow("Base Price", "₹${basePrice.toInt()}", valueColor = onSurf.copy(0.5f), onSurf = onSurf)
+                        SummaryRow("Pro Rate", "₹${price.toInt()}/hr", onSurf = onSurf)
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(0.4f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = onSurf.copy(alpha = 0.05f))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                        Text("₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = EnergyOrange)
+                        Text("Total", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
+                        Text("₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = EnergyOrange)
                     }
                 }
             }
 
             // Payment methods
-            Text("Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Text("Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
             paymentMethods.forEach { (method, icon, subtitle) ->
                 val isSelected = method == selectedMethod
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(if (isSelected) 8.dp else 2.dp, RoundedCornerShape(16.dp))
+                        .shadow(if (isSelected) 12.dp else 2.dp, RoundedCornerShape(18.dp), spotColor = if (isSelected) primary.copy(0.5f) else Color.Black.copy(0.1f))
                         .clickable { selectedMethod = method },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) ProfessionalBlue.copy(0.05f) else Color.White,
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, ProfessionalBlue) else null
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isSelected) primary.copy(0.05f) else surface,
+                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, primary) else androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(0.05f))
                 ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(10.dp), color = if (isSelected) ProfessionalBlue.copy(0.1f) else BackgroundGray) {
-                            Icon(icon, null, tint = if (isSelected) ProfessionalBlue else TextSecondary, modifier = Modifier.padding(10.dp).size(22.dp))
+                    Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = RoundedCornerShape(12.dp), color = if (isSelected) primary.copy(0.1f) else surfVar) {
+                            Icon(icon, null, tint = if (isSelected) primary else onSurf.copy(0.5f), modifier = Modifier.padding(10.dp).size(24.dp))
                         }
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(method, fontWeight = FontWeight.Bold, color = if (isSelected) ProfessionalBlue else TextPrimary)
-                            Text(subtitle, fontSize = 12.sp, color = TextSecondary)
+                            Text(method, fontWeight = FontWeight.Bold, color = onSurf, fontSize = 16.sp)
+                            Text(subtitle, fontSize = 12.sp, color = onSurf.copy(0.5f))
                         }
-                        RadioButton(selected = isSelected, onClick = { selectedMethod = method }, colors = RadioButtonDefaults.colors(selectedColor = ProfessionalBlue))
+                        RadioButton(selected = isSelected, onClick = { selectedMethod = method }, colors = RadioButtonDefaults.colors(selectedColor = primary))
                     }
                 }
             }
@@ -169,12 +182,12 @@ fun PaymentScreen(
 }
 
 @Composable
-fun SummaryRow(label: String, value: String, valueColor: Color = TextPrimary) {
+fun SummaryRow(label: String, value: String, valueColor: Color? = null, onSurf: Color) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = TextSecondary, fontSize = 14.sp)
-        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = valueColor)
+        Text(label, color = onSurf.copy(0.5f), fontSize = 14.sp)
+        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = valueColor ?: onSurf)
     }
 }
