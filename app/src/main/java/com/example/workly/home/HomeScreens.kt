@@ -780,3 +780,111 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
         }
     }
 }
+
+@Composable
+fun UpcomingBookingCard(booking: com.example.workly.data.Order) {
+    val statusColor = when (booking.status) {
+        com.example.workly.data.OrderStatus.ACCEPTED -> MaterialTheme.colorScheme.primary
+        com.example.workly.data.OrderStatus.PENDING  -> Color(0xFFFF9800)
+        com.example.workly.data.OrderStatus.COMPLETED -> Color(0xFF4CAF50)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Handyman, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text("Scheduled for today", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 11.sp)
+            }
+            Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.12f)) {
+                Text(
+                    booking.status,
+                    color = statusColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
+    val items = listOf(
+        Triple("Home", Icons.Default.Home, Icons.Outlined.Home),
+        Triple("Explore", Icons.Default.Explore, Icons.Outlined.Explore),
+        Triple("Messages", Icons.Default.ChatBubble, Icons.Outlined.ChatBubbleOutline),
+        Triple("Profile", Icons.Default.Person, Icons.Outlined.Person)
+    )
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(16.dp, RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            items.forEachIndexed { index, (label, filledIcon, outlinedIcon) ->
+                val isSelected = selectedItem == index
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { 
+                            if (!isSelected) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                onItemSelected(index) 
+                            }
+                        }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.height(34.dp)) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 54.dp, height = 32.dp)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
+                            )
+                        }
+                        Icon(
+                            if (isSelected) filledIcon else outlinedIcon,
+                            contentDescription = label,
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        label,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
+        }
+    }
+}
