@@ -29,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.data.OrderStatus
 import com.example.workly.theme.ProfessionalBlue
+import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
+import androidx.compose.runtime.collectAsState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query

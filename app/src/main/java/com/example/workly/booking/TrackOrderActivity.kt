@@ -35,7 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.workly.chat.ChatActivity
+import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 class TrackOrderActivity : ComponentActivity() {

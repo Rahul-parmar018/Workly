@@ -5,19 +5,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,129 +83,237 @@ fun BookingSuccessScreen(
     onGoHome: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val bg = MaterialTheme.colorScheme.background
     val primary = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
     val onSurf = MaterialTheme.colorScheme.onSurface
-    val onBg = MaterialTheme.colorScheme.onBackground
-    val surfVar = MaterialTheme.colorScheme.surfaceVariant
+    val bg = MaterialTheme.colorScheme.background
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bg),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Success header with Brand Gradient
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(primary, primary.copy(alpha = 0.8f))
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 40.dp)) {
-                Surface(
+    // Check icon bounce animation
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutCubic),
+            repeatMode = RepeatMode.Reverse
+        ), label = "scale"
+    )
+
+    Scaffold(
+        containerColor = bg,
+        bottomBar = {
+            Surface(
+                color = surface,
+                shadowElevation = 16.dp
+            ) {
+                Row(
                     modifier = Modifier
-                        .size(100.dp)
-                        .padding(4.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(0.2f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(60.dp))
+                    // Chat Pro Button
+                    OutlinedButton(
+                        onClick = {
+                            val chatIntent = Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
+                                putExtra("RECEIVER_NAME", providerName)
+                                putExtra("RECEIVER_ID", providerId)
+                            }
+                            context.startActivity(chatIntent)
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, primary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = primary)
+                    ) {
+                        Icon(Icons.Default.Chat, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Chat Pro", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+
+                    // Go Home Button
+                    Button(
+                        onClick = onGoHome,
+                        modifier = Modifier.weight(1.3f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primary, contentColor = Color.White),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(Icons.Default.Home, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Go Home", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("Booking Confirmed! 🎉", color = Color.White, fontWeight = FontWeight.Black, fontSize = 26.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text("Your professional is on the way", color = Color.White.copy(0.9f), fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
-
-        // Booking details card
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Summary Card
-            Card(
-                shape = RoundedCornerShape(28.dp), 
-                colors = CardDefaults.cardColors(containerColor = surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            // ── Success Header ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(primary, primary.copy(alpha = 0.85f))
+                        )
+                    )
+                    .statusBarsPadding()
+                    .padding(vertical = 40.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Booking Details", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
-                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(0.08f)) {
-                            Text("#${bookingId.take(8).uppercase()}", color = primary, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Animated check icon
+                    Surface(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .scale(pulseScale),
+                        shape = CircleShape,
+                        color = Color.White.copy(0.2f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Surface(
+                                modifier = Modifier.size(72.dp),
+                                shape = CircleShape,
+                                color = Color.White.copy(0.3f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(48.dp))
+                                }
+                            }
                         }
                     }
-                    
-                    HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
-
-                    DetailItem(Icons.Default.Handyman, "Service", serviceName, primary, onSurf)
-                    DetailItem(Icons.Default.Person, "Professional", providerName, primary, onSurf)
-                    if (date.isNotEmpty()) DetailItem(Icons.Default.CalendarMonth, "Date", date, primary, onSurf)
-                    if (time.isNotEmpty()) DetailItem(Icons.Default.Schedule, "Time", time, primary, onSurf)
-                    if (address.isNotEmpty()) DetailItem(Icons.Default.LocationOn, "Address", address, primary, onSurf)
-
-                    HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Amount Paid", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurf)
-                        Text("₹${price.toInt()}", color = primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        "Booking Confirmed! 🎉",
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 26.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Your professional is on the way",
+                        color = Color.White.copy(0.8f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 
-            // Action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            // ── Booking Details Card ──
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Button(
-                    onClick = {
-                        val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
-                            putExtra("RECEIVER_NAME", providerName)
-                            putExtra("RECEIVER_ID", providerId)
+                // Summary Card
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = surface,
+                    shadowElevation = 4.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(alpha = 0.04f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Header with booking ID
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Booking Details", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
+                            Surface(shape = RoundedCornerShape(10.dp), color = primary.copy(0.08f)) {
+                                Text(
+                                    "#${bookingId.take(8).uppercase()}",
+                                    color = primary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
                         }
-                        context.startActivity(chatIntent)
-                    },
-                    modifier = Modifier.weight(1f).height(58.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primary.copy(alpha = 0.1f),
-                        contentColor = primary
-                    ),
-                    elevation = null
-                ) {
-                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Chat Pro", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+
+                        HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
+
+                        // Detail items
+                        DetailItem(Icons.Default.Handyman, "Service", serviceName, primary, onSurf)
+                        DetailItem(Icons.Default.Person, "Professional", providerName, primary, onSurf)
+                        if (date.isNotEmpty()) DetailItem(Icons.Default.CalendarMonth, "Date", date, primary, onSurf)
+                        if (time.isNotEmpty()) DetailItem(Icons.Default.Schedule, "Time", time, primary, onSurf)
+                        if (address.isNotEmpty()) DetailItem(Icons.Default.LocationOn, "Address", address, primary, onSurf)
+
+                        HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
+
+                        // Total
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Amount Paid", fontSize = 12.sp, color = onSurf.copy(alpha = 0.5f))
+                                Text("₹${price.toInt()}", color = primary, fontWeight = FontWeight.Black, fontSize = 26.sp)
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Paid", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4CAF50))
+                                }
+                            }
+                        }
+                    }
                 }
-                
-                Button(
-                    onClick = onGoHome,
-                    modifier = Modifier.weight(1f).height(58.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = primary, contentColor = Color.White),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+
+                // ── What's Next Card ──
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = primary.copy(alpha = 0.04f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, primary.copy(alpha = 0.08f))
                 ) {
-                    Icon(Icons.Default.Home, null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go Home", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text("What happens next?", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = onSurf)
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        val steps = listOf(
+                            "Professional is being notified" to Icons.Default.Notifications,
+                            "They'll confirm within 5 minutes" to Icons.Default.Timer,
+                            "Track live progress in My Bookings" to Icons.Default.Map
+                        )
+
+                        steps.forEachIndexed { index, (text, icon) ->
+                            Row(
+                                modifier = Modifier.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(shape = CircleShape, color = primary.copy(alpha = 0.1f), modifier = Modifier.size(32.dp)) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("${index + 1}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primary)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text, fontSize = 13.sp, color = onSurf.copy(alpha = 0.7f))
+                            }
+                        }
+                    }
                 }
             }
-            
-            // Critical fix for navigation bar clipping
-            Spacer(modifier = Modifier.navigationBarsPadding().height(16.dp))
         }
     }
 }
@@ -209,7 +321,7 @@ fun BookingSuccessScreen(
 @Composable
 fun DetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, accent: Color, onSurf: Color) {
     Row(verticalAlignment = Alignment.Top) {
-        Surface(modifier = Modifier.size(28.dp), shape = CircleShape, color = accent.copy(alpha = 0.08f)) {
+        Surface(modifier = Modifier.size(32.dp), shape = CircleShape, color = accent.copy(alpha = 0.08f)) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = accent, modifier = Modifier.size(16.dp))
             }
@@ -217,7 +329,7 @@ fun DetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Str
         Spacer(modifier = Modifier.width(14.dp))
         Column {
             Text(label, color = onSurf.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
-            Text(value, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = onSurf)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = onSurf)
         }
     }
 }

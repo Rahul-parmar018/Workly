@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -217,7 +218,8 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Home Cleaning",
                         gradient = CleaningGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/cleaning-vacuum-7170068-5813735.png",
+                        icon = Icons.Default.CleaningServices,
+                        iconTint = Color(0xFF1976D2), // Medium Blue
                         onClick = { /* Navigate */ }
                     )
                 }
@@ -225,7 +227,8 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Electric",
                         gradient = ElectricGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/electricity-flash-5349603-4475459.png",
+                        icon = Icons.Default.ElectricalServices,
+                        iconTint = Color(0xFFF57C00), // Orange
                         glowPulse = true,
                         onClick = { /* Navigate */ }
                     )
@@ -234,7 +237,8 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Plumbing",
                         gradient = PlumbingGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/plumbing-9190184-7546377.png",
+                        icon = Icons.Default.Plumbing,
+                        iconTint = Color(0xFF0097A7), // Cyan
                         rippleEffect = true,
                         onClick = { /* Navigate */ }
                     )
@@ -243,7 +247,8 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Kitchen Cleaning",
                         gradient = CleaningGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/dishwashing-7170077-5813744.png",
+                        icon = Icons.Default.Restaurant,
+                        iconTint = Color(0xFF1976D2), // Medium Blue
                         onClick = { /* Navigate */ }
                     )
                 }
@@ -271,7 +276,7 @@ fun HomeScreenContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Brush.horizontalGradient(listOf(primary, primary.copy(alpha = 0.8f))))
-                            .clickable { /* Action */ },
+                            .clickable { context.startActivity(Intent(context, ServicesActivity::class.java)) },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -716,7 +721,7 @@ fun AppearanceBottomSheet(
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 @Composable
-fun PremiumServiceCard(title: String, gradient: Brush, iconUrl: String, glowPulse: Boolean = false, rippleEffect: Boolean = false, onClick: () -> Unit) {
+fun PremiumServiceCard(title: String, gradient: Brush, icon: ImageVector, iconTint: Color, glowPulse: Boolean = false, rippleEffect: Boolean = false, onClick: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition()
     val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.1f, targetValue = 0.3f, animationSpec = infiniteRepeatable(animation = tween(1500, easing = LinearEasing), repeatMode = RepeatMode.Reverse))
     Surface(modifier = Modifier.size(140.dp, 160.dp).shadow(8.dp, RoundedCornerShape(24.dp)).clickable { onClick() }, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
@@ -725,10 +730,10 @@ fun PremiumServiceCard(title: String, gradient: Brush, iconUrl: String, glowPuls
                 Box(modifier = Modifier.align(Alignment.Center).size(80.dp).background(Brush.radialGradient(listOf(Color.White.copy(alpha = glowAlpha), Color.Transparent)), CircleShape))
             }
             Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                AsyncImage(model = iconUrl, contentDescription = null, modifier = Modifier.size(64.dp), contentScale = ContentScale.Fit)
+                Icon(icon, null, tint = iconTint, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(12.dp))
-                // Fixed hardcoded color here
-                Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                // Gradients are always light pastels, so force a dark text color for contrast
+                Text(title, color = Color(0xFF1E2A78), fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             }
         }
     }

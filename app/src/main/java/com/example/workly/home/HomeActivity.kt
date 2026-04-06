@@ -116,34 +116,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                 )
             }
 
-            // FAB — Bolt button (only on Home tab)
-            if (selectedItem == 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 100.dp, end = 24.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clickable {
-                                context.startActivity(Intent(context, ServicesActivity::class.java))
-                            },
-                        shape = CircleShape,
-                        color = Color.White,
-                        shadowElevation = 16.dp
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Bolt,
-                                contentDescription = "Quick Book",
-                                tint = Color(0xFF0E0E0E),
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-                    }
-                }
-            }
+// Removed FAB as per request
         }
     }
 
