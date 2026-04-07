@@ -1,4 +1,5 @@
 import Booking from '../models/Booking.js';
+import Payment from '../models/Payment.js';
 import Payout from '../models/Payout.js';
 import ProviderBalance from '../models/ProviderBalance.js';
 import TransactionAudit from '../models/TransactionAudit.js';

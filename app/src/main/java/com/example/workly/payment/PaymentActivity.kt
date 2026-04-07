@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -119,62 +120,94 @@ fun PaymentScreen(
             }
         }
     ) { innerPadding ->
+        val safeProviderName = when {
+            providerName.isBlank() -> "Service Pro"
+            providerName.equals("Unknown", true) -> "Service Pro"
+            providerName.contains("Unknown", true) -> "Service Pro"
+            else -> providerName
+        }
+
         Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             // Order summary
-            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(surface), border = androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(0.05f))) {
+            Card(
+                shape = RoundedCornerShape(28.dp), 
+                colors = CardDefaults.cardColors(containerColor = surface), 
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, onSurf.copy(0.08f))
+            ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("Order Summary", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Order Summary", fontWeight = FontWeight.Black, fontSize = 20.sp, color = onSurf)
+                    Spacer(modifier = Modifier.height(20.dp))
                     SummaryRow("Service", serviceName, onSurf = onSurf)
-                    SummaryRow("Professional", providerName, valueColor = primary, onSurf = onSurf)
-                    if (basePrice != price) {
+                    SummaryRow("Professional", safeProviderName, valueColor = primary, onSurf = onSurf)
+                    if (basePrice != price && basePrice > 0) {
                         SummaryRow("Base Price", "₹${basePrice.toInt()}", valueColor = onSurf.copy(0.5f), onSurf = onSurf)
                         SummaryRow("Pro Rate", "₹${price.toInt()}/hr", onSurf = onSurf)
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = onSurf.copy(alpha = 0.05f))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
-                        Text("₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = EnergyOrange)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = onSurf.copy(alpha = 0.08f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Total Amount", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurf)
+                        Text("₹${price.toInt()}", fontWeight = FontWeight.Black, fontSize = 26.sp, color = primary)
                     }
                 }
             }
 
             // Payment methods
-            Text("Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
-            paymentMethods.forEach { (method, icon, subtitle) ->
-                val isSelected = method == selectedMethod
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(if (isSelected) 12.dp else 2.dp, RoundedCornerShape(18.dp), spotColor = if (isSelected) primary.copy(0.5f) else Color.Black.copy(0.1f))
-                        .clickable { selectedMethod = method },
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (isSelected) primary.copy(0.05f) else surface,
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, primary) else androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(0.05f))
-                ) {
-                    Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(12.dp), color = if (isSelected) primary.copy(0.1f) else surfVar) {
-                            Icon(icon, null, tint = if (isSelected) primary else onSurf.copy(0.5f), modifier = Modifier.padding(10.dp).size(24.dp))
+            Text("Select Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = onSurf)
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                paymentMethods.forEach { (method, icon, subtitle) ->
+                    val isSelected = method == selectedMethod
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedMethod = method },
+                        shape = RoundedCornerShape(22.dp),
+                        color = if (isSelected) primary.copy(0.04f) else surface,
+                        border = BorderStroke(1.5.dp, if (isSelected) primary else onSurf.copy(0.05f)),
+                        shadowElevation = if (isSelected) 4.dp else 0.dp
+                    ) {
+                        Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                modifier = Modifier.size(48.dp),
+                                shape = RoundedCornerShape(14.dp), 
+                                color = if (isSelected) primary.copy(0.12f) else surfVar
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(icon, null, tint = if (isSelected) primary else onSurf.copy(0.6f), modifier = Modifier.size(22.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(18.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(method, fontWeight = FontWeight.Black, color = onSurf, fontSize = 16.sp)
+                                Text(subtitle, fontSize = 12.sp, color = onSurf.copy(0.5f), fontWeight = FontWeight.Medium)
+                            }
+                            RadioButton(
+                                selected = isSelected, 
+                                onClick = { selectedMethod = method }, 
+                                colors = RadioButtonDefaults.colors(selectedColor = primary, unselectedColor = onSurf.copy(0.2f))
+                            )
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(method, fontWeight = FontWeight.Bold, color = onSurf, fontSize = 16.sp)
-                            Text(subtitle, fontSize = 12.sp, color = onSurf.copy(0.5f))
-                        }
-                        RadioButton(selected = isSelected, onClick = { selectedMethod = method }, colors = RadioButtonDefaults.colors(selectedColor = primary))
                     }
                 }
             }
 
-            // Shield Escrow info
-            Surface(shape = RoundedCornerShape(14.dp), color = ElectricTeal.copy(0.08f)) {
-                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, null, tint = ElectricTeal, modifier = Modifier.size(22.dp))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Your payment is protected. Funds released to pro only after job completion.", fontSize = 12.sp, color = ElectricTeal)
+            // Protection Badge
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                shape = RoundedCornerShape(20.dp), 
+                color = ElectricTeal.copy(0.06f),
+                border = BorderStroke(1.dp, ElectricTeal.copy(0.15f))
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, null, tint = ElectricTeal, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text("Workly Security Policy", fontSize = 14.sp, color = ElectricTeal, fontWeight = FontWeight.Bold)
+                        Text("Escrow-secured: Funds released after service.", fontSize = 12.sp, color = ElectricTeal.copy(0.8f))
+                    }
                 }
             }
         }
@@ -184,10 +217,11 @@ fun PaymentScreen(
 @Composable
 fun SummaryRow(label: String, value: String, valueColor: Color? = null, onSurf: Color) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = onSurf.copy(0.5f), fontSize = 14.sp)
-        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = valueColor ?: onSurf)
+        Text(label, color = onSurf.copy(0.5f), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = valueColor ?: onSurf)
     }
 }

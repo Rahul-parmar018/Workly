@@ -69,7 +69,8 @@ fun HomeScreenContent(
     viewModel: HomeViewModel,
     userName: String,
     userRole: String,
-    onSeeAllServices: () -> Unit
+    onSeeAllServices: () -> Unit,
+    onNavigateToProfile: () -> Unit
 ) {
     val context = LocalContext.current
     val bookings by viewModel.upcomingBookings.collectAsState()
@@ -142,7 +143,7 @@ fun HomeScreenContent(
                 }
                 // Profile Avatar
                 Surface(
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(44.dp).clickable { onNavigateToProfile() },
                     shape = CircleShape,
                     color = surfVar,
                     shadowElevation = 4.dp
@@ -217,7 +218,7 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Home Cleaning",
                         gradient = CleaningGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/cleaning-vacuum-7170068-5813735.png",
+                        icon = Icons.Default.CleaningServices,
                         onClick = { /* Navigate */ }
                     )
                 }
@@ -225,7 +226,7 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Electric",
                         gradient = ElectricGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/electricity-flash-5349603-4475459.png",
+                        icon = Icons.Default.ElectricalServices,
                         glowPulse = true,
                         onClick = { /* Navigate */ }
                     )
@@ -234,7 +235,7 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Plumbing",
                         gradient = PlumbingGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/plumbing-9190184-7546377.png",
+                        icon = Icons.Default.Plumbing,
                         rippleEffect = true,
                         onClick = { /* Navigate */ }
                     )
@@ -243,54 +244,15 @@ fun HomeScreenContent(
                     PremiumServiceCard(
                         title = "Kitchen Cleaning",
                         gradient = CleaningGradient,
-                        iconUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/dishwashing-7170077-5813744.png",
+                        icon = Icons.Default.Countertops,
                         onClick = { /* Navigate */ }
                     )
                 }
             }
         }
 
-        // ── Quick Book CTA ───────────────────────────────────────────────────
-        item {
-            Spacer(modifier = Modifier.height(32.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(58.dp)
-                        .shadow(12.dp, RoundedCornerShape(29.dp)),
-                    shape = RoundedCornerShape(29.dp),
-                    color = Color.Transparent
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Brush.horizontalGradient(listOf(primary, primary.copy(alpha = 0.8f))))
-                            .clickable { /* Action */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "⚡ Book Now",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "No booking fee • Cancel anytime",
-                    color = onBg.copy(alpha = 0.5f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        // ── (Book Now CTA Removed for Cleaner Layout) ──
+        item { Spacer(modifier = Modifier.height(16.dp)) }
 
         // ── Top Services ────────────────────────────────────────────────────────
         item {
@@ -770,19 +732,52 @@ fun AppearanceBottomSheet(
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 @Composable
-fun PremiumServiceCard(title: String, gradient: Brush, iconUrl: String, glowPulse: Boolean = false, rippleEffect: Boolean = false, onClick: () -> Unit) {
+fun PremiumServiceCard(title: String, gradient: Brush, icon: androidx.compose.ui.graphics.vector.ImageVector, glowPulse: Boolean = false, rippleEffect: Boolean = false, onClick: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition()
-    val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.1f, targetValue = 0.3f, animationSpec = infiniteRepeatable(animation = tween(1500, easing = LinearEasing), repeatMode = RepeatMode.Reverse))
-    Surface(modifier = Modifier.size(140.dp, 160.dp).shadow(8.dp, RoundedCornerShape(24.dp)).clickable { onClick() }, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
+    val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.1f, targetValue = 0.3f, animationSpec = infiniteRepeatable(animation = tween(1500, easing = LinearEasing), repeatMode = RepeatMode.Reverse), label = "")
+    
+    Surface(
+        modifier = Modifier
+            .size(130.dp, 145.dp)
+            .shadow(12.dp, RoundedCornerShape(26.dp))
+            .clickable { onClick() }, 
+        shape = RoundedCornerShape(26.dp), 
+        color = MaterialTheme.colorScheme.surface
+    ) {
         Box(modifier = Modifier.fillMaxSize().background(gradient)) {
             if (glowPulse) {
                 Box(modifier = Modifier.align(Alignment.Center).size(80.dp).background(Brush.radialGradient(listOf(Color.White.copy(alpha = glowAlpha), Color.Transparent)), CircleShape))
             }
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                AsyncImage(model = iconUrl, contentDescription = null, modifier = Modifier.size(64.dp), contentScale = ContentScale.Fit)
-                Spacer(modifier = Modifier.height(12.dp))
-                // Fixed hardcoded color here
-                Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Column(
+                modifier = Modifier.fillMaxSize().padding(14.dp), 
+                horizontalAlignment = Alignment.CenterHorizontally, 
+                verticalArrangement = Arrangement.Center
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon, 
+                            contentDescription = null, 
+                            modifier = Modifier.size(32.dp), 
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    title, 
+                    color = MaterialTheme.colorScheme.onSurface, 
+                    fontSize = 14.sp, 
+                    fontWeight = FontWeight.Black, 
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
@@ -836,43 +831,75 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 
 @Composable
 fun UpcomingBookingCard(booking: com.example.workly.data.Order) {
-    val statusColor = when (booking.status) {
-        com.example.workly.data.OrderStatus.ACCEPTED -> MaterialTheme.colorScheme.primary
-        com.example.workly.data.OrderStatus.PENDING  -> Color(0xFFFF9800)
-        com.example.workly.data.OrderStatus.COMPLETED -> Color(0xFF4CAF50)
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val context = LocalContext.current
+    val status = (booking.status ?: "pending").lowercase()
+    val statusColor = when (status) {
+        "accepted" -> Color(0xFF3B82F6)
+        "arriving" -> Color(0xFF8B5CF6)
+        "started" -> MaterialTheme.colorScheme.primary
+        else -> Color(0xFF64748B)
     }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Handyman, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+            .padding(horizontal = 24.dp)
+            .clickable {
+                val intent = Intent(context, com.example.workly.booking.TrackOrderActivity::class.java).apply {
+                    putExtra("ORDER_ID", booking.id)
                 }
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-                Text("Scheduled for today", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 11.sp)
-            }
-            Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.12f)) {
-                Text(
-                    booking.status,
-                    color = statusColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+                context.startActivity(intent)
+            },
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)),
+        shadowElevation = 2.dp
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = statusColor.copy(alpha = 0.12f),
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = when(booking.serviceCategory.lowercase()) {
+                                "cleaning" -> Icons.Default.CleaningServices
+                                "plumbing" -> Icons.Default.WaterDrop
+                                "electric" -> Icons.Default.FlashOn
+                                else -> Icons.Default.Handyman
+                            },
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        booking.serviceName.ifEmpty { booking.serviceTitle }, 
+                        fontWeight = FontWeight.Black, 
+                        fontSize = 15.sp, 
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Today at ${booking.time}", 
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), 
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Surface(shape = RoundedCornerShape(10.dp), color = statusColor.copy(alpha = 0.1f)) {
+                    Text(
+                        status.uppercase(),
+                        color = statusColor,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
     }
@@ -891,14 +918,19 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(16.dp, RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
+            .navigationBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+            .shadow(24.dp, RoundedCornerShape(32.dp)),
+        shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+        tonalElevation = 8.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEachIndexed { index, (label, filledIcon, outlinedIcon) ->
                 val isSelected = selectedItem == index
@@ -906,35 +938,36 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
                         .clickable { 
                             if (!isSelected) {
                                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 onItemSelected(index) 
                             }
                         }
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 6.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.height(34.dp)) {
                         if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 54.dp, height = 32.dp)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
-                            )
+                            Surface(
+                                modifier = Modifier.size(width = 54.dp, height = 30.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            ) {}
                         }
                         Icon(
                             if (isSelected) filledIcon else outlinedIcon,
                             contentDescription = label,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            modifier = Modifier.size(22.dp)
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         label,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         fontSize = 10.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
                     )
                 }
             }

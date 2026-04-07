@@ -92,43 +92,82 @@ fun BookingSuccessScreen(
             .background(bg),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Success header with Brand Gradient
+        // ── Success Gradient Header ──
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(primary, primary.copy(alpha = 0.8f))
+                        listOf(primary, primary.copy(alpha = 0.85f))
                     )
-                ),
+                )
+                .statusBarsPadding()
+                .padding(bottom = 48.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 40.dp)) {
-                Surface(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .padding(4.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(0.2f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(60.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 32.dp)
+            ) {
+                // Success Icon with Outer Glow
+                Box(contentAlignment = Alignment.Center) {
+                    // Glow effect
+                    Surface(
+                        modifier = Modifier.size(130.dp),
+                        shape = CircleShape,
+                        color = Color.White.copy(0.12f)
+                    ) {}
+                    Surface(
+                        modifier = Modifier.size(90.dp),
+                        shape = CircleShape,
+                        color = Color.White,
+                        shadowElevation = 8.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Check,
+                                null,
+                                tint = primary,
+                                modifier = Modifier.size(52.dp)
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("Booking Confirmed! 🎉", color = Color.White, fontWeight = FontWeight.Black, fontSize = 26.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text("Your professional is on the way", color = Color.White.copy(0.9f), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+
+                Spacer(modifier = Modifier.height(28.dp))
+                
+                Text(
+                    "Booking Confirmed!",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 30.sp,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Surface(
+                    color = Color.White.copy(0.18f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        "Your professional is on the way 🚀",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
 
-        // Booking details card
+        // ── Card and Details ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .offset(y = (-30).dp) // Pull it up into the header slightly for a "card overlap" look
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Summary Card
             Card(
@@ -138,9 +177,9 @@ fun BookingSuccessScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Booking Details", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = onSurf)
-                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(0.08f)) {
-                            Text("#${bookingId.take(8).uppercase()}", color = primary, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                        Text("Booking Details", fontWeight = FontWeight.Black, fontSize = 20.sp, color = onSurf)
+                        Surface(shape = RoundedCornerShape(12.dp), color = primary.copy(0.12f)) {
+                            Text("#${bookingId.take(8).uppercase()}", color = primary, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                     

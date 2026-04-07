@@ -13,6 +13,7 @@ import com.example.workly.data.OrderStatus
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 
 class AllBookingsActivity : AppCompatActivity() {
@@ -20,10 +21,13 @@ class AllBookingsActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var adapter: AdminBookingAdapter
     private var allBookingsList = mutableListOf<Booking>()
-    
+
     private lateinit var rvBookings: RecyclerView
     private lateinit var chipGroupStatus: ChipGroup
     private lateinit var progressBar: ProgressBar
+
+    // FIX #8: Store listener for cleanup
+    private var bookingsListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +50,8 @@ class AllBookingsActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         rvBookings.layoutManager = LinearLayoutManager(this)
         adapter = AdminBookingAdapter(emptyList()) { booking ->
-            // Optionally: Details View
-            Toast.makeText(this, "Booking for ${booking.userName}", Toast.LENGTH_SHORT).show()
+            // Show detail dialog with admin force-update options
+            showBookingActionDialog(booking)
         }
         rvBookings.adapter = adapter
     }
@@ -55,8 +59,11 @@ class AllBookingsActivity : AppCompatActivity() {
     private fun setupListeners() {
         chipGroupStatus.setOnCheckedChangeListener { _, checkedId ->
             val status = when (checkedId) {
-                R.id.chipPending -> OrderStatus.PENDING
-                R.id.chipAccepted -> OrderStatus.ACCEPTED
+                R.id.chipPending   -> OrderStatus.PENDING
+                R.id.chipAccepted  -> OrderStatus.ACCEPTED
+                // FIX #7: Added arriving and started to filter correctly
+                R.id.chipArriving  -> OrderStatus.ARRIVING
+                R.id.chipStarted   -> OrderStatus.STARTED
                 R.id.chipCompleted -> OrderStatus.COMPLETED
                 R.id.chipCancelled -> OrderStatus.CANCELLED
                 else -> "all"
@@ -67,7 +74,8 @@ class AllBookingsActivity : AppCompatActivity() {
 
     private fun loadBookings() {
         progressBar.visibility = View.VISIBLE
-        db.collection("orders")
+        // FIX #8: Store listener reference for onDestroy cleanup
+        bookingsListener = db.collection("orders")
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 progressBar.visibility = View.GONE
@@ -77,15 +85,20 @@ class AllBookingsActivity : AppCompatActivity() {
                 }
 
                 snapshot?.let {
-                    val bookings = it.toObjects(Booking::class.java)
+                    // FIX #2: Use mapNotNull + .copy(id = doc.id) to correctly populate id field
+                    val bookings = it.documents.mapNotNull { doc ->
+                        doc.toObject(Booking::class.java)?.copy(id = doc.id)
+                    }
                     allBookingsList.clear()
                     allBookingsList.addAll(bookings)
-                    
+
                     // Maintain current filter
                     val checkedChipId = chipGroupStatus.checkedChipId
                     val status = when (checkedChipId) {
-                        R.id.chipPending -> OrderStatus.PENDING
-                        R.id.chipAccepted -> OrderStatus.ACCEPTED
+                        R.id.chipPending   -> OrderStatus.PENDING
+                        R.id.chipAccepted  -> OrderStatus.ACCEPTED
+                        R.id.chipArriving  -> OrderStatus.ARRIVING
+                        R.id.chipStarted   -> OrderStatus.STARTED
                         R.id.chipCompleted -> OrderStatus.COMPLETED
                         R.id.chipCancelled -> OrderStatus.CANCELLED
                         else -> "all"
@@ -102,5 +115,40 @@ class AllBookingsActivity : AppCompatActivity() {
             allBookingsList.filter { it.status == status }
         }
         adapter.updateBookings(filtered)
+    }
+
+    // FIX #5: Admin can now force-update booking status from the detail dialog
+    private fun showBookingActionDialog(booking: Booking) {
+        val statusOptions = arrayOf("Mark Completed", "Mark Cancelled", "Reset to Pending")
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Booking #${booking.id.takeLast(8).uppercase()}\n${booking.userName} • ${booking.serviceName}")
+            .setItems(statusOptions) { _, which ->
+                val newStatus = when (which) {
+                    0 -> OrderStatus.COMPLETED
+                    1 -> OrderStatus.CANCELLED
+                    2 -> OrderStatus.PENDING
+                    else -> return@setItems
+                }
+                forceUpdateBookingStatus(booking.id, newStatus)
+            }
+            .setNegativeButton("Dismiss", null)
+            .show()
+    }
+
+    private fun forceUpdateBookingStatus(bookingId: String, newStatus: String) {
+        db.collection("orders").document(bookingId)
+            .update("status", newStatus)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Booking updated to $newStatus", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Update failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // FIX #8: Cleanup listener on destroy
+    override fun onDestroy() {
+        bookingsListener?.remove()
+        super.onDestroy()
     }
 }

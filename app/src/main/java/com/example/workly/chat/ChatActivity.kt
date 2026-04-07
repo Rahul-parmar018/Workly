@@ -35,6 +35,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -96,9 +98,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         containerColor = bg,
         topBar = {
             Column {
-                // Header (Upgrade)
-                Surface(shadowElevation = 6.dp, color = surface) {
-                    TopAppBar(
+                                   TopAppBar(
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(modifier = Modifier.size(42.dp)) {
@@ -107,9 +107,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                                         shape = CircleShape,
                                         color = surfVar
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Person, null, tint = primary)
-                                        }
+                                        com.example.workly.chat.ChatAvatar(receiverName)
                                     }
                                     // Verified Badge
                                     Surface(
@@ -139,31 +137,9 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = surface)
                     )
                 }
+            }
+        },
 
-                // Sticky Service Context Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = surface,
-                    shadowElevation = 2.dp,
-                    border = BorderStroke(1.dp, outline.copy(alpha = 0.1f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(alpha = 0.08f), modifier = Modifier.size(40.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.CleaningServices, null, tint = primary, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Full Home Cleaning", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = onSurface)
-                            Text("₹1499 \u2022 3 hrs", fontSize = 12.sp, color = onSurface.copy(alpha = 0.5f))
-                        }
-                        Surface(shape = RoundedCornerShape(8.dp), color = primary.copy(alpha = 0.12f)) {
-                            Text("Accepted", color = primary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                         }
                     }
                 }
@@ -354,4 +330,14 @@ fun sendChatMessage(
         batch.set(docRef, message)
         batch.set(parentRef, chatData, com.google.firebase.firestore.SetOptions.merge())
     }
+}
+
+@Composable
+fun ChatAvatar(receiverName: String) {
+    AsyncImage(
+        model = "https://ui-avatars.com/api/?name=${receiverName.replace(" ", "+")}&background=1E2A78&color=fff&bold=true",
+        contentDescription = null,
+        modifier = Modifier.fillMaxSize(),
+        contentScale = ContentScale.Crop
+    )
 }

@@ -20,6 +20,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -101,15 +103,7 @@ fun InboxScreen() {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surfVar   = MaterialTheme.colorScheme.surfaceVariant
 
-    // DUMMY DATA
-    val dummyChats = listOf(
-        ChatPreview("1", "Rahul Parmar", "I will arrive in 10 mins", "06:01 PM", 2, "Online", "https://i.pravatar.cc/150?u=rahul", false),
-        ChatPreview("2", "Plumber Raj", "Found the leak, fixing now.", "04:20 PM", 0, "Last seen 2 min ago", "https://i.pravatar.cc/150?u=raj", true),
-        ChatPreview("3", "Cleaning Team", "We are typing...", "10:30 AM", 0, "Typing...", "https://i.pravatar.cc/150?u=clean", true),
-        ChatPreview("4", "Electrician Amit", "Is the wiring issue fixed?", "Yesterday", 1, "Offline", "https://i.pravatar.cc/150?u=amit", false)
-    )
-
-    val displayedChats = if (chats.isEmpty()) dummyChats else chats
+    val displayedChats = chats
     val filteredChats = displayedChats.filter { chat ->
         val matchesTab = selectedTab == "All" || chat.status.equals(selectedTab, true)
         val matchesSearch = searchQuery.isEmpty() || chat.receiverName.contains(searchQuery, true)
@@ -181,14 +175,44 @@ fun InboxScreen() {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = primary)
             }
+        } else if (filteredChats.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        color = primary.copy(alpha = 0.08f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.ChatBubbleOutline, null, tint = primary, modifier = Modifier.size(32.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("No messages yet", fontSize = 20.sp, fontWeight = FontWeight.Black, color = onBg)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Your conversations with service workers\nwill appear here.", 
+                        textAlign = TextAlign.Center, 
+                        fontSize = 14.sp, 
+                        color = onBg.copy(alpha = 0.5f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         } else {
             LazyColumn(
-                modifier = Modifier.weight(1f).padding(horizontal = 24.dp),
-                contentPadding = PaddingValues(bottom = 100.dp)
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 100.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredChats) { chat ->
-                    ChatListItem(chat)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = onBg.copy(alpha = 0.05f))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)),
+                        shape = RoundedCornerShape(20.dp),
+                        color = surface
+                    ) {
+                        ChatListItem(chat)
+                    }
                 }
             }
         }
@@ -214,7 +238,7 @@ fun ChatListItem(chat: ChatPreview) {
                 }
                 context.startActivity(intent)
             }
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box {
@@ -251,7 +275,10 @@ fun ChatListItem(chat: ChatPreview) {
                     text = chat.receiverName,
                     fontWeight = if (isUnread) FontWeight.Black else FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = onCard
+                    color = onCard,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
                 Text(
                     text = chat.time, 
@@ -261,6 +288,7 @@ fun ChatListItem(chat: ChatPreview) {
                 )
             }
             
+            Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (chat.onlineStatus.contains("Typing")) {
                     Text("\u270d Typing...", color = primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -270,6 +298,7 @@ fun ChatListItem(chat: ChatPreview) {
                         fontSize = 14.sp,
                         color = if (isUnread) onCard else onCard.copy(alpha = 0.6f),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))

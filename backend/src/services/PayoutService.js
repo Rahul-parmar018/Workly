@@ -1,5 +1,6 @@
 import Payout from '../models/Payout.js';
 import Booking from '../models/Booking.js';
+import ProviderBalance from '../models/ProviderBalance.js';
 import RazorpayService from './RazorpayService.js';
 import TransactionAudit from '../models/TransactionAudit.js';
 

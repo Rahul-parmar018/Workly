@@ -186,33 +186,40 @@ fun ExploreScreen() {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     val cats = listOf(
-                        Triple("Cleaning", CleaningGradient, "https://cdn3d.iconscout.com/3d/premium/thumb/cleaning-vacuum-7170068-5813735.png"),
-                        Triple("Repair", RepairGradient, "https://cdn3d.iconscout.com/3d/premium/thumb/mechanical-9190180-7546373.png"),
-                        Triple("Plumbing", PlumbingGradient, "https://cdn3d.iconscout.com/3d/premium/thumb/plumbing-9190184-7546377.png"),
-                        Triple("Electric", ElectricGradient, "https://cdn3d.iconscout.com/3d/premium/thumb/electricity-flash-5349603-4475459.png")
+                        Triple("Cleaning", CleaningGradient, "https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=150"),
+                        Triple("Repair", RepairGradient, "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=150"),
+                        Triple("Plumbing", PlumbingGradient, "https://images.unsplash.com/photo-1504148455328-497c550d214e?auto=format&fit=crop&q=80&w=150"),
+                        Triple("Electric", ElectricGradient, "https://images.unsplash.com/photo-1621905252507-b35239d33d48?auto=format&fit=crop&q=80&w=150")
                     )
                     items(cats.size) { idx ->
                         val (name, grad, icon) = cats[idx]
                         val isSel = selectedCategory == name
                         Surface(
                             onClick = { selectedCategory = if (isSel) "All" else name },
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier.size(80.dp, 100.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.size(90.dp, 120.dp),
                             color = surface,
-                            border = if (isSel) BorderStroke(2.dp, primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-                            shadowElevation = if (isSel) 8.dp else 2.dp
+                            border = BorderStroke(2.dp, if (isSel) primary else Color.Transparent),
+                            shadowElevation = if (isSel) 12.dp else 2.dp
                         ) {
                             Column(
-                                modifier = Modifier.padding(8.dp),
+                                modifier = Modifier.fillMaxSize().background(grad),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                AsyncImage(model = icon, contentDescription = name, modifier = Modifier.size(40.dp))
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = onSurface)
+                                Surface(shape = CircleShape, modifier = Modifier.size(50.dp), color = Color.White.copy(0.6f)) {
+                                    AsyncImage(
+                                        model = icon, 
+                                        contentDescription = name, 
+                                        modifier = Modifier.fillMaxSize().padding(8.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = AccentBlue)
                             }
                         }
                     }
@@ -227,9 +234,9 @@ fun ExploreScreen() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🔥 Popular Near You", fontSize = 18.sp, fontWeight = FontWeight.Black, color = onBg)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Sort: Popular", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primary)
+                    Text("Popular Near You", fontSize = 20.sp, fontWeight = FontWeight.Black, color = onBg)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { /* Sort */ }) {
+                        Text("Popular", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primary)
                         Icon(Icons.Default.KeyboardArrowDown, null, tint = primary, modifier = Modifier.size(18.dp))
                     }
                 }
@@ -237,9 +244,21 @@ fun ExploreScreen() {
             }
 
             // Service List
-            items(filtered) { service ->
-                RealMarketplaceCard(service)
-                Spacer(modifier = Modifier.height(16.dp))
+            if (filtered.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 100.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.SearchOff, null, tint = onBg.copy(0.1f), modifier = Modifier.size(80.dp))
+                        Text("No services found", color = onBg.copy(0.4f), fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                items(filtered) { service ->
+                    RealMarketplaceCard(service)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
@@ -253,18 +272,20 @@ fun RealMarketplaceCard(service: Service) {
     val displayReviews = (service.id.hashCode().let { if (it < 0) -it else it } % 200 + 40).toString()
     val displayDuration = service.duration.ifEmpty { "45 mins" }
     val displayDistance = (service.id.hashCode().let { if (it < 0) -it else it } % 45 / 10.0 + 0.5).let { "%.1f".format(it) }
-    val displayImg = service.imageUrl.ifEmpty { "https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=300" }
+    val displayImg = if (service.imageUrl.isEmpty() || service.imageUrl.contains("placehold")) {
+        "https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=300"
+    } else service.imageUrl
 
     val cardBg   = MaterialTheme.colorScheme.surface
     val onCard   = MaterialTheme.colorScheme.onSurface
     val primary  = MaterialTheme.colorScheme.primary
-    val outline  = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+    val outline  = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(26.dp),
         color = cardBg,
-        shadowElevation = 2.dp,
+        shadowElevation = 1.dp,
         border = BorderStroke(1.dp, outline)
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -272,41 +293,41 @@ fun RealMarketplaceCard(service: Service) {
                 AsyncImage(
                     model = displayImg,
                     contentDescription = null,
-                    modifier = Modifier.size(100.dp).clip(RoundedCornerShape(16.dp)),
+                    modifier = Modifier.size(110.dp).clip(RoundedCornerShape(20.dp)),
                     contentScale = ContentScale.Crop
                 )
                 if (displayRating.toDouble() >= 4.7) {
                     Surface(
-                        modifier = Modifier.padding(6.dp),
+                        modifier = Modifier.padding(8.dp),
                         shape = RoundedCornerShape(8.dp),
                         color = primary
                     ) {
-                        Text("Trending", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text("TRENDING", color = Color.White, fontSize = 7.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                     }
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(service.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onCard, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(service.title, fontWeight = FontWeight.Black, fontSize = 17.sp, color = onCard, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = Color(0xFFF5A623), modifier = Modifier.size(14.dp))
                     Text(" $displayRating ", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = onCard)
-                    Text("($displayReviews reviews)", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
+                    Text("($displayReviews reviews)", fontSize = 11.sp, color = onCard.copy(alpha = 0.45f), fontWeight = FontWeight.Medium)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("⏲️ $displayDuration", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
-                    Text(" • ", color = onCard.copy(alpha = 0.3f))
-                    Text("📍 $displayDistance km away", fontSize = 12.sp, color = onCard.copy(alpha = 0.55f))
+                    Text("⏲️ $displayDuration", fontSize = 11.sp, color = onCard.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
+                    Text(" • ", color = onCard.copy(alpha = 0.2f))
+                    Text("📍 $displayDistance km", fontSize = 11.sp, color = onCard.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
                 }
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("₹${service.price.toInt()}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = primary)
-                    Surface(
+                    Text("₹${service.price.toInt()}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = primary)
+                    Button(
                         onClick = {
                             context.startActivity(
                                 Intent(context, Class.forName("com.example.workly.home.ServiceDetailActivity")).apply {
@@ -319,13 +340,16 @@ fun RealMarketplaceCard(service: Service) {
                                     putExtra("SERVICE_IMG", displayImg)
                                 })
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        color = primary
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primary),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.height(40.dp)
                     ) {
-                        Text("Book Now", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                        Text("Book", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
         }
     }
 }
+

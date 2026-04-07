@@ -11,14 +11,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.workly.R
 import com.google.firebase.firestore.FirebaseFirestore
 import android.content.Intent
-import com.example.workly.data.Booking
 import com.example.workly.data.OrderStatus
+import com.google.firebase.firestore.ListenerRegistration
 import java.util.*
 
 class AdminDashboardActivity : AppCompatActivity() {
 
     private lateinit var db: FirebaseFirestore
-    
+
     private lateinit var tvTotalUsers: TextView
     private lateinit var tvTotalRevenue: TextView
     private lateinit var tvTodayRevenue: TextView
@@ -28,11 +28,15 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var tvNoPending: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var btnAdminProfile: View
-    
+
     private lateinit var rvPendingProviders: RecyclerView
     private lateinit var providerAdapter: PendingProviderAdapter
-    
-    private var allUsersList = mutableListOf<AdminUserData>()
+
+    // FIX #8: Store all listeners for cleanup to prevent memory leaks
+    private val listeners = mutableListOf<ListenerRegistration>()
+
+    // FIX #1 & #4: Single source of truth — users map keyed by document ID
+    private val usersMap = mutableMapOf<String, AdminUserData>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +54,7 @@ class AdminDashboardActivity : AppCompatActivity() {
         tvNoPending = findViewById(R.id.tvNoPending)
         progressBar = findViewById(R.id.progressBar)
         btnAdminProfile = findViewById(R.id.btnAdminProfile)
-        
+
         // Navigation Buttons
         val btnManageServices: View = findViewById(R.id.btnManageServices)
         val btnAllBookings: View = findViewById(R.id.btnAllBookings)
@@ -59,23 +63,17 @@ class AdminDashboardActivity : AppCompatActivity() {
         btnAdminProfile.setOnClickListener {
             startActivity(Intent(this, AdminProfileActivity::class.java))
         }
-
         btnManageServices.setOnClickListener {
             startActivity(Intent(this, ManageServicesActivity::class.java))
         }
-
         btnAllBookings.setOnClickListener {
             startActivity(Intent(this, AllBookingsActivity::class.java))
         }
-
         btnUserDirectory.setOnClickListener {
             startActivity(Intent(this, UserDirectoryActivity::class.java))
         }
 
-        
         rvPendingProviders = findViewById(R.id.rvPendingProviders)
-
-        // Setup RecyclerView for Providers
         rvPendingProviders.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
         providerAdapter = PendingProviderAdapter(
@@ -92,80 +90,87 @@ class AdminDashboardActivity : AppCompatActivity() {
 
     private fun loadDashboardData() {
         progressBar.visibility = View.VISIBLE
-        // Load users to get general stats and helper data for providers
-        db.collection("users").addSnapshotListener { snapshot, error ->
+        // FIX #1 & #4: Populate id using doc.id, then call checkPendingProviders INSIDE this listener
+        // so usersMap is always ready before providers are looked up — fixes the race condition.
+        val reg = db.collection("users").addSnapshotListener { snapshot, error ->
             if (error != null) return@addSnapshotListener
             snapshot?.let {
-                val newUsers = it.toObjects(AdminUserData::class.java)
-                allUsersList.clear()
-                allUsersList.addAll(newUsers)
-                tvTotalUsers.text = allUsersList.size.toString()
-                
-                // Estimate active base (placeholder for a real createdAt logic if added)
-                tvNewUsers.text = "${allUsersList.count { u -> u.role != "admin" }} Active Base"
-                
-                checkPendingProviders() 
+                usersMap.clear()
+                // FIX #1: Correctly populate id from Firestore document ID
+                it.documents.forEach { doc ->
+                    val user = doc.toObject(AdminUserData::class.java)
+                    if (user != null) {
+                        usersMap[doc.id] = user.copy(id = doc.id)
+                    }
+                }
+
+                val allUsers = usersMap.values.toList()
+                tvTotalUsers.text = allUsers.size.toString()
+                tvNewUsers.text = "${allUsers.count { u -> u.role != "admin" }} Active Base"
+
+                // FIX #4: Called AFTER usersMap is populated — no more race condition
+                checkPendingProviders()
             }
         }
+        listeners.add(reg)
     }
 
     private fun loadAnalytics() {
         val startOfDay = getStartOfDayTimestamp()
 
-        // 1. Revenue Aggregation
-        db.collection("orders")
+        val revenueReg = db.collection("orders")
             .whereEqualTo("status", OrderStatus.COMPLETED)
             .addSnapshotListener { snapshot, _ ->
                 var total = 0.0
                 var todayTotal = 0.0
-                
+
                 snapshot?.documents?.forEach { doc ->
                     val price = doc.getDouble("finalPrice") ?: 0.0
                     val createdAt = doc.getLong("createdAt") ?: 0L
-                    
                     total += price
-                    if (createdAt >= startOfDay) {
-                        todayTotal += price
-                    }
+                    if (createdAt >= startOfDay) todayTotal += price
                 }
                 tvTotalRevenue.text = "₹${"%,.0f".format(total)}"
                 tvTodayRevenue.text = "+ ₹${"%,.0f".format(todayTotal)} Today"
             }
+        listeners.add(revenueReg)
 
-        // 2. Pending Service Requests
-        db.collection("services")
+        val servicesReg = db.collection("services")
             .whereEqualTo("isApproved", false)
             .addSnapshotListener { snapshot, _ ->
                 val count = snapshot?.size() ?: 0
                 tvServicePendingCount.text = if (count > 0) "$count Requests" else "0 Requests"
             }
+        listeners.add(servicesReg)
     }
 
     private fun loadProviderStats() {
-        db.collection("providers")
+        val reg = db.collection("providers")
             .whereEqualTo("isApproved", true)
             .addSnapshotListener { snapshot, _ ->
                 val count = snapshot?.size() ?: 0
                 tvActiveProviders.text = count.toString()
             }
+        listeners.add(reg)
     }
 
     private fun checkPendingProviders() {
+        // FIX #4: This is now called from inside the users listener, so usersMap is ready.
+        // We use a one-time get() here instead of another snapshot listener to avoid double-listener complexity.
         db.collection("providers")
             .whereEqualTo("isApproved", false)
-            .addSnapshotListener { snapshot, error ->
+            .get()
+            .addOnSuccessListener { snapshot ->
                 progressBar.visibility = View.GONE
-                if (error != null || snapshot == null) return@addSnapshotListener
-
-                val pendingList = mutableListOf<PendingProviderData>()
-                for (doc in snapshot.documents) {
+                val pendingList = snapshot.documents.mapNotNull { doc ->
                     val pid = doc.id
-                    val user = allUsersList.find { it.id == pid }
-                    pendingList.add(PendingProviderData(pid, user?.name ?: "Professional", user?.email ?: ""))
+                    // FIX #1: usersMap is now populated with correct IDs — lookup works correctly
+                    val user = usersMap[pid]
+                    PendingProviderData(pid, user?.name ?: "Professional", user?.email ?: "")
                 }
-                
+
                 providerAdapter.updateProviders(pendingList)
-                
+
                 if (pendingList.isEmpty()) {
                     rvPendingProviders.visibility = View.GONE
                     tvNoPending.visibility = View.VISIBLE
@@ -173,6 +178,9 @@ class AdminDashboardActivity : AppCompatActivity() {
                     rvPendingProviders.visibility = View.VISIBLE
                     tvNoPending.visibility = View.GONE
                 }
+            }
+            .addOnFailureListener {
+                progressBar.visibility = View.GONE
             }
     }
 
@@ -186,15 +194,60 @@ class AdminDashboardActivity : AppCompatActivity() {
     }
 
     private fun approveProvider(provider: PendingProviderData) {
-        db.collection("providers").document(provider.providerId).update("isApproved", true)
-            .addOnSuccessListener { Toast.makeText(this, "Provider Approved!", Toast.LENGTH_SHORT).show() }
+        val batch = db.batch()
+
+        // Update /providers document
+        val providerRef = db.collection("providers").document(provider.providerId)
+        batch.update(providerRef, "isApproved", true)
+
+        // FIX #9: Also update /users document so backend auth middleware recognizes approval
+        val userRef = db.collection("users").document(provider.providerId)
+        batch.update(userRef, "isApproved", true)
+
+        batch.commit()
+            .addOnSuccessListener {
+                Toast.makeText(this, "✅ Provider Approved!", Toast.LENGTH_SHORT).show()
+                // Refresh pending list
+                checkPendingProviders()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Approval failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun rejectProvider(provider: PendingProviderData) {
-        db.collection("providers").document(provider.providerId).delete()
-            .addOnSuccessListener {
-                db.collection("users").document(provider.providerId).update("role", "user")
-                Toast.makeText(this, "Request Rejected", Toast.LENGTH_SHORT).show()
+        // FIX #12: Delete provider's services + provider doc + reset user role — all in one batch
+        db.collection("services")
+            .whereEqualTo("providerId", provider.providerId)
+            .get()
+            .addOnSuccessListener { serviceSnapshot ->
+                val batch = db.batch()
+
+                // Delete all services submitted by this provider
+                serviceSnapshot.documents.forEach { serviceDoc ->
+                    batch.delete(db.collection("services").document(serviceDoc.id))
+                }
+
+                // Delete the provider document
+                batch.delete(db.collection("providers").document(provider.providerId))
+
+                // Reset user role back to "user"
+                batch.update(db.collection("users").document(provider.providerId), "role", "user")
+
+                batch.commit()
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Request Rejected & Cleaned Up", Toast.LENGTH_SHORT).show()
+                        checkPendingProviders()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Rejection failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    }
             }
+    }
+
+    // FIX #8: Remove all listeners to prevent memory leaks
+    override fun onDestroy() {
+        listeners.forEach { it.remove() }
+        super.onDestroy()
     }
 }

@@ -30,8 +30,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,14 +46,7 @@ import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
 import com.google.firebase.firestore.FirebaseFirestore
 
-// ── Hard-coded high-contrast colors (no theme dependency for critical UI) ──
-private val CardBg = Color.White
-private val PageBg = Color(0xFFF0F2F5)
-private val TextDark = Color(0xFF111111)
-private val TextMuted = Color(0xFF666666)
-private val BluePrimary = Color(0xFF1565C0)
-private val BlueDark = Color(0xFF0D47A1)
-private val GreenSuccess = Color(0xFF2E7D32)
+// No hardcoded UI constants here, using MaterialTheme where possible for consistency.
 
 class AddServiceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -147,39 +141,75 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
     val formValid = (imageUri != null || (editMode && imageUrl.isNotEmpty())) && title.isNotBlank() && category.isNotBlank() &&
             location.isNotBlank() && duration.isNotBlank() && price.isNotBlank()
 
+    val onSurf = MaterialTheme.colorScheme.onSurface
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val surfVar = MaterialTheme.colorScheme.surfaceVariant
+    val background = MaterialTheme.colorScheme.background
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editMode) "Update Service" else "Create Service", fontWeight = FontWeight.Bold, color = TextDark) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = TextDark) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBg)
+                title = { Text(if (editMode) "Update Service" else "Create Service", fontWeight = FontWeight.ExtraBold, color = onSurf) },
+                navigationIcon = { 
+                    IconButton(onClick = onBack) { 
+                        Icon(Icons.Default.ArrowBack, null, tint = onSurf) 
+                    } 
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = surface),
+                modifier = Modifier.shadow(4.dp)
             )
         },
-        containerColor = PageBg
+        containerColor = background
     ) { pad ->
         Box(Modifier.fillMaxSize().padding(pad)) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Image picker logic
-                Box(
-                    Modifier
+                // Image picker logic (Redesigned)
+                Surface(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (imageUri == null && imageUrl.isEmpty()) Color(0xFFE8EDF2) else Color.Transparent)
+                        .height(220.dp)
                         .clickable { picker.launch("image/*") },
-                    contentAlignment = Alignment.Center
+                    shape = RoundedCornerShape(24.dp),
+                    color = surfVar,
+                    shadowElevation = 4.dp
                 ) {
-                    if (imageUri != null) {
-                        AsyncImage(imageUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else if (imageUrl.isNotEmpty()) {
-                        AsyncImage(imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, null, tint = BluePrimary, modifier = Modifier.size(44.dp))
-                            Text("Tap to upload photo", fontWeight = FontWeight.Bold, color = BluePrimary)
+                    Box(contentAlignment = Alignment.Center) {
+                        if (imageUri != null) {
+                            AsyncImage(imageUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        } else if (imageUrl.isNotEmpty()) {
+                            AsyncImage(imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .background(primary.copy(alpha = 0.1f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.AddAPhoto, null, tint = primary, modifier = Modifier.size(32.dp))
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text("Add Service Photo", fontWeight = FontWeight.Bold, color = primary, fontSize = 16.sp)
+                                Text("Show clients what you offer", color = onSurf.copy(alpha = 0.6f), fontSize = 12.sp)
+                            }
+                        }
+                        
+                        // Edit overlay if image exists
+                        if (imageUri != null || imageUrl.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(16.dp)
+                                    .size(40.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
                         }
                     }
                 }
@@ -188,11 +218,17 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                     StrongTextField(title, { vm.title.value = it }, "Service Title", "e.g. Expert AC Repair")
                     var catOpen by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(catOpen, { catOpen = !catOpen }) {
-                        StrongReadonlyField(category, "Category", catOpen, Modifier.menuAnchor())
-                        ExposedDropdownMenu(catOpen, { catOpen = false }, Modifier.background(CardBg)) {
+                        StrongReadonlyField(
+                            category, 
+                            "Category", 
+                            catOpen, 
+                            Modifier.menuAnchor(),
+                            leadingIcon = { Icon(Icons.Default.Category, null, tint = primary) }
+                        )
+                        ExposedDropdownMenu(catOpen, { catOpen = false }, Modifier.background(surface)) {
                             categories.forEach {
                                 DropdownMenuItem(
-                                    text = { Text(it, color = TextDark) },
+                                    text = { Text(it, color = onSurf) },
                                     onClick = { vm.category.value = it; catOpen = false }
                                 )
                             }
@@ -201,14 +237,35 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                 }
 
                 SectionCard("Location & Time") {
-                   StrongTextField(location, { vm.location.value = it }, "City", "e.g. Surat")
+                   StrongTextField(
+                       location, 
+                       { vm.location.value = it }, 
+                       "City", 
+                       "e.g. Surat",
+                       leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = primary) },
+                       trailingIcon = {
+                           if (isLocating) {
+                               CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                           } else {
+                               IconButton(onClick = { fetchCityName() }) {
+                                   Icon(Icons.Default.MyLocation, null, tint = primary)
+                               }
+                           }
+                       }
+                   )
                    var durOpen by remember { mutableStateOf(false) }
                    ExposedDropdownMenuBox(durOpen, { durOpen = !durOpen }) {
-                       StrongReadonlyField(duration, "Duration", durOpen, Modifier.menuAnchor())
-                       ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(CardBg)) {
+                       StrongReadonlyField(
+                           duration, 
+                           "Expected Duration", 
+                           durOpen, 
+                           Modifier.menuAnchor(),
+                           leadingIcon = { Icon(Icons.Default.Timer, null, tint = primary) }
+                       )
+                       ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(surface)) {
                            durations.forEach {
                                DropdownMenuItem(
-                                   text = { Text(it, color = TextDark) },
+                                   text = { Text(it, color = onSurf) },
                                    onClick = { vm.duration.value = it; durOpen = false }
                                )
                            }
@@ -218,24 +275,42 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
 
                 SectionCard("Pricing") {
                     OutlinedTextField(
-                        price, { if (it.all { c -> c.isDigit() }) vm.price.value = it },
-                        label = { Text("Base Price (₹)") },
+                        value = price,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) vm.price.value = it },
+                        label = { Text("Base Price", fontWeight = FontWeight.SemiBold) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        prefix = { Text("₹ ") },
+                        leadingIcon = { Text("₹", fontWeight = FontWeight.Black, fontSize = 20.sp, color = primary, modifier = Modifier.padding(start = 12.dp)) },
                         colors = strongFieldColors(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
 
+                Spacer(Modifier.height(8.dp))
+
                 Button(
                     onClick = { if (editMode) vm.updateService(serviceId) else vm.publishService() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueDark),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .shadow(8.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primary,
+                        disabledContainerColor = primary.copy(alpha = 0.5f)
+                    ),
                     enabled = formValid && state !is AddServiceState.Loading
                 ) {
-                    Text(if (editMode) "Update Service" else "Publish Service", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (editMode) Icons.Default.Save else Icons.Default.Publish, null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            if (editMode) "Update Service" else "Publish Service", 
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        )
+                    }
                 }
                 Spacer(Modifier.height(40.dp))
             }
@@ -262,24 +337,71 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
 
 @Composable
 private fun SectionCard(label: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(CardBg), elevation = CardDefaults.cardElevation(2.dp)) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = TextDark)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(label, fontWeight = FontWeight.Black, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
             content()
         }
     }
 }
 
 @Composable
-private fun StrongTextField(value: String, onChange: (String) -> Unit, label: String, placeholder: String) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, placeholder = { Text(placeholder) }, modifier = Modifier.fillMaxWidth(), colors = strongFieldColors(), singleLine = true)
+private fun StrongTextField(
+    value: String, 
+    onChange: (String) -> Unit, 
+    label: String, 
+    placeholder: String,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null
+) {
+    OutlinedTextField(
+        value = value, 
+        onValueChange = onChange, 
+        label = { Text(label, fontWeight = FontWeight.SemiBold) }, 
+        placeholder = { Text(placeholder) }, 
+        modifier = Modifier.fillMaxWidth(), 
+        colors = strongFieldColors(), 
+        singleLine = true,
+        shape = RoundedCornerShape(16.dp),
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StrongReadonlyField(value: String, label: String, expanded: Boolean, modifier: Modifier = Modifier) {
-    OutlinedTextField(value, {}, readOnly = true, label = { Text(label) }, modifier = modifier.fillMaxWidth(), trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, colors = strongFieldColors())
+private fun StrongReadonlyField(
+    value: String, 
+    label: String, 
+    expanded: Boolean, 
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null
+) {
+    OutlinedTextField(
+        value = value, 
+        onValueChange = {}, 
+        readOnly = true, 
+        label = { Text(label, fontWeight = FontWeight.SemiBold) }, 
+        modifier = modifier.fillMaxWidth(), 
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, 
+        colors = strongFieldColors(),
+        shape = RoundedCornerShape(16.dp),
+        leadingIcon = leadingIcon
+    )
 }
 
 @Composable
-private fun strongFieldColors() = OutlinedTextFieldDefaults.colors(focusedTextColor = TextDark, unfocusedTextColor = TextDark, focusedBorderColor = BluePrimary, unfocusedBorderColor = Color(0xFFCCCCCC))
+private fun strongFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+)

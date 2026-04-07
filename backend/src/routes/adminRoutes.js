@@ -1,7 +1,11 @@
 import express from 'express';
 import AdminController from '../controllers/AdminController.js';
+import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
+
+router.use(protect);
+router.use(authorize('admin'));
 
 /**
  * @route   POST /api/v1/admin/disputes/:bookingId/flag

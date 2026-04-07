@@ -198,7 +198,7 @@ fun UserOrderCard(order: Order) {
             // Header
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text(order.serviceTitle ?: "Service", fontWeight = FontWeight.Black, fontSize = 18.sp, color = onSurf)
+                    Text(order.serviceName.takeIf { it.isNotEmpty() } ?: order.serviceTitle.takeIf { it.isNotEmpty() } ?: "Service", fontWeight = FontWeight.Black, fontSize = 18.sp, color = onSurf)
                     Text("Total: ₹${order.getSafePrice()}", fontSize = 13.sp, color = onSurf.copy(alpha = 0.55f), fontWeight = FontWeight.Bold)
                 }
                 

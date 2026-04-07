@@ -8,12 +8,17 @@ import java.util.Date
 data class Order(
     var id: String = "",
     var serviceId: String = "",
+    var serviceName: String = "",
     var serviceTitle: String = "",
+    var serviceCategory: String = "",
     var price: Double = 0.0,
+    var basePrice: Double = 0.0,
+    var finalPrice: Double = 0.0,
     var userId: String = "",
     var userName: String = "",
     var providerId: String = "",
     var providerName: String = "",
+    var providerPhone: String = "",
     var address: String = "",
     var status: String = "pending", // pending | accepted | completed | cancelled
     var date: String = "",
@@ -34,6 +39,7 @@ data class Order(
 
     // Helper to get safe price
     fun getSafePrice(): Int {
-        return price.toInt()
+        val p = if (finalPrice > 0.0) finalPrice else (if (price > 0.0) price else basePrice)
+        return p.toInt()
     }
 }

@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 
 const PayoutSchema = new mongoose.Schema(
   {
+    booking: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Booking',
+      required: true,
+    },
     payment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Payment',

@@ -64,7 +64,7 @@ fun SmartTrackingScreen(orderId: String, onBack: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     
     // LIVE STATE
-    var status by remember { mutableStateOf("accepted") }
+    var status by remember { mutableStateOf("pending") }
     var providerName by remember { mutableStateOf("Rahul") }
     var providerPhone by remember { mutableStateOf("") }
     var providerId by remember { mutableStateOf("") }
@@ -98,9 +98,17 @@ fun SmartTrackingScreen(orderId: String, onBack: () -> Unit) {
         },
         containerColor = Color.White
     ) { padding ->
+        val safeProviderName = when {
+            providerName.isBlank() -> "Service Pro"
+            providerName.equals("Unknown", true) -> "Service Pro"
+            providerName.contains("Rahul", true) -> "Service Pro" 
+            else -> providerName
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -132,7 +140,7 @@ fun SmartTrackingScreen(orderId: String, onBack: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(providerName, fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                    Text(safeProviderName, fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
                     Text("⭐⭐⭐⭐ 4.8 Rating • Active now", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                     
                     Spacer(modifier = Modifier.height(24.dp))
@@ -156,12 +164,17 @@ fun SmartTrackingScreen(orderId: String, onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(48.dp))
 
             // 📊 LIVE PROGRESS TRACKER
-            HorizontalStepTracker(status)
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // 📍 STATUS MESSAGE
-            StatusNarrativeMsg(status, providerName)
+            Surface(
+                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(28.dp)),
+                shape = RoundedCornerShape(28.dp),
+                color = Color(0xFFF8FAFC)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    HorizontalStepTracker(status)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    StatusNarrativeMsg(status, providerName)
+                }
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -183,7 +196,9 @@ fun SmartTrackingScreen(orderId: String, onBack: () -> Unit) {
                     }
                 }
                 PillActionBtn(Icons.Default.Close, "Cancel", Color(0xFFEF4444)) {
-                    Toast.makeText(context, "Processing cancellation...", Toast.LENGTH_SHORT).show()
+                    firestore.collection("orders").document(orderId).update("status", "cancelled")
+                    Toast.makeText(context, "Order Cancelled", Toast.LENGTH_SHORT).show()
+                    onBack()
                 }
             }
         }
@@ -196,45 +211,83 @@ fun HorizontalStepTracker(status: String) {
     val currentIndex = steps.indexOfFirst { it.lowercase() == status }.coerceAtLeast(0)
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        val onSurf = Color(0xFF0F172A)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
             steps.forEachIndexed { index, label ->
                 val isDone = index <= currentIndex
                 val isCurrent = index == currentIndex
                 
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
-                            .background(if (isDone) Color(0xFF1E3A8A) else Color(0xFFE2E8F0), CircleShape),
+                            .size(32.dp)
+                            .background(
+                                if (isDone) Color(0xFF1E3A8A) else Color(0xFFE2E8F0), 
+                                CircleShape
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         if (isCurrent) {
-                            val pulse by rememberInfiniteTransition().animateFloat(1f, 2.5f, infiniteRepeatable(tween(1000), RepeatMode.Reverse))
-                            Box(Modifier.fillMaxSize().graphicsLayer(scaleX = pulse, scaleY = pulse).background(Color(0xFF1E3A8A).copy(0.2f), CircleShape))
+                            val pulse by rememberInfiniteTransition().animateFloat(
+                                1f, 1.8f, 
+                                infiniteRepeatable(tween(1000), RepeatMode.Reverse)
+                            )
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(scaleX = pulse, scaleY = pulse)
+                                    .background(Color(0xFF1E3A8A).copy(0.15f), CircleShape)
+                            )
+                            Icon(Icons.Default.RadioButtonChecked, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        } else if (isDone) {
+                            Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         label,
                         fontSize = 11.sp,
-                        fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Bold,
-                        color = if (isDone) Color(0xFF0F172A) else Color(0xFF94A3B8)
+                        fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.SemiBold,
+                        color = if (isDone) onSurf else Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(2.dp))) {
+        // Progress Bar with Segmented Look
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(6.dp)
+                .background(Color(0xFFE2E8F0), CircleShape)
+        ) {
             val progress = when(currentIndex) {
-                0 -> 0.12f
-                1 -> 0.38f
-                2 -> 0.72f
+                0 -> 0.15f
+                1 -> 0.45f
+                2 -> 0.75f
                 3 -> 1.0f
-                else -> 0.0f
+                else -> 0.05f
             }
-            Box(modifier = Modifier.fillMaxWidth(progress).fillMaxHeight().background(Color(0xFF1E3A8A), RoundedCornerShape(2.dp)))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .background(
+                        Brush.horizontalGradient(listOf(Color(0xFF1E2A78), Color(0xFF3B82F6))),
+                        CircleShape
+                    )
+            )
         }
     }
 }

@@ -57,19 +57,17 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
         if (user != null) {
             val db = FirebaseFirestore.getInstance()
             
-            db.collection("users").document(user.uid).get()
-                .addOnSuccessListener { doc ->
+            db.collection("users").document(user.uid)
+                .addSnapshotListener { doc, error ->
                     if (doc != null && doc.exists()) {
                         userName = doc.getString("name") ?: (user.displayName ?: "User")
                         userRole = doc.getString("role") ?: "user"
+                    } else if (error != null) {
+                        userName = user.displayName ?: "User"
                     } else {
                         userName = user.displayName ?: "User"
                         userRole = "user"
                     }
-                    dataLoaded = true
-                }
-                .addOnFailureListener {
-                    userName = user.displayName ?: "User"
                     dataLoaded = true
                 }
         } else {
@@ -91,7 +89,8 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                             userRole = userRole,
                             onSeeAllServices = {
                                 context.startActivity(Intent(context, ServicesActivity::class.java))
-                            }
+                            },
+                            onNavigateToProfile = { selectedItem = 3 }
                         )
                         1 -> ExploreScreen()
                         2 -> InboxScreen()
@@ -105,45 +104,14 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
             }
 
             // Floating bottom nav
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 20.dp, start = 20.dp, end = 20.dp)
-            ) {
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                 FloatingBottomBar(
                     selectedItem = selectedItem,
                     onItemSelected = { selectedItem = it }
                 )
             }
 
-            // FAB — Bolt button (only on Home tab)
-            if (selectedItem == 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 100.dp, end = 24.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clickable {
-                                context.startActivity(Intent(context, ServicesActivity::class.java))
-                            },
-                        shape = CircleShape,
-                        color = Color.White,
-                        shadowElevation = 16.dp
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Bolt,
-                                contentDescription = "Quick Book",
-                                tint = Color(0xFF0E0E0E),
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-                    }
-                }
-            }
+
         }
     }
 
