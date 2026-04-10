@@ -12,27 +12,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.workly.R
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 
 class UserDirectoryActivity : AppCompatActivity() {
 
-    private lateinit var db: FirebaseFirestore
+    private val viewModel: UserDirectoryViewModel by viewModels()
     private lateinit var rvUsers: RecyclerView
     private lateinit var userAdapter: AdminUserAdapter
     private lateinit var progressBar: ProgressBar
     private lateinit var etSearch: EditText
     private lateinit var chipGroupRoles: ChipGroup
 
-    private var allUsersList = mutableListOf<AdminUserData>()
-    private var filteredUsersList = mutableListOf<AdminUserData>()
-
-    private var currentSearchQuery: String = ""
-    private var currentRoleFilter: String = "All"
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_directory)
-
-        db = FirebaseFirestore.getInstance()
 
         // Initialize UI
         rvUsers = findViewById(R.id.rvUsers)
@@ -40,71 +37,57 @@ class UserDirectoryActivity : AppCompatActivity() {
         etSearch = findViewById(R.id.etSearch)
         chipGroupRoles = findViewById(R.id.chipGroupRoles)
 
-        findViewById<View>(R.id.toolbar).findViewById<View>(R.id.toolbar).rootView.let {
-            // Setup Toolbar navigation if needed, but toolbar title should suffice
-        }
-        
-        // Manual toolbar setup since I'm using a CoordinatorLayout
         findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar).setNavigationOnClickListener {
             finish()
         }
 
-        // Setup RecyclerView
+        setupRecyclerView()
+        setupListeners()
+        observeViewModel()
+    }
+
+    private fun setupRecyclerView() {
         rvUsers.layoutManager = LinearLayoutManager(this)
         userAdapter = AdminUserAdapter(emptyList())
         rvUsers.adapter = userAdapter
+    }
 
-        // Search logic
+    private fun setupListeners() {
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                currentSearchQuery = s?.toString()?.lowercase() ?: ""
-                applyFilters()
+                viewModel.updateSearchQuery(s?.toString()?.lowercase() ?: "")
             }
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        // Filter logic
         chipGroupRoles.setOnCheckedStateChangeListener { group, checkedIds ->
             val checkedId = checkedIds.firstOrNull()
-            currentRoleFilter = when (checkedId) {
+            val role = when (checkedId) {
                 R.id.chipUsers -> "user"
                 R.id.chipProviders -> "provider"
                 R.id.chipAdmins -> "admin"
                 else -> "All"
             }
-            applyFilters()
-        }
-
-        loadUsers()
-    }
-
-    private fun loadUsers() {
-        progressBar.visibility = View.VISIBLE
-        db.collection("users").addSnapshotListener { snapshot, error ->
-            progressBar.visibility = View.GONE
-            if (error != null) return@addSnapshotListener
-            snapshot?.let {
-                allUsersList = it.toObjects(AdminUserData::class.java).toMutableList()
-                applyFilters()
-            }
+            viewModel.updateRoleFilter(role)
         }
     }
 
-    private fun applyFilters() {
-        filteredUsersList = allUsersList.filter { user ->
-            val matchesSearch = user.name.lowercase().contains(currentSearchQuery) || 
-                               user.email.lowercase().contains(currentSearchQuery)
-            
-            val matchesRole = if (currentRoleFilter == "All") {
-                true
-            } else {
-                user.role.equals(currentRoleFilter, ignoreCase = true)
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.filteredUsers.collect { users ->
+                    userAdapter.updateUsers(users)
+                }
             }
-            
-            matchesSearch && matchesRole
-        }.toMutableList()
+        }
         
-        userAdapter.updateUsers(filteredUsersList)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.userState.collect { state ->
+                    progressBar.visibility = if (state is AdminUIState.Loading) View.VISIBLE else View.GONE
+                }
+            }
+        }
     }
 }

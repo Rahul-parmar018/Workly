@@ -1,6 +1,6 @@
 package com.example.workly.home
 
-import com.example.workly.data.Order
+import com.example.workly.data.Booking
 import com.example.workly.data.Service
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,7 +15,7 @@ class HomeRepository {
 
     fun getCurrentUser() = auth.currentUser
 
-    fun getUpcomingBookings(): Flow<List<Order>> = callbackFlow {
+    fun getUpcomingBookings(): Flow<List<Booking>> = callbackFlow {
         val userId = auth.currentUser?.uid
         if (userId == null) {
             trySend(emptyList())
@@ -34,7 +34,7 @@ class HomeRepository {
                 }
                 if (snapshot != null) {
                     val orders = try {
-                        snapshot.toObjects(Order::class.java)
+                        snapshot.toObjects(Booking::class.java)
                     } catch (ex: Exception) {
                         emptyList()
                     }

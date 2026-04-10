@@ -47,7 +47,7 @@ class MyBookingsActivity : ComponentActivity() {
 fun MyBookingsScreen(onBack: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    var bookings by remember { mutableStateOf<List<Order>>(emptyList()) }
+    var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(userId) {
@@ -61,7 +61,22 @@ fun MyBookingsScreen(onBack: () -> Unit) {
                         isLoading = false
                         return@addSnapshotListener
                     }
-                    bookings = snapshot?.toObjects(Order::class.java) ?: emptyList()
+                    bookings = snapshot?.documents?.mapNotNull { doc ->
+                        try {
+                            val data = doc.data ?: return@mapNotNull null
+                            Booking(
+                                id = doc.id,
+                                serviceName = data["serviceName"]?.toString() ?: data["serviceTitle"]?.toString() ?: "Service",
+                                providerName = data["providerName"]?.toString() ?: "",
+                                providerId = data["providerId"]?.toString() ?: "",
+                                finalPrice = (data["finalPrice"] as? Number)?.toDouble() ?: (data["price"] as? Number)?.toDouble() ?: 0.0,
+                                status = data["status"]?.toString() ?: OrderStatus.PENDING,
+                                createdAt = (data["createdAt"] as? Number)?.toLong() ?: (data["createdAt"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis()
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } ?: emptyList()
                     isLoading = false
                 }
         } else {
@@ -115,7 +130,7 @@ fun MyBookingsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun BookingHistoryCard(booking: Order) {
+fun BookingHistoryCard(booking: Booking) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val statusColor = when (booking.status.lowercase()) {
         "pending" -> EnergyOrange
@@ -138,7 +153,7 @@ fun BookingHistoryCard(booking: Order) {
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(booking.serviceName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text("Order ID: ${booking.id.take(8)}...", fontSize = 12.sp, color = TextSecondary)
                 }
                 Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(0.12f)) {
@@ -163,12 +178,12 @@ fun BookingHistoryCard(booking: Order) {
                     
                     val dateStr = try {
                         val sdf = java.text.SimpleDateFormat("dd MMM yyyy · hh:mm a", java.util.Locale.getDefault())
-                        sdf.format(booking.createdAt.toDate())
+                        sdf.format(java.util.Date(booking.createdAt))
                     } catch (e: Exception) { "Unknown Date" }
                     
                     Text(dateStr, fontSize = 13.sp, color = TextSecondary)
                 }
-                Text("₹${booking.price.toInt()}", fontWeight = FontWeight.ExtraBold, color = TextPrimary, fontSize = 16.sp)
+                Text("₹${booking.finalPrice.toInt()}", fontWeight = FontWeight.ExtraBold, color = TextPrimary, fontSize = 16.sp)
             }
 
             if (booking.providerName.isNotEmpty()) {

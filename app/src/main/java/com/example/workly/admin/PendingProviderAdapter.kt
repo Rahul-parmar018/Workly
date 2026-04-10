@@ -16,15 +16,13 @@ data class PendingProviderData(
 
 class PendingProviderAdapter(
     private var providers: List<PendingProviderData>,
-    private val onApproveClick: (PendingProviderData) -> Unit,
-    private val onRejectClick: (PendingProviderData) -> Unit
+    private val onReviewClick: (PendingProviderData) -> Unit
 ) : RecyclerView.Adapter<PendingProviderAdapter.ProviderViewHolder>() {
 
     class ProviderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvProviderName: TextView = view.findViewById(R.id.tvProviderName)
         val tvProviderEmail: TextView = view.findViewById(R.id.tvProviderEmail)
-        val btnApprove: MaterialButton = view.findViewById(R.id.btnApprove)
-        val btnReject: MaterialButton = view.findViewById(R.id.btnReject)
+        val btnReview: MaterialButton = view.findViewById(R.id.btnApprove) // Re-using ID for simplicity
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProviderViewHolder {
@@ -37,12 +35,8 @@ class PendingProviderAdapter(
         holder.tvProviderName.text = provider.name
         holder.tvProviderEmail.text = provider.email
 
-        holder.btnApprove.setOnClickListener {
-            onApproveClick(provider)
-        }
-        
-        holder.btnReject.setOnClickListener {
-            onRejectClick(provider)
+        holder.btnReview.setOnClickListener {
+            onReviewClick(provider)
         }
     }
 

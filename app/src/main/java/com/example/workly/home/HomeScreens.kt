@@ -316,7 +316,7 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 // ─── Upcoming Booking Card ──────────────────────────────────────────────────
 
 @Composable
-fun UpcomingBookingCard(booking: Order) {
+fun UpcomingBookingCard(booking: Booking) {
     val statusColor = when (booking.status) {
         OrderStatus.ACCEPTED -> ElectricTeal
         OrderStatus.PENDING -> EnergyOrange
@@ -336,8 +336,11 @@ fun UpcomingBookingCard(booking: Order) {
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(booking.serviceTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                val dateStr = booking.createdAt.toDate().toString() // format appropriately
+                Text(booking.serviceName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                val dateStr = try {
+                    val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                    sdf.format(java.util.Date(booking.createdAt))
+                } catch (e: Exception) { "Unknown Date" }
                 Text(dateStr, color = TextSecondary, fontSize = 12.sp)
                 if (booking.providerName.isNotEmpty()) {
                     Text("Pro: ${booking.providerName}", color = ProfessionalBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)

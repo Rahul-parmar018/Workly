@@ -262,7 +262,7 @@ fun BookingScreen(
             TopAppBar(
                 title = { Text("Book $serviceName", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                    IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = BackgroundGray,
@@ -274,18 +274,20 @@ fun BookingScreen(
         bottomBar = {
             val canProceed = address.isNotBlank() && selectedDate.isNotBlank() && selectedTime.isNotBlank()
             Surface(color = Color.White, shadowElevation = 12.dp) {
-                Button(
-                    onClick = { if (canProceed) onFindPros(address, selectedDate, selectedTime, userLat, userLon) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).navigationBarsPadding(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (canProceed) ProfessionalBlue else Color.LightGray
-                    ),
-                    enabled = canProceed
-                ) {
-                    Icon(Icons.Default.Payment, null) // updated icon
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Proceed to Payment", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+                    Button(
+                        onClick = { if (canProceed) onFindPros(address, selectedDate, selectedTime, userLat, userLon) },
+                        modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (canProceed) ProfessionalBlue else Color.LightGray
+                        ),
+                        enabled = canProceed
+                    ) {
+                        Icon(Icons.Default.Payment, null) // updated icon
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Proceed to Payment", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    }
                 }
             }
         }
@@ -384,17 +386,20 @@ fun BookingScreen(
             }
 
             // Notes section
+            var instructions by remember { mutableStateOf("") }
+            
             Text("📝 Special Instructions (Optional)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             OutlinedTextField(
-                value = "",
-                onValueChange = {},
+                value = instructions,
+                onValueChange = { instructions = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("E.g. bring eco-friendly products, 2nd floor, etc.", color = Color.Gray) },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+                    focusedBorderColor = ProfessionalBlue,
                     focusedTextColor = TextPrimary,
                     unfocusedTextColor = TextPrimary,
                     focusedPlaceholderColor = Color.DarkGray,

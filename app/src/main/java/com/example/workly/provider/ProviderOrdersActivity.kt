@@ -122,6 +122,7 @@ fun ProviderOrdersScreen(onBack: () -> Unit) {
 fun OrderCard(order: Map<String, Any>) {
     val db = FirebaseFirestore.getInstance()
     val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+    val context = androidx.compose.ui.platform.LocalContext.current
     val orderId = order["id"]?.toString() ?: ""
     val serviceTitle = order["serviceName"]?.toString() ?: "Order Task"
     val userName = order["userName"]?.toString() ?: "Customer"
@@ -176,7 +177,6 @@ fun OrderCard(order: Map<String, Any>) {
                 Text(text = "Payout: ₹$price", fontSize = 16.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
                 
                 if (status != OrderStatus.CANCELLED && status != OrderStatus.COMPLETED) {
-                    val context = androidx.compose.ui.platform.LocalContext.current
                     OutlinedButton(
                         onClick = {
                             val targetId = order["userId"]?.toString() ?: ""
@@ -203,20 +203,36 @@ fun OrderCard(order: Map<String, Any>) {
                             db.runTransaction { transaction ->
                                 val ref = db.collection("orders").document(orderId)
                                 val snap = transaction.get(ref)
+                                
+                                // Firestore requires ALL reads before ANY writes!
+                                val providerRef = db.collection("providers").document(user.uid)
+                                val providerSnap = transaction.get(providerRef)
+                                
                                 if (snap.getString("status") == OrderStatus.PENDING) {
+                                    val currentEarnings = providerSnap.getDouble("earnings") ?: 0.0
+                                    val orderPrice = price.toDoubleOrNull() ?: 0.0
+                                    
+                                    // Writes
                                     transaction.update(ref, mapOf(
                                         "status" to OrderStatus.ACCEPTED,
                                         "acceptedAt" to System.currentTimeMillis()
                                     ))
                                     
-                                    // ✅ Increment provider's earnings in their profile doc
-                                    val providerRef = db.collection("providers").document(user.uid)
-                                    val currentEarnings = transaction.get(providerRef).getDouble("earnings") ?: 0.0
-                                    val orderPrice = price.toDoubleOrNull() ?: 0.0
-                                    transaction.update(providerRef, "earnings", currentEarnings + orderPrice)
+                                    transaction.set(
+                                        providerRef, 
+                                        mapOf("earnings" to (currentEarnings + orderPrice)), 
+                                        com.google.firebase.firestore.SetOptions.merge()
+                                    )
                                 }
                                 null
-                            }.addOnCompleteListener { isProcessing = false }
+                            }.addOnSuccessListener {
+                                isProcessing = false
+                                android.widget.Toast.makeText(context, "Order Accepted!", android.widget.Toast.LENGTH_SHORT).show()
+                            }.addOnFailureListener { e ->
+                                isProcessing = false
+                                android.widget.Toast.makeText(context, "Accept Failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                android.util.Log.e("ProviderOrders", "Accept Transaction Error", e)
+                            }
                         },
                         enabled = !isProcessing,
                         colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
@@ -240,7 +256,14 @@ fun OrderCard(order: Map<String, Any>) {
                                     ))
                                 }
                                 null
-                            }.addOnCompleteListener { isProcessing = false }
+                            }.addOnSuccessListener {
+                                isProcessing = false
+                                android.widget.Toast.makeText(context, "Order completed successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                            }.addOnFailureListener { e ->
+                                isProcessing = false
+                                android.widget.Toast.makeText(context, "Complete Failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                android.util.Log.e("ProviderOrders", "Complete Transaction Error", e)
+                            }
                         },
                         enabled = !isProcessing,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),

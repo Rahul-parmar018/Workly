@@ -2,7 +2,7 @@ package com.example.workly.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.workly.data.Order
+import com.example.workly.data.Booking
 import com.example.workly.data.Service
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +15,8 @@ class HomeViewModel(private val repository: HomeRepository = HomeRepository()) :
     private val _currentUser = MutableStateFlow<FirebaseUser?>(repository.getCurrentUser())
     val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
 
-    private val _upcomingBookings = MutableStateFlow<List<Order>>(emptyList())
-    val upcomingBookings: StateFlow<List<Order>> = _upcomingBookings.asStateFlow()
+    private val _upcomingBookings = MutableStateFlow<List<Booking>>(emptyList())
+    val upcomingBookings: StateFlow<List<Booking>> = _upcomingBookings.asStateFlow()
 
     private val _popularServices = MutableStateFlow<List<Service>>(emptyList())
     val popularServices: StateFlow<List<Service>> = _popularServices.asStateFlow()

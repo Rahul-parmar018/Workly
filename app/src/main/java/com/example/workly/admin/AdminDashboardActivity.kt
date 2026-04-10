@@ -1,200 +1,151 @@
 package com.example.workly.admin
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.workly.R
-import com.google.firebase.firestore.FirebaseFirestore
-import android.content.Intent
-import com.example.workly.data.Booking
-import com.example.workly.data.OrderStatus
-import java.util.*
+import com.example.workly.data.Provider
+import kotlinx.coroutines.launch
 
+/**
+ * Premium Admin Dashboard - Monitoring Hub.
+ * Strictly Read-Only as per Security Requirements.
+ */
 class AdminDashboardActivity : AppCompatActivity() {
 
-    private lateinit var db: FirebaseFirestore
+    private val viewModel: AdminViewModel by viewModels()
     
     private lateinit var tvTotalUsers: TextView
     private lateinit var tvTotalRevenue: TextView
     private lateinit var tvTodayRevenue: TextView
-    private lateinit var tvNewUsers: TextView
     private lateinit var tvActiveProviders: TextView
-    private lateinit var tvServicePendingCount: TextView
     private lateinit var tvNoPending: TextView
     private lateinit var progressBar: ProgressBar
-    private lateinit var btnAdminProfile: View
     
     private lateinit var rvPendingProviders: RecyclerView
-    private lateinit var providerAdapter: PendingProviderAdapter
-    
-    private var allUsersList = mutableListOf<AdminUserData>()
+    private lateinit var pendingAdapter: PendingProviderAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_admin_dashboard)
 
-        db = FirebaseFirestore.getInstance()
+        initViews()
+        setupListeners()
+        setupRecyclerView()
+        observeViewModel()
+    }
 
-        // Initialize UI
+    private fun initViews() {
         tvTotalUsers = findViewById(R.id.tvTotalUsers)
         tvTotalRevenue = findViewById(R.id.tvTotalRevenue)
         tvTodayRevenue = findViewById(R.id.tvTodayRevenue)
-        tvNewUsers = findViewById(R.id.tvNewUsers)
         tvActiveProviders = findViewById(R.id.tvActiveProviders)
-        tvServicePendingCount = findViewById(R.id.tvServicePendingCount)
         tvNoPending = findViewById(R.id.tvNoPending)
         progressBar = findViewById(R.id.progressBar)
-        btnAdminProfile = findViewById(R.id.btnAdminProfile)
-        
-        // Navigation Buttons
-        val btnManageServices: View = findViewById(R.id.btnManageServices)
-        val btnAllBookings: View = findViewById(R.id.btnAllBookings)
-        val btnUserDirectory: View = findViewById(R.id.btnUserDirectory)
+    }
 
-        btnAdminProfile.setOnClickListener {
+    private fun setupListeners() {
+        findViewById<View>(R.id.btnAdminProfile).setOnClickListener {
             startActivity(Intent(this, AdminProfileActivity::class.java))
         }
 
-        btnManageServices.setOnClickListener {
+        findViewById<View>(R.id.btnManageServices).setOnClickListener {
             startActivity(Intent(this, ManageServicesActivity::class.java))
         }
 
-        btnAllBookings.setOnClickListener {
+        findViewById<View>(R.id.btnAllBookings).setOnClickListener {
             startActivity(Intent(this, AllBookingsActivity::class.java))
         }
 
-        btnUserDirectory.setOnClickListener {
+        findViewById<View>(R.id.btnUserDirectory).setOnClickListener {
             startActivity(Intent(this, UserDirectoryActivity::class.java))
         }
-
-        
-        rvPendingProviders = findViewById(R.id.rvPendingProviders)
-
-        // Setup RecyclerView for Providers
-        rvPendingProviders.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-
-        providerAdapter = PendingProviderAdapter(
-            emptyList(),
-            onApproveClick = { provider -> approveProvider(provider) },
-            onRejectClick = { provider -> rejectProvider(provider) }
-        )
-        rvPendingProviders.adapter = providerAdapter
-
-        loadDashboardData()
-        loadAnalytics()
-        loadProviderStats()
     }
 
-    private fun loadDashboardData() {
-        progressBar.visibility = View.VISIBLE
-        // Load users to get general stats and helper data for providers
-        db.collection("users").addSnapshotListener { snapshot, error ->
-            if (error != null) return@addSnapshotListener
-            snapshot?.let {
-                val newUsers = it.toObjects(AdminUserData::class.java)
-                allUsersList.clear()
-                allUsersList.addAll(newUsers)
-                tvTotalUsers.text = allUsersList.size.toString()
+    private fun setupRecyclerView() {
+        rvPendingProviders = findViewById(R.id.rvPendingProviders)
+        rvPendingProviders.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        
+        pendingAdapter = PendingProviderAdapter(emptyList()) { pendingProvider ->
+            // Open Provider Details for Read-Only Review
+            val intent = Intent(this, ProviderDetailsActivity::class.java).apply {
+                putExtra("PROVIDER_ID", pendingProvider.providerId)
+                putExtra("PROVIDER_NAME", pendingProvider.name)
+            }
+            startActivity(intent)
+        }
+        rvPendingProviders.adapter = pendingAdapter
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Observe Revenue
+                launch {
+                    viewModel.totalRevenue.collect { total ->
+                        tvTotalRevenue.text = "₹${"%,.0f".format(total)}"
+                    }
+                }
                 
-                // Estimate active base (placeholder for a real createdAt logic if added)
-                tvNewUsers.text = "${allUsersList.count { u -> u.role != "admin" }} Active Base"
-                
-                checkPendingProviders() 
+                launch {
+                    viewModel.todayRevenue.collect { today ->
+                        tvTodayRevenue.text = "+₹${"%,.0f".format(today)} Today"
+                    }
+                }
+
+                // Observe User Counts
+                launch {
+                    viewModel.userState.collect { state ->
+                        if (state is AdminUIState.Success) {
+                            tvTotalUsers.text = state.data.size.toString()
+                        }
+                    }
+                }
+
+                // Observe Provider Counts
+                launch {
+                    viewModel.providerState.collect { state ->
+                        if (state is AdminUIState.Success) {
+                            tvActiveProviders.text = state.data.count { it.isActive }.toString()
+                            
+                            // Map real providers to pending UI items
+                            val pending = state.data.filter { !it.isActive }.map {
+                                // In a real app, we'd fetch the user name from userState or join data
+                                PendingProviderData(it.id, it.name.ifEmpty { "New Professional" }, "")
+                            }
+                            
+                            updatePendingList(pending)
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.bookingState.collect { state ->
+                        progressBar.visibility = if (state is AdminUIState.Loading) View.VISIBLE else View.GONE
+                    }
+                }
             }
         }
     }
 
-    private fun loadAnalytics() {
-        val startOfDay = getStartOfDayTimestamp()
-
-        // 1. Revenue Aggregation
-        db.collection("orders")
-            .whereEqualTo("status", OrderStatus.COMPLETED)
-            .addSnapshotListener { snapshot, _ ->
-                var total = 0.0
-                var todayTotal = 0.0
-                
-                snapshot?.documents?.forEach { doc ->
-                    val price = doc.getDouble("finalPrice") ?: 0.0
-                    val createdAt = doc.getLong("createdAt") ?: 0L
-                    
-                    total += price
-                    if (createdAt >= startOfDay) {
-                        todayTotal += price
-                    }
-                }
-                tvTotalRevenue.text = "₹${"%,.0f".format(total)}"
-                tvTodayRevenue.text = "+ ₹${"%,.0f".format(todayTotal)} Today"
-            }
-
-        // 2. Pending Service Requests
-        db.collection("services")
-            .whereEqualTo("isApproved", false)
-            .addSnapshotListener { snapshot, _ ->
-                val count = snapshot?.size() ?: 0
-                tvServicePendingCount.text = if (count > 0) "$count Requests" else "0 Requests"
-            }
-    }
-
-    private fun loadProviderStats() {
-        db.collection("providers")
-            .whereEqualTo("isApproved", true)
-            .addSnapshotListener { snapshot, _ ->
-                val count = snapshot?.size() ?: 0
-                tvActiveProviders.text = count.toString()
-            }
-    }
-
-    private fun checkPendingProviders() {
-        db.collection("providers")
-            .whereEqualTo("isApproved", false)
-            .addSnapshotListener { snapshot, error ->
-                progressBar.visibility = View.GONE
-                if (error != null || snapshot == null) return@addSnapshotListener
-
-                val pendingList = mutableListOf<PendingProviderData>()
-                for (doc in snapshot.documents) {
-                    val pid = doc.id
-                    val user = allUsersList.find { it.id == pid }
-                    pendingList.add(PendingProviderData(pid, user?.name ?: "Professional", user?.email ?: ""))
-                }
-                
-                providerAdapter.updateProviders(pendingList)
-                
-                if (pendingList.isEmpty()) {
-                    rvPendingProviders.visibility = View.GONE
-                    tvNoPending.visibility = View.VISIBLE
-                } else {
-                    rvPendingProviders.visibility = View.VISIBLE
-                    tvNoPending.visibility = View.GONE
-                }
-            }
-    }
-
-    private fun getStartOfDayTimestamp(): Long {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        return calendar.timeInMillis
-    }
-
-    private fun approveProvider(provider: PendingProviderData) {
-        db.collection("providers").document(provider.providerId).update("isApproved", true)
-            .addOnSuccessListener { Toast.makeText(this, "Provider Approved!", Toast.LENGTH_SHORT).show() }
-    }
-
-    private fun rejectProvider(provider: PendingProviderData) {
-        db.collection("providers").document(provider.providerId).delete()
-            .addOnSuccessListener {
-                db.collection("users").document(provider.providerId).update("role", "user")
-                Toast.makeText(this, "Request Rejected", Toast.LENGTH_SHORT).show()
-            }
+    private fun updatePendingList(pending: List<PendingProviderData>) {
+        pendingAdapter.updateProviders(pending)
+        if (pending.isEmpty()) {
+            rvPendingProviders.visibility = View.GONE
+            tvNoPending.visibility = View.VISIBLE
+        } else {
+            rvPendingProviders.visibility = View.VISIBLE
+            tvNoPending.visibility = View.GONE
+        }
     }
 }

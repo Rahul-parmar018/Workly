@@ -79,6 +79,7 @@
         <activity android:name=".admin.ManageServicesActivity" android:exported="false" />
         <activity android:name=".admin.AllBookingsActivity" android:exported="false" />
         <activity android:name=".admin.UserDirectoryActivity" android:exported="false" />
+        <activity android:name=".admin.ProviderDetailsActivity" android:exported="false" />
 
 
         <activity android:name=".chat.ChatActivity" android:exported="false" />

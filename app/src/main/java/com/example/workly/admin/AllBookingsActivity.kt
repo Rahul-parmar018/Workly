@@ -14,14 +14,17 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 
 class AllBookingsActivity : AppCompatActivity() {
 
-    private lateinit var db: FirebaseFirestore
-    private lateinit var adapter: AdminBookingAdapter
-    private var allBookingsList = mutableListOf<Booking>()
-    
+    private val viewModel: BookingsViewModel by viewModels()
     private lateinit var rvBookings: RecyclerView
+    private lateinit var adapter: AdminBookingAdapter
     private lateinit var chipGroupStatus: ChipGroup
     private lateinit var progressBar: ProgressBar
 
@@ -29,9 +32,7 @@ class AllBookingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_all_bookings)
 
-        db = FirebaseFirestore.getInstance()
-
-        val toolbar: MaterialToolbar = findViewById(R.id.toolbar)
+        val toolbar: com.google.android.material.appbar.MaterialToolbar = findViewById(R.id.toolbar)
         toolbar.setNavigationOnClickListener { finish() }
 
         rvBookings = findViewById(R.id.rvBookings)
@@ -40,67 +41,47 @@ class AllBookingsActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupListeners()
-        loadBookings()
+        observeViewModel()
     }
 
     private fun setupRecyclerView() {
         rvBookings.layoutManager = LinearLayoutManager(this)
         adapter = AdminBookingAdapter(emptyList()) { booking ->
             // Optionally: Details View
-            Toast.makeText(this, "Booking for ${booking.userName}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Order for ${booking.userName}", Toast.LENGTH_SHORT).show()
         }
         rvBookings.adapter = adapter
     }
 
     private fun setupListeners() {
-        chipGroupStatus.setOnCheckedChangeListener { _, checkedId ->
+        chipGroupStatus.setOnCheckedStateChangeListener { group, checkedIds ->
+            val checkedId = checkedIds.firstOrNull()
             val status = when (checkedId) {
                 R.id.chipPending -> OrderStatus.PENDING
                 R.id.chipAccepted -> OrderStatus.ACCEPTED
                 R.id.chipCompleted -> OrderStatus.COMPLETED
                 R.id.chipCancelled -> OrderStatus.CANCELLED
-                else -> "all"
+                else -> "All"
             }
-            filterBookings(status)
+            viewModel.updateStatusFilter(status)
         }
     }
 
-    private fun loadBookings() {
-        progressBar.visibility = View.VISIBLE
-        db.collection("orders")
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                progressBar.visibility = View.GONE
-                if (error != null) {
-                    Toast.makeText(this, "Error loading bookings", Toast.LENGTH_SHORT).show()
-                    return@addSnapshotListener
-                }
-
-                snapshot?.let {
-                    val bookings = it.toObjects(Booking::class.java)
-                    allBookingsList.clear()
-                    allBookingsList.addAll(bookings)
-                    
-                    // Maintain current filter
-                    val checkedChipId = chipGroupStatus.checkedChipId
-                    val status = when (checkedChipId) {
-                        R.id.chipPending -> OrderStatus.PENDING
-                        R.id.chipAccepted -> OrderStatus.ACCEPTED
-                        R.id.chipCompleted -> OrderStatus.COMPLETED
-                        R.id.chipCancelled -> OrderStatus.CANCELLED
-                        else -> "all"
-                    }
-                    filterBookings(status)
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.filteredBookings.collect { bookings ->
+                    adapter.updateBookings(bookings)
                 }
             }
-    }
-
-    private fun filterBookings(status: String) {
-        val filtered = if (status == "all") {
-            allBookingsList
-        } else {
-            allBookingsList.filter { it.status == status }
         }
-        adapter.updateBookings(filtered)
+        
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.bookingState.collect { state ->
+                    progressBar.visibility = if (state is AdminUIState.Loading) View.VISIBLE else View.GONE
+                }
+            }
+        }
     }
 }

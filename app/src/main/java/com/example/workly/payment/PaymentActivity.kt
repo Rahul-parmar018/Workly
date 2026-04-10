@@ -22,6 +22,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import com.example.workly.theme.*
 
 class PaymentActivity : ComponentActivity() {
@@ -69,7 +74,7 @@ fun PaymentScreen(
     var isLoading by remember { mutableStateOf(false) }
 
     val paymentMethods = listOf(
-        Triple("UPI", Icons.Default.AccountBalance, "Google Pay / PhonePe / Paytm"),
+        Triple("UPI", Icons.Default.QrCodeScanner, "Google Pay / PhonePe / Paytm"),
         Triple("Card", Icons.Default.CreditCard, "Debit / Credit Card"),
         Triple("Cash", Icons.Default.Money, "Pay after service")
     )
@@ -77,93 +82,155 @@ fun PaymentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Checkout", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundGray,
-                    titleContentColor = TextPrimary
-                )
+                title = { Text("Complete Payment", fontWeight = FontWeight.ExtraBold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF8FAFC))
             )
         },
-        containerColor = BackgroundGray,
+        containerColor = Color(0xFFF8FAFC),
         bottomBar = {
-            Surface(color = Color.White, shadowElevation = 12.dp) {
-                Button(
-                    onClick = { isLoading = true; onPaymentComplete(selectedMethod) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).navigationBarsPadding(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                    } else {
-                        Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pay ₹${price.toInt()} Securely", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Surface(
+                color = Color.White,
+                shadowElevation = 24.dp,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp).navigationBarsPadding()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Total Payment", color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text("₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = TextPrimary)
+                        }
+                    }
+                    Button(
+                        onClick = { isLoading = true; onPaymentComplete(selectedMethod) },
+                        modifier = Modifier.fillMaxWidth().height(60.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ProfessionalBlue),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 3.dp)
+                        } else {
+                            Icon(Icons.Default.Lock, null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("PAY SECURELY", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 1.sp)
+                        }
                     }
                 }
             }
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Order summary
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(Color.White)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Order Summary", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
-                    Spacer(modifier = Modifier.height(14.dp))
-                    SummaryRow("Service", serviceName)
-                    SummaryRow("Professional", providerName, valueColor = ProfessionalBlue)
-                    if (basePrice != price) {
-                        SummaryRow("Base Price", "₹${basePrice.toInt()}", valueColor = TextSecondary)
-                        SummaryRow("Pro Rate", "₹${price.toInt()}/hr")
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(0.4f))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                        Text("₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = EnergyOrange)
-                    }
-                }
-            }
-
-            // Payment methods
-            Text("Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
-            paymentMethods.forEach { (method, icon, subtitle) ->
-                val isSelected = method == selectedMethod
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(if (isSelected) 8.dp else 2.dp, RoundedCornerShape(16.dp))
-                        .clickable { selectedMethod = method },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) ProfessionalBlue.copy(0.05f) else Color.White,
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, ProfessionalBlue) else null
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(10.dp), color = if (isSelected) ProfessionalBlue.copy(0.1f) else BackgroundGray) {
-                            Icon(icon, null, tint = if (isSelected) ProfessionalBlue else TextSecondary, modifier = Modifier.padding(10.dp).size(22.dp))
+            // Premium Order Summary Card
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("Order Summary", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = RoundedCornerShape(14.dp), color = ProfessionalBlue.copy(0.08f)) {
+                            Icon(Icons.Default.Build, null, modifier = Modifier.padding(14.dp).size(26.dp), tint = ProfessionalBlue)
                         }
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(method, fontWeight = FontWeight.Bold, color = if (isSelected) ProfessionalBlue else TextPrimary)
-                            Text(subtitle, fontSize = 12.sp, color = TextSecondary)
+                            Text(serviceName, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = TextPrimary)
+                            Text("By $providerName", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                         }
-                        RadioButton(selected = isSelected, onClick = { selectedMethod = method }, colors = RadioButtonDefaults.colors(selectedColor = ProfessionalBlue))
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+                        drawLine(
+                            color = Color.LightGray.copy(0.5f),
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    if (basePrice != price) {
+                        SummaryRow("Base Amount", "₹${basePrice.toInt()}", TextSecondary)
+                        SummaryRow("Professional Rate", "₹${price.toInt()}", TextSecondary)
+                    } else {
+                        SummaryRow("Service Total", "₹${price.toInt()}", TextSecondary)
                     }
                 }
             }
 
-            // Shield Escrow info
-            Surface(shape = RoundedCornerShape(14.dp), color = ElectricTeal.copy(0.08f)) {
-                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, null, tint = ElectricTeal, modifier = Modifier.size(22.dp))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Your payment is protected. Funds released to pro only after job completion.", fontSize = 12.sp, color = ElectricTeal)
+            // Payment Methods Section
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Select Payment Method", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = TextPrimary)
+                
+                paymentMethods.forEach { (method, icon, subtitle) ->
+                    val isSelected = method == selectedMethod
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) ProfessionalBlue.copy(0.04f) else Color.White
+                        ),
+                        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, ProfessionalBlue) else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.3f)),
+                        elevation = CardDefaults.cardElevation(if (isSelected) 0.dp else 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedMethod = method }
+                                .padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(shape = RoundedCornerShape(12.dp), color = if (isSelected) ProfessionalBlue.copy(0.1f) else Color(0xFFF1F5F9)) {
+                                Icon(icon, null, tint = if (isSelected) ProfessionalBlue else TextSecondary, modifier = Modifier.padding(12.dp).size(24.dp))
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(method, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = if (isSelected) ProfessionalBlue else TextPrimary)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(subtitle, fontSize = 13.sp, color = TextSecondary)
+                            }
+                            RadioButton(
+                                selected = isSelected, 
+                                onClick = { selectedMethod = method }, 
+                                colors = RadioButtonDefaults.colors(selectedColor = ProfessionalBlue, unselectedColor = Color.LightGray)
+                            )
+                        }
+                    }
                 }
             }
+
+            // Trust Badge
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFE8F5E9)) {
+                Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(28.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        "Your payment is secured by Escrow. Funds are released only after you confirm the job is complete.", 
+                        fontSize = 13.sp, 
+                        color = Color(0xFF2E7D32),
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -171,10 +238,11 @@ fun PaymentScreen(
 @Composable
 fun SummaryRow(label: String, value: String, valueColor: Color = TextPrimary) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextSecondary, fontSize = 14.sp)
-        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = valueColor)
+        Text(label, color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = valueColor)
     }
 }
