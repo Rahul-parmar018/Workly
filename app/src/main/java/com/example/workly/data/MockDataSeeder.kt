@@ -6,6 +6,9 @@ import java.util.*
 object MockDataSeeder {
 
     fun seedMultiServices() {
+        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (currentUser?.email != "rahulparmar99900@gmail.com") return
+
         val db = FirebaseFirestore.getInstance()
         
         // Define some power-providers who offer multiple services
@@ -110,7 +113,6 @@ object MockDataSeeder {
         }
 
         // --- ── CUSTOM USER SEEDING ──────────────────────────────────────
-        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
             // Check if user is provider before seeding orders
             db.collection("users").document(currentUser.uid).get().addOnSuccessListener { userDoc ->
