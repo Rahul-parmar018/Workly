@@ -48,7 +48,7 @@ class WorklyMessagingService : FirebaseMessagingService() {
 
         val channelId = "workly_elite_notifications"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Replace with app icon later
+            .setSmallIcon(com.example.workly.R.drawable.workly_logo)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

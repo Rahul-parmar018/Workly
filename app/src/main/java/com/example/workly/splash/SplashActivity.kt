@@ -82,6 +82,10 @@ class SplashActivity : ComponentActivity() {
         }
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val themeDataStore = ThemeDataStore(this)
+        
+        // --- ── ELITE DATA PROVISIONING ───────────────────────────────────
+        com.example.workly.data.MockDataSeeder.seedMultiServices()
+        // ──────────────────────────────────────────────────────────────────
 
         setContent {
             val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = themeDataStore.getInitialThemeMode())

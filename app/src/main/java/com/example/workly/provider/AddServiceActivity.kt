@@ -42,8 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.workly.theme.ThemeDataStore
-import com.example.workly.theme.WorklyTheme
+import com.example.workly.theme.*
 import com.google.firebase.firestore.FirebaseFirestore
 
 // No hardcoded UI constants here, using MaterialTheme where possible for consistency.
@@ -150,32 +149,31 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editMode) "Update Service" else "Create Service", fontWeight = FontWeight.ExtraBold, color = onSurf) },
+                title = { Text(if (editMode) "UPDATE SERVICE" else "CREATE SERVICE", fontWeight = FontWeight.Black, color = PremiumWhite, letterSpacing = 1.sp, fontSize = 18.sp) },
                 navigationIcon = { 
                     IconButton(onClick = onBack) { 
-                        Icon(Icons.Default.ArrowBack, null, tint = onSurf) 
+                        Icon(Icons.Default.ArrowBack, null, tint = PremiumSilver) 
                     } 
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = surface),
-                modifier = Modifier.shadow(4.dp)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PremiumBlack)
             )
         },
-        containerColor = background
-    ) { pad ->
-        Box(Modifier.fillMaxSize().padding(pad)) {
+        containerColor = PremiumBlack
+    ) { padValue ->
+        Box(Modifier.fillMaxSize().padding(padValue)) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Image picker logic (Redesigned)
+                // Image picker logic (Titanium-Lux Style)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(240.dp)
                         .clickable { picker.launch("image/*") },
-                    shape = RoundedCornerShape(24.dp),
-                    color = surfVar,
-                    shadowElevation = 4.dp
+                    shape = RoundedCornerShape(28.dp),
+                    color = PremiumBlackSurface,
+                    border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.1f))
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (imageUri != null) {
@@ -186,49 +184,51 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(
                                     modifier = Modifier
-                                        .size(64.dp)
-                                        .background(primary.copy(alpha = 0.1f), CircleShape),
+                                        .size(72.dp)
+                                        .background(PremiumSilver.copy(alpha = 0.05f), CircleShape)
+                                        .border(1.dp, PremiumSilver.copy(alpha = 0.2f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.AddAPhoto, null, tint = primary, modifier = Modifier.size(32.dp))
+                                    Icon(Icons.Default.AddAPhoto, null, tint = PremiumSilver, modifier = Modifier.size(32.dp))
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text("Add Service Photo", fontWeight = FontWeight.Bold, color = primary, fontSize = 16.sp)
-                                Text("Show clients what you offer", color = onSurf.copy(alpha = 0.6f), fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Capture Elite Service", fontWeight = FontWeight.Black, color = PremiumWhite, fontSize = 16.sp, letterSpacing = 0.5.sp)
+                                Text("High-resolution visuals convert better", color = PremiumSilver.copy(alpha = 0.5f), fontSize = 12.sp)
                             }
                         }
                         
-                        // Edit overlay if image exists
+                        // Edit overlay
                         if (imageUri != null || imageUrl.isNotEmpty()) {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(16.dp)
-                                    .size(40.dp)
-                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                    .size(44.dp)
+                                    .background(Color.Black.copy(alpha = 0.7f), CircleShape)
+                                    .border(1.dp, PremiumSilver.copy(alpha = 0.2f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Edit, null, tint = PremiumWhite, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
                 }
 
-                SectionCard("Service Details") {
-                    StrongTextField(title, { vm.title.value = it }, "Service Title", "e.g. Expert AC Repair")
+                SectionCard("SERVICE ARCHitecture") {
+                    StrongTextField(title, { vm.title.value = it }, "Service Title", "e.g. Master Deep Cleaning")
                     var catOpen by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(catOpen, { catOpen = !catOpen }) {
                         StrongReadonlyField(
                             category, 
-                            "Category", 
+                            "Specialization", 
                             catOpen, 
                             Modifier.menuAnchor(),
-                            leadingIcon = { Icon(Icons.Default.Category, null, tint = primary) }
+                            leadingIcon = { Icon(Icons.Default.AutoAwesome, null, tint = PremiumSilver) }
                         )
-                        ExposedDropdownMenu(catOpen, { catOpen = false }, Modifier.background(surface)) {
+                        ExposedDropdownMenu(catOpen, { catOpen = false }, Modifier.background(PremiumBlackSurface).border(1.dp, PremiumSilver.copy(0.1f), RoundedCornerShape(8.dp))) {
                             categories.forEach {
                                 DropdownMenuItem(
-                                    text = { Text(it, color = onSurf) },
+                                    text = { Text(it, color = PremiumWhite, fontWeight = FontWeight.Medium) },
                                     onClick = { vm.category.value = it; catOpen = false }
                                 )
                             }
@@ -236,19 +236,19 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                     }
                 }
 
-                SectionCard("Location & Time") {
+                SectionCard("LOGISTICS & DURATION") {
                    StrongTextField(
                        location, 
                        { vm.location.value = it }, 
-                       "City", 
-                       "e.g. Surat",
-                       leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = primary) },
+                       "Operational City", 
+                       "Primary Service Area",
+                       leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = PremiumSilver) },
                        trailingIcon = {
                            if (isLocating) {
-                               CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                               CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = PremiumSilver)
                            } else {
                                IconButton(onClick = { fetchCityName() }) {
-                                   Icon(Icons.Default.MyLocation, null, tint = primary)
+                                   Icon(Icons.Default.MyLocation, null, tint = PremiumSilver)
                                }
                            }
                        }
@@ -257,15 +257,15 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                    ExposedDropdownMenuBox(durOpen, { durOpen = !durOpen }) {
                        StrongReadonlyField(
                            duration, 
-                           "Expected Duration", 
+                           "Expected Timeline", 
                            durOpen, 
                            Modifier.menuAnchor(),
-                           leadingIcon = { Icon(Icons.Default.Timer, null, tint = primary) }
+                           leadingIcon = { Icon(Icons.Default.Schedule, null, tint = PremiumSilver) }
                        )
-                       ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(surface)) {
+                       ExposedDropdownMenu(durOpen, { durOpen = false }, Modifier.background(PremiumBlackSurface).border(1.dp, PremiumSilver.copy(0.1f), RoundedCornerShape(8.dp))) {
                            durations.forEach {
                                DropdownMenuItem(
-                                   text = { Text(it, color = onSurf) },
+                                   text = { Text(it, color = PremiumWhite) },
                                    onClick = { vm.duration.value = it; durOpen = false }
                                )
                            }
@@ -273,51 +273,52 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
                    }
                 }
 
-                SectionCard("Pricing") {
+                SectionCard("FINANCIAL VALUATION") {
                     OutlinedTextField(
                         value = price,
                         onValueChange = { if (it.all { c -> c.isDigit() }) vm.price.value = it },
-                        label = { Text("Base Price", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Base Price (INR)", fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontSize = 11.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        leadingIcon = { Text("₹", fontWeight = FontWeight.Black, fontSize = 20.sp, color = primary, modifier = Modifier.padding(start = 12.dp)) },
+                        leadingIcon = { Text("₹", fontWeight = FontWeight.Black, fontSize = 22.sp, color = PremiumWhite, modifier = Modifier.padding(start = 16.dp)) },
                         colors = strongFieldColors(),
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(20.dp)
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Button(
                     onClick = { if (editMode) vm.updateService(serviceId) else vm.publishService() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
-                        .shadow(8.dp, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
+                        .height(64.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = primary,
-                        disabledContainerColor = primary.copy(alpha = 0.5f)
+                        containerColor = PremiumSilver,
+                        contentColor = PremiumBlack,
+                        disabledContainerColor = PremiumSilver.copy(alpha = 0.2f)
                     ),
                     enabled = formValid && state !is AddServiceState.Loading
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (editMode) Icons.Default.Save else Icons.Default.Publish, null)
-                        Spacer(Modifier.width(12.dp))
+                        Icon(if (editMode) Icons.Default.VerticalAlignTop else Icons.Default.AutoFixHigh, null)
+                        Spacer(Modifier.width(16.dp))
                         Text(
-                            if (editMode) "Update Service" else "Publish Service", 
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp
+                            if (editMode) "COMMIT UPDATES" else "DEPLOY SERVICE", 
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            letterSpacing = 2.sp
                         )
                     }
                 }
-                Spacer(Modifier.height(40.dp))
+                Spacer(Modifier.height(48.dp))
             }
 
             if (state is AddServiceState.Loading) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(0.4f)), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color.White)
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(0.7f)), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PremiumSilver)
                 }
             }
         }
@@ -326,10 +327,15 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
     if (state is AddServiceState.Success) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Success") },
+            containerColor = PremiumBlackSurface,
+            titleContentColor = PremiumWhite,
+            textContentColor = PremiumSilver,
+            title = { Text("Protocol Success", fontWeight = FontWeight.Black) },
             text = { Text((state as AddServiceState.Success).message) },
             confirmButton = {
-                Button(onClick = { vm.resetState(); onBack() }) { Text("Done") }
+                TextButton(onClick = { vm.resetState(); onBack() }) { 
+                    Text("ACKNOWLEDGEd", color = PremiumSilver, fontWeight = FontWeight.Black) 
+                }
             }
         )
     }
@@ -339,13 +345,12 @@ fun AddServiceScreen(vm: AddServiceViewModel, editMode: Boolean = false, service
 private fun SectionCard(label: String, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+        shape = RoundedCornerShape(28.dp),
+        color = PremiumBlackSurface,
+        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.05f))
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(label, fontWeight = FontWeight.Black, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text(label, fontWeight = FontWeight.Black, fontSize = 13.sp, color = PremiumSilver.copy(0.6f), letterSpacing = 2.sp)
             content()
         }
     }
@@ -363,12 +368,12 @@ private fun StrongTextField(
     OutlinedTextField(
         value = value, 
         onValueChange = onChange, 
-        label = { Text(label, fontWeight = FontWeight.SemiBold) }, 
-        placeholder = { Text(placeholder) }, 
+        label = { Text(label, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontSize = 11.sp) }, 
+        placeholder = { Text(placeholder, color = PremiumSilver.copy(0.3f)) }, 
         modifier = Modifier.fillMaxWidth(), 
         colors = strongFieldColors(), 
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon
     )
@@ -387,21 +392,23 @@ private fun StrongReadonlyField(
         value = value, 
         onValueChange = {}, 
         readOnly = true, 
-        label = { Text(label, fontWeight = FontWeight.SemiBold) }, 
+        label = { Text(label, fontWeight = FontWeight.Black, letterSpacing = 1.sp, fontSize = 11.sp) }, 
         modifier = modifier.fillMaxWidth(), 
         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, 
         colors = strongFieldColors(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         leadingIcon = leadingIcon
     )
 }
 
 @Composable
 private fun strongFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-    focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    focusedTextColor = PremiumWhite,
+    unfocusedTextColor = PremiumWhite,
+    focusedBorderColor = PremiumSilver,
+    unfocusedBorderColor = PremiumSilver.copy(alpha = 0.1f),
+    focusedLabelColor = PremiumSilver,
+    unfocusedLabelColor = PremiumSilver.copy(alpha = 0.4f),
+    cursorColor = PremiumSilver,
+    focusedPlaceholderColor = PremiumSilver.copy(0.3f)
 )

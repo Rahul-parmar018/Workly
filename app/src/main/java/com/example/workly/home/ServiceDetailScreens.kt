@@ -1,9 +1,7 @@
 package com.example.workly.home
 
 import android.content.Intent
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -13,7 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -211,6 +209,69 @@ fun ServiceDetailScreen(
                 HighlightItem("24/7 Support", "Always here to help you")
                 
                 Spacer(modifier = Modifier.height(40.dp))
+
+                // --- 5. MULTI-SERVICE PORTFOLIO ---
+                var providerServices by remember { mutableStateOf<List<com.example.workly.data.Service>>(emptyList()) }
+                val repo = remember { HomeRepository() }
+                
+                LaunchedEffect(providerId) {
+                    repo.getServicesByProvider(providerId).collect {
+                        providerServices = it.filter { s -> s.id != serviceId }
+                    }
+                }
+
+                if (providerServices.isNotEmpty()) {
+                    Text("More by $safeProviderName", fontSize = 20.sp, fontWeight = FontWeight.Black, color = onBg)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        providerServices.forEach { s ->
+                            Surface(
+                                modifier = Modifier
+                                    .width(200.dp)
+                                    .clickable {
+                                        // Refresh with new service
+                                        val intent = Intent(context, ServiceDetailActivity::class.java).apply {
+                                            putExtra("SERVICE_TITLE", s.title)
+                                            putExtra("SERVICE_DESC", s.description)
+                                            putExtra("SERVICE_PRICE", s.price)
+                                            putExtra("SERVICE_DURATION", s.duration)
+                                            putExtra("PROVIDER_NAME", s.providerName)
+                                            putExtra("PROVIDER_ID", s.providerId)
+                                            putExtra("SERVICE_CATEGORY", s.category)
+                                            putExtra("SERVICE_ID", s.id)
+                                            putExtra("SERVICE_IMG", s.imageUrl)
+                                        }
+                                        context.startActivity(intent)
+                                    },
+                                shape = RoundedCornerShape(20.dp),
+                                color = PremiumBlackSurface,
+                                border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.05f))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    AsyncImage(
+                                        model = s.imageUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(100.dp)
+                                            .clip(RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(s.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("â‚¹${s.price.toInt()}", color = PremiumSilver, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
             }
         }
     }

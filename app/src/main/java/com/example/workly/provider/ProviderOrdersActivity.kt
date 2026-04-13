@@ -280,9 +280,7 @@ fun PremiumProviderCard(order: Map<String, Any>) {
             if (status != OrderStatus.COMPLETED && status != OrderStatus.CANCELLED) {
                 HeroActionEngine(
                     status = status,
-                    orderId = orderId,
-                    price = price,
-                    providerId = user.uid,
+                    order = order,
                     onBusy = { isBusy = true },
                     onDone = { isBusy = false }
                 )
@@ -340,14 +338,16 @@ fun ModernStatusBadge(status: String) {
 @Composable
 fun HeroActionEngine(
     status: String,
-    orderId: String,
-    price: String,
-    providerId: String,
+    order: Map<String, Any>,
     onBusy: () -> Unit,
     onDone: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
     var updating by remember { mutableStateOf(false) }
+    
+    val orderId = order["id"]?.toString() ?: ""
+    val price = order["finalPrice"]?.toString() ?: order["price"]?.toString() ?: "0"
+    val providerId = order["providerId"]?.toString() ?: ""
 
     val (label, targetStatus) = when (status) {
         "pending" -> "Accept Request" to "accepted"
@@ -371,11 +371,45 @@ fun HeroActionEngine(
                         tr.update(oRef, mapOf("status" to "completed", "completedAt" to System.currentTimeMillis()))
                         val earn = tr.get(pRef).getDouble("earnings") ?: 0.0
                         tr.update(pRef, "earnings", earn + (price.toDoubleOrNull() ?: 0.0))
-                    }.addOnCompleteListener { updating = false; onDone() }
+                    }.addOnCompleteListener { 
+                        // Trigger Notification for User
+                        val userId = order["userId"]?.toString() ?: ""
+                        if (userId.isNotEmpty()) {
+                            val notif = mapOf(
+                                "userId" to userId,
+                                "title" to "Task Crystallized ✅",
+                                "message" to "Your service for ${order["serviceName"]} is complete.",
+                                "createdAt" to System.currentTimeMillis(),
+                                "isRead" to false
+                            )
+                            db.collection("notifications").add(notif)
+                        }
+                        updating = false; onDone() 
+                    }
                 } else {
                     db.collection("orders").document(orderId)
                         .update("status", targetStatus)
-                        .addOnCompleteListener { updating = false; onDone() }
+                        .addOnCompleteListener { 
+                            // Trigger Notification for User
+                            val userId = order["userId"]?.toString() ?: ""
+                            if (userId.isNotEmpty()) {
+                                val msg = when(targetStatus) {
+                                    "accepted" -> "Provider accepted your request!"
+                                    "arriving" -> "Provider is on the way!"
+                                    "started" -> "Work has begun on your service."
+                                    else -> "Update on your service."
+                                }
+                                val notif = mapOf(
+                                    "userId" to userId,
+                                    "title" to "Service Pulse ⚡",
+                                    "message" to msg,
+                                    "createdAt" to System.currentTimeMillis(),
+                                    "isRead" to false
+                                )
+                                db.collection("notifications").add(notif)
+                            }
+                            updating = false; onDone() 
+                        }
                 }
             },
             enabled = !updating,
