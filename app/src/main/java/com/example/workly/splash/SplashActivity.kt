@@ -13,6 +13,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,18 +23,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -139,107 +141,179 @@ class SplashActivity : ComponentActivity() {
 fun PremiumSplashScreen() {
     var started by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
+    val infiniteTransition = rememberInfiniteTransition(label = "3DAnim")
+
+    // 3D Parallax Rotation
+    val rotationX by infiniteTransition.animateFloat(
+        initialValue = -5f, targetValue = 5f,
+        animationSpec = infiniteRepeatable(tween(3000, easing = EaseInOutSine), RepeatMode.Reverse), label = "rotX"
+    )
+    val rotationY by infiniteTransition.animateFloat(
+        initialValue = -8f, targetValue = 8f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = EaseInOutSine), RepeatMode.Reverse), label = "rotY"
+    )
+
+    // Floating Background Elements (Simulated 3D depth)
+    val floatAnim by infiniteTransition.animateFloat(
+        initialValue = -20f, targetValue = 20f,
+        animationSpec = infiniteRepeatable(tween(5000, easing = EaseInOutSine), RepeatMode.Reverse), label = "float"
+    )
 
     val logoScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.8f,
-        animationSpec = tween(1000, easing = EaseOutExpo),
-        label = "logoScale"
+        targetValue = if (started) 1f else 0.7f,
+        animationSpec = tween(1200, easing = EaseOutBack), label = "logoScale"
     )
     val logoAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(800),
-        label = "logoAlpha"
-    )
-    val textAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(800, delayMillis = 500),
-        label = "textAlpha"
+        animationSpec = tween(1000), label = "logoAlpha"
     )
 
     LaunchedEffect(Unit) {
         started = true
-        val steps = 60
+        val steps = 100
         repeat(steps) {
-            delay(35)
+            delay(28)
             progress = (it + 1f) / steps
         }
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PremiumBlack),
+        modifier = Modifier.fillMaxSize().background(PremiumBlack),
         contentAlignment = Alignment.Center
     ) {
-        // Subtle ambient glow behind logo
+        // ─── 3D AMBIENT ENVIRONMENT ──────────────────────────────────────────
+        // Depth Glow
         Box(
-            modifier = Modifier
-                .size(320.dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(PremiumSilver.copy(alpha = 0.08f), Color.Transparent)
-                    ),
-                    CircleShape
-                )
+            modifier = Modifier.size(400.dp).background(
+                Brush.radialGradient(listOf(PremiumSilver.copy(alpha = 0.05f), Color.Transparent)),
+                CircleShape
+            )
         )
+
+        // Floating Titanium Shards (Simulated 3D)
+        repeat(3) { i ->
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = (if (i == 0) -120 else if (i == 1) 140 else 60).dp,
+                        y = (if (i == 0) -250 else if (i == 1) -100 else 200).dp + (floatAnim * (i + 1) * 0.5f).dp
+                    )
+                    .size((40 + i * 20).dp)
+                    .graphicsLayer {
+                        rotationZ = 45f + (floatAnim * i)
+                        alpha = 0.1f
+                    }
+                    .border(1.dp, PremiumSilver.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            )
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Elegant Logo (NO WHITE CIRCLE)
-            Image(
-                painter = painterResource(id = R.drawable.workly_logo),
-                contentDescription = "Workly Elite",
+            // ─── 3D PARALLAX LOGO ────────────────────────────────────────────
+            Box(
                 modifier = Modifier
-                    .size(160.dp)
-                    .scale(logoScale)
-                    .alpha(logoAlpha)
-                    .clip(RoundedCornerShape(32.dp)),
-                contentScale = ContentScale.Fit
-            )
+                    .graphicsLayer {
+                        this.rotationX = rotationX
+                        this.rotationY = rotationY
+                        this.cameraDistance = 12f * density
+                    }
+                    .shadow(
+                        elevation = 40.dp,
+                        shape = RoundedCornerShape(32.dp),
+                        spotColor = PremiumSilver.copy(alpha = 0.3f)
+                    )
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.workly_logo),
+                    contentDescription = "Workly Elite",
+                    modifier = Modifier
+                        .size(160.dp)
+                        .scale(logoScale)
+                        .alpha(logoAlpha)
+                        .clip(RoundedCornerShape(32.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // Premium Typography
+            // Premium HUD Typography
             Text(
                 "WORKLY ELITE",
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 8.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.alpha(textAlpha)
+                letterSpacing = 10.sp,
+                modifier = Modifier.alpha(logoAlpha)
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             Text(
-                "CURATED HOME SERVICES",
-                color = PremiumSilver.copy(alpha = 0.5f),
-                fontSize = 10.sp,
+                "ESTABLISHING PRO LINK",
+                color = PremiumSilver.copy(alpha = 0.4f),
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 4.sp,
-                modifier = Modifier.alpha(textAlpha)
+                modifier = Modifier.alpha(logoAlpha * 0.7f)
             )
         }
 
-        // Tactical Progress Bar
+        // ─── ADVANCED SERVICE SCANNER (LOADING) ──────────────────────────────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
-                .width(200.dp),
+                .padding(bottom = 100.dp)
+                .fillMaxWidth(0.7f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            LinearProgressIndicator(
-                progress = { progress },
+            val icons = listOf(Icons.Default.Build, Icons.Default.Favorite, Icons.Default.Check)
+            val activeIconIndex = (progress * 3).toInt().coerceIn(0, 2)
+            
+            Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+                // Moving Icon "Sweeper"
+                Icon(
+                    imageVector = icons[activeIconIndex],
+                    contentDescription = null,
+                    tint = PremiumSilver,
+                    modifier = Modifier
+                        .offset(x = (progress * 240).dp - 20.dp)
+                        .size(24.dp)
+                        .scale(1.2f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // Neon Track
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(2.dp)
-                    .clip(CircleShape),
-                color = PremiumSilver,
-                trackColor = Color.White.copy(alpha = 0.1f)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .background(
+                            Brush.horizontalGradient(listOf(Color.Transparent, PremiumSilver)),
+                            CircleShape
+                        )
+                        .blur(2.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                "SYSTEM SCAN ${ (progress * 100).toInt() }%",
+                color = PremiumSilver.copy(alpha = 0.6f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
             )
         }
     }
