@@ -30,6 +30,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.R
+import com.example.workly.theme.*
+import com.example.workly.theme.PremiumSilver
+import com.example.workly.theme.PremiumBlackSurface
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @Composable
 fun LoginScreen(
@@ -48,70 +53,50 @@ fun LoginScreen(
     val onSurf = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxSize().background(bg)) {
-        // Top Branding Area
-        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.45f)) {
-            Image(
-                painter = painterResource(id = R.drawable.auth_top_bg),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().alpha(0.8f),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, bg),
-                        startY = 0f
-                    )
-                )
-            )
-        }
-
         Column(
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(60.dp))
             
-            // Logo
+            // Premium Silver Logo Container
             Surface(
-                modifier = Modifier.size(80.dp).shadow(8.dp, CircleShape),
+                modifier = Modifier.size(90.dp),
                 shape = CircleShape,
-                color = Color.White
+                color = PremiumBlackSurface,
+                border = BorderStroke(2.dp, PremiumSilver)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.workly_logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.padding(16.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.VpnKey, null, tint = PremiumSilver, modifier = Modifier.size(40.dp))
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Welcome Back 👋", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("Book services in seconds", color = Color.White.copy(0.7f), fontSize = 14.sp)
-
             Spacer(modifier = Modifier.height(32.dp))
+            Text("AUTHENTICATE", color = PremiumSilver, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp)
+            Text("Workly Premium", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
 
-            // Main Auth Card
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Glassmorphic Auth Panel
             Surface(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = surface,
-                tonalElevation = 8.dp,
-                shadowElevation = 16.dp
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                color = PremiumBlackSurface,
+                border = BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(32.dp).verticalScroll(rememberScrollState()),
+                    modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     AuthTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = "Email Address",
+                        label = "Email",
                         icon = Icons.Default.Email,
                         onSurf = onSurf
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     AuthTextField(
                         value = password,
@@ -124,52 +109,28 @@ fun LoginScreen(
                         onPasswordToggle = { passwordVisible = !passwordVisible }
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
                         onClick = { onSignIn(email, password) },
-                        modifier = Modifier.fillMaxWidth().height(60.dp),
-                        shape = RoundedCornerShape(30.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = primary),
+                        modifier = Modifier.fillMaxWidth().height(58.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver),
                         enabled = !isLoading
                     ) {
-                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        else Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("✔ Secure login", color = Color(0xFF4CAF50), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(8.dp))
-                        Text("✔ Trusted by 10k+", color = Color(0xFF4CAF50), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        if (isLoading) CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp))
+                        else Text("ACCESS ACCOUNT", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Or continue with", color = onSurf.copy(0.4f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    OutlinedButton(
-                        onClick = onGoogleSignIn,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, onSurf.copy(0.1f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = onSurf)
-                    ) {
-                        Image(painter = painterResource(id = R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text("Continue with Google", fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
                     Text(
-                        "New to Workly? Create Account",
+                        "Request Access / Register instatlly",
                         modifier = Modifier.clickable { onSignUp() },
-                        color = primary,
+                        color = PremiumSilver.copy(alpha = 0.6f),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 13.sp
                     )
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
@@ -191,22 +152,24 @@ fun AuthTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        leadingIcon = { Icon(icon, null, tint = onSurf.copy(0.4f)) },
+        label = { Text(label, color = PremiumSilver.copy(alpha = 0.4f)) },
+        leadingIcon = { Icon(icon, null, tint = PremiumSilver.copy(alpha = 0.4f)) },
         trailingIcon = if (isPassword) {
             {
                 IconButton(onClick = onPasswordToggle) {
-                    Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = onSurf.copy(0.4f))
+                    Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, tint = PremiumSilver.copy(alpha = 0.4f))
                 }
             }
         } else null,
         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = onSurf.copy(0.1f),
-            focusedContainerColor = onSurf.copy(0.02f),
-            unfocusedContainerColor = onSurf.copy(0.02f)
+            focusedBorderColor = PremiumSilver,
+            unfocusedBorderColor = DarkBorder,
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White
         )
     )
 }
@@ -331,41 +294,24 @@ fun RegisterScreen(
     val onSurf = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.fillMaxSize().background(bg)) {
-        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.35f)) {
-            Image(
-                painter = painterResource(id = R.drawable.auth_top_bg),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().alpha(0.8f),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, bg),
-                        startY = 0f
-                    )
-                )
-            )
-        }
-
         Column(
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
-            Text("Create Account", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-            Text("Join the Workly community", color = Color.White.copy(0.7f), fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(60.dp))
+            Text("JOIN THE ELITE", color = PremiumSilver, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp)
+            Text("Create Account", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Surface(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = surface,
-                tonalElevation = 8.dp
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                color = PremiumBlackSurface,
+                border = BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(
-                    modifier = Modifier.padding(32.dp).verticalScroll(rememberScrollState()),
+                    modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     AuthTextField(
@@ -403,24 +349,24 @@ fun RegisterScreen(
 
                     Button(
                         onClick = { onSignUp(name, email, password) },
-                        modifier = Modifier.fillMaxWidth().height(60.dp),
-                        shape = RoundedCornerShape(30.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = primary),
+                        modifier = Modifier.fillMaxWidth().height(58.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver),
                         enabled = !isLoading
                     ) {
-                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        else Text("Create Account", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        if (isLoading) CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp))
+                        else Text("CREATE ELITE ACCOUNT", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 1.sp)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        "Already have an account? Sign In",
+                        "Already a member? Sign In",
                         modifier = Modifier.clickable { onSignIn() },
-                        color = primary,
+                        color = PremiumSilver.copy(alpha = 0.6f),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 13.sp
                     )
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }

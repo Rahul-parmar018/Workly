@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+    </queries>
     
     <application
         android:usesCleartextTraffic="true"
@@ -25,12 +32,21 @@
         <!-- Splash Screen (LAUNCHER) -->
         <activity
             android:name=".splash.SplashActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.Workly">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".notifications.WorklyMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- Login Screen -->
         <activity
@@ -40,10 +56,14 @@
         <!-- Home Screen -->
         <activity
             android:name=".home.HomeActivity"
-            android:exported="false" />
+            android:exported="true" />
 
         <activity
             android:name=".home.ServiceDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".home.AccountSettingsActivity"
             android:exported="false" />
 
 
@@ -92,7 +112,7 @@
         <activity android:name=".auth.AdminLoginActivity" android:exported="false" />
 
         <!-- Provider Specific Dynamic Screens -->
-        <activity android:name=".provider.MyServicesActivity" android:exported="false" />
+        <activity android:name=".provider.MyServicesActivity" android:exported="true" />
         <activity android:name=".provider.AddServiceActivity" android:exported="false" />
         <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
         <activity android:name=".provider.ProviderEarningsActivity" android:exported="false" />

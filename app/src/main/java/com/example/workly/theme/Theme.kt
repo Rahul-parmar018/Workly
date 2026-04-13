@@ -23,19 +23,16 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ProfessionalBlue, // Slightly brighter/adjusted if needed, using the main brand color
-    secondary = ElectricTeal,
-    tertiary = EnergyOrange,
-    background = DarkBackground,
-    surface = DarkSurface,
-    surfaceVariant = DarkCard, // Often used for cards/elements in Material3
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = DarkTextPrimary,
-    onSurface = DarkTextPrimary,
-    onSurfaceVariant = DarkTextPrimary,
-    outline = DarkBorder // Border color
+    primary = PremiumSilver,
+    secondary = PremiumSilverDark,
+    tertiary = PremiumWhite,
+    background = PremiumBlack,
+    surface = PremiumBlackSurface,
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    outline = DarkBorder
 )
 
 private val LightColorScheme = lightColorScheme(

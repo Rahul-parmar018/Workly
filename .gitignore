@@ -13,3 +13,14 @@
 .externalNativeBuild
 .cxx
 local.properties
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase/Google secrets
+google-services.json
+service-account-key.json
+firebase-debug.log
+.firebase/

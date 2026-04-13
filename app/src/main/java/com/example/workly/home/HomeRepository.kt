@@ -69,4 +69,28 @@ class HomeRepository {
 
         awaitClose { listener.remove() }
     }
+
+    fun getServicesByProvider(providerId: String): Flow<List<Service>> = callbackFlow {
+        if (providerId.isEmpty()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("services")
+            .whereEqualTo("providerId", providerId)
+            .whereEqualTo("isActive", true)
+            .limit(10)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val items = snapshot.toObjects(Service::class.java)
+                    trySend(items)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
 }

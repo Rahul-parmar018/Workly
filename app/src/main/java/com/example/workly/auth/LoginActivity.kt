@@ -20,6 +20,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.workly.notifications.WorklyNotificationManager
 
 class LoginActivity : ComponentActivity() {
 
@@ -49,11 +50,14 @@ class LoginActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
+        // Commented out to fix build error with new google-services.json
+        /*
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
+        */
 
         val themeDataStore = ThemeDataStore(this)
         val initialThemeMode = themeDataStore.getInitialThemeMode()
@@ -81,10 +85,13 @@ class LoginActivity : ComponentActivity() {
                         }
                     },
                     onGoogleSignIn = {
+                        /*
                         isLoading = true
                         googleSignInClient.signOut().addOnCompleteListener {
                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
                         }
+                        */
+                        Toast.makeText(this, "Google Sign-In is temporarily disabled", Toast.LENGTH_SHORT).show()
                     },
                     onSignUp = {
                         startActivity(Intent(this, RegisterActivity::class.java))
@@ -140,6 +147,7 @@ class LoginActivity : ComponentActivity() {
 
     private fun handleRoleRedirection(uid: String, role: String) {
         isLoading = false
+        WorklyNotificationManager.sendWelcomeBackNotification(this)
         when (role) {
             "admin" -> {
                 startActivity(Intent(this, AdminDashboardActivity::class.java))

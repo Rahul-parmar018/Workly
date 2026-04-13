@@ -97,54 +97,45 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
     Scaffold(
         containerColor = bg,
         topBar = {
-            Column {
-                                   TopAppBar(
-                        title = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(42.dp)) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = CircleShape,
+                                color = surfVar
+                            ) {
+                                ChatAvatar(receiverName)
+                            }
+                            Surface(
+                                modifier = Modifier.align(Alignment.BottomEnd).size(14.dp),
+                                shape = CircleShape,
+                                color = surface
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null, tint = primary, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(42.dp)) {
-                                    Surface(
-                                        modifier = Modifier.fillMaxSize(),
-                                        shape = CircleShape,
-                                        color = surfVar
-                                    ) {
-                                        com.example.workly.chat.ChatAvatar(receiverName)
-                                    }
-                                    // Verified Badge
-                                    Surface(
-                                        modifier = Modifier.align(Alignment.BottomEnd).size(14.dp),
-                                        shape = CircleShape,
-                                        color = surface
-                                    ) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = primary, modifier = Modifier.size(12.dp))
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = onSurface)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primary)
-                                    }
-                                    Text("🟢 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = onSurface.copy(alpha = 0.6f))
-                                }
+                                Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = onSurface)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primary)
                             }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = surface)
-                    )
-                }
-            }
-        },
-
+                            Text("🟢 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = onSurface.copy(alpha = 0.6f))
                         }
                     }
-                }
-            }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = onSurface)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = surface)
+            )
         },
+
         bottomBar = {
             Column(modifier = Modifier.background(surface).navigationBarsPadding().imePadding()) {
                 // Quick Actions
