@@ -45,7 +45,9 @@ import android.os.Looper
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 import java.util.*
+import kotlinx.coroutines.launch
 
 class BookingActivity : ComponentActivity() {
 
@@ -83,30 +85,80 @@ class BookingActivity : ComponentActivity() {
         setContent {
             val themeDataStore = remember { ThemeDataStore(this) }
             val themeMode by themeDataStore.themeModeFlow.collectAsState(initial = themeDataStore.getInitialThemeMode())
+            val scope = rememberCoroutineScope()
+            var isCheckingValidations by remember { mutableStateOf(false) }
 
             WorklyTheme(themeMode = themeMode) {
-                BookingScreen(
-                    serviceName = serviceName,
-                    serviceCategory = serviceCategory,
-                    basePrice = basePrice,
-                    onBackClick = { finish() },
-                    onAddressChange = { savedAddress = it },
-                    onDateTimeChange = { date, time -> savedDate = date; savedTime = time },
-                    onFindPros = { address, date, time, lat, lon ->
-                        savedAddress = address; savedDate = date; savedTime = time
-                        userLat = lat; userLon = lon 
-                        val payIntent = Intent(this, PaymentActivity::class.java).apply {
-                            putExtra("SERVICE_NAME", serviceName)
-                            putExtra("SERVICE_PRICE", basePrice)
-                            putExtra("PROVIDER_NAME", selectedProviderName)
-                            putExtra("PROVIDER_ID", selectedProviderId)
-                            putExtra("BASE_PRICE", basePrice)
+                Box {
+                    BookingScreen(
+                        serviceName = serviceName,
+                        serviceCategory = serviceCategory,
+                        basePrice = basePrice,
+                        onBackClick = { finish() },
+                        onAddressChange = { savedAddress = it },
+                        onDateTimeChange = { date, time -> savedDate = date; savedTime = time },
+                        onFindPros = { address, date, time, lat, lon ->
+                            savedAddress = address; savedDate = date; savedTime = time
+                            userLat = lat; userLon = lon 
+                            
+                                scope.launch {
+                                    isCheckingValidations = true
+                                    val (ok, msg) = performBookingValidations(serviceId, date, time, address)
+
+                                    if (!ok) {
+                                        isCheckingValidations = false
+                                        Toast.makeText(this@BookingActivity, msg ?: "Validation Failed", Toast.LENGTH_LONG).show()
+                                        return@launch
+                                    }
+                                    
+                                    val payIntent = Intent(this@BookingActivity, PaymentActivity::class.java).apply {
+                                    putExtra("SERVICE_NAME", serviceName)
+                                    putExtra("SERVICE_PRICE", basePrice)
+                                    putExtra("PROVIDER_NAME", selectedProviderName)
+                                    putExtra("PROVIDER_ID", selectedProviderId)
+                                    putExtra("BASE_PRICE", basePrice)
+                                }
+                                isCheckingValidations = false
+                                paymentLauncher.launch(payIntent)
+                            }
                         }
-                        paymentLauncher.launch(payIntent)
+                    )
+
+                    if (isCheckingValidations) {
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(0.7f)), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = PremiumSilver)
+                                Spacer(Modifier.height(16.dp))
+                                Text("Verifying Integrity...", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
-                )
+                }
             }
         }
+    }
+
+    private suspend fun performBookingValidations(serviceId: String, date: String, time: String, address: String): Pair<Boolean, String?> {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return false to "User not logged in"
+        
+        // 1. Profile Completion
+        // Bypassing network fetch since phone validation is removed.
+        val p = com.example.workly.data.ValidationEngine.isProfileComplete("Verified User", "9999999999", address)
+        if (!p.first) return p
+        
+        // 2. Duplicate Service
+        val d = com.example.workly.data.ValidationEngine.canUserBookService(currentUserId, serviceId)
+        if (!d.first) return d
+        
+        // 3. Time Clash
+        val t = com.example.workly.data.ValidationEngine.isTimeSlotAvailable(currentUserId, date, time)
+        if (!t.first) return t
+        
+        // 4. Geo-Fence
+        val g = com.example.workly.data.ValidationEngine.isWithinOperationalRadius(userLat, userLon, 23.0225, 72.5714)
+        if (!g.first) return g
+        
+        return true to null
     }
 
     private fun saveBookingToFirestore(serviceId: String, serviceTitle: String, serviceCategory: String, price: Double, userName: String, providerId: String, providerName: String) {

@@ -52,6 +52,13 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
     
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(user?.email ?: "") }
+    var phone by remember { mutableStateOf("") }
+    var otpCode by remember { mutableStateOf("") }
+    var verificationId by remember { mutableStateOf("") }
+    var isOtpSent by remember { mutableStateOf(false) }
+    var isPhoneVerified by remember { mutableStateOf(false) }
+    var isRemovingPhone by remember { mutableStateOf(false) }
+    var showRemoveDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
@@ -62,6 +69,10 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { doc ->
                     name = doc.getString("name") ?: ""
+                    phone = doc.getString("phone") ?: ""
+                    if (phone.isNotEmpty()) {
+                        isPhoneVerified = true
+                    }
                     notificationsEnabled = doc.getBoolean("notificationsEnabled") ?: true
                     isLoading = false
                 }
@@ -101,6 +112,141 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
                 EliteTextField(label = "Display Name", value = name, onValueChange = { name = it }, icon = Icons.Default.Person)
                 Spacer(Modifier.height(16.dp))
                 EliteTextField(label = "Email Address", value = email, onValueChange = { }, icon = Icons.Default.Email, enabled = false)
+                Spacer(Modifier.height(16.dp))
+                
+                // PHONE OTP SECTION
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        EliteTextField(label = "Phone Number (+91)", value = phone, onValueChange = { phone = it; isPhoneVerified = false }, icon = Icons.Default.Phone, enabled = !isPhoneVerified)
+                    }
+                    if (!isPhoneVerified) {
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (phone.length < 10) {
+                                    Toast.makeText(context, "Enter valid phone number.", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                
+                                // Mock OTP Validation logic with Firestore duplicate check
+                                val formattedPhone = if (phone.startsWith("+")) phone else "+91$phone"
+                                
+                                db.collection("users").whereEqualTo("phone", formattedPhone).get()
+                                    .addOnSuccessListener { querySnapshot ->
+                                        var isDuplicate = false
+                                        for (doc in querySnapshot.documents) {
+                                            if (doc.id != user?.uid) {
+                                                isDuplicate = true
+                                                break
+                                            }
+                                        }
+                                        
+                                        if (isDuplicate) {
+                                            Toast.makeText(context, "This number is already registered to another account.", Toast.LENGTH_LONG).show()
+                                        } else {
+                                            val generatedOtp = (100000..999999).random().toString()
+                                            verificationId = generatedOtp
+                                            isOtpSent = true
+                                            isRemovingPhone = false
+                                            
+                                            // Show OTP to User via genuine push notification
+                                            sendSystemPushNotification(context, generatedOtp)
+                                        }
+                                    }
+                                    .addOnFailureListener {
+                                        Toast.makeText(context, "Failed to verify network database.", Toast.LENGTH_SHORT).show()
+                                    }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        ) {
+                            Text("Send OTP", color = PremiumBlack, fontWeight = FontWeight.Bold)
+                        }
+                    } else if (phone.isNotEmpty()) {
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                showRemoveDialog = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        ) {
+                            Text("Remove", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                
+                if (showRemoveDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showRemoveDialog = false },
+                        title = { Text("Remove Authentication Phase") },
+                        text = { Text("Are you sure you want to decouple your phone number? You must verify this action via OTP.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showRemoveDialog = false
+                                val generatedOtp = (100000..999999).random().toString()
+                                verificationId = generatedOtp
+                                isOtpSent = true
+                                isRemovingPhone = true
+                                sendSystemPushNotification(context, generatedOtp)
+                            }) {
+                                Text("Proceed", color = Color(0xFFF44336))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRemoveDialog = false }) {
+                                Text("Cancel", color = PremiumSilver)
+                            }
+                        },
+                        containerColor = PremiumBlackSurface,
+                        titleContentColor = Color.White,
+                        textContentColor = Color.White
+                    )
+                }
+                
+                if (isOtpSent && (!isPhoneVerified || isRemovingPhone)) {
+                    Spacer(Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            EliteTextField(label = "Enter OTP", value = otpCode, onValueChange = { otpCode = it }, icon = Icons.Default.Message)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (otpCode == verificationId) {
+                                    if (isRemovingPhone) {
+                                        phone = ""
+                                        isPhoneVerified = false
+                                        isRemovingPhone = false
+                                        isOtpSent = false
+                                        user?.uid?.let { uid ->
+                                            db.collection("users").document(uid).update("phone", "")
+                                        }
+                                        Toast.makeText(context, "Phone Decoupled Successfully!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        isPhoneVerified = true
+                                        isOtpSent = false
+                                        val finalPhone = if (phone.startsWith("+")) phone else "+91$phone"
+                                        phone = finalPhone
+                                        user?.uid?.let { uid ->
+                                            db.collection("users").document(uid).update("phone", finalPhone)
+                                        }
+                                        Toast.makeText(context, "Phone Authenticated & Locked!", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Invalid OTP. Try again.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        ) {
+                            Text("Verify", color = PremiumBlack, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
                 
                 Spacer(Modifier.height(32.dp))
                 
@@ -135,12 +281,19 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
                 // ── SAVE ACTION ─────────────────────────────────────────────
                 Button(
                     onClick = {
+                        if (!isPhoneVerified && phone.isNotEmpty()) {
+                            Toast.makeText(context, "Please verify your phone number", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         isSaving = true
                         user?.uid?.let { uid ->
-                            val updates = mapOf(
+                            val updates = mutableMapOf<String, Any>(
                                 "name" to name,
                                 "notificationsEnabled" to notificationsEnabled
                             )
+                            if (isPhoneVerified) {
+                                updates["phone"] = phone
+                            }
                             db.collection("users").document(uid).update(updates)
                                 .addOnCompleteListener { 
                                     isSaving = false
@@ -231,4 +384,24 @@ fun SystemToggleRow(icon: ImageVector, label: String, enabled: Boolean, onToggle
             )
         }
     }
+}
+
+fun sendSystemPushNotification(context: android.content.Context, otp: String) {
+    val channelId = "WorklyEliteOTP"
+    val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        val channel = android.app.NotificationChannel(channelId, "Elite System Notifications", android.app.NotificationManager.IMPORTANCE_HIGH)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    val notification = androidx.core.app.NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle("Elite Authentication")
+        .setContentText("Your verification OTP is: $otp")
+        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+        .setAutoCancel(true)
+        .build()
+
+    notificationManager.notify((System.currentTimeMillis() % 10000).toInt(), notification)
 }
