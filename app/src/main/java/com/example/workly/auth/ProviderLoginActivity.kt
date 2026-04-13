@@ -12,6 +12,7 @@ import com.example.workly.theme.ThemeDataStore
 import com.example.workly.theme.WorklyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.workly.notifications.WorklyNotificationManager
 
 class ProviderLoginActivity : ComponentActivity() {
 
@@ -81,7 +82,7 @@ class ProviderLoginActivity : ComponentActivity() {
                 isLoading = false
                 val approved = provDoc.getBoolean("isApproved") ?: false
                 if (approved) {
-                    Toast.makeText(this, "Logged in as Provider", Toast.LENGTH_SHORT).show()
+                    WorklyNotificationManager.sendWelcomeBackNotification(this)
                     startActivity(Intent(this, HomeActivity::class.java))
                     finishAffinity()
                 } else {

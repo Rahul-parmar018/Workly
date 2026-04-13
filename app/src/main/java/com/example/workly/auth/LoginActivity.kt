@@ -20,6 +20,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.workly.notifications.WorklyNotificationManager
 
 class LoginActivity : ComponentActivity() {
 
@@ -146,6 +147,7 @@ class LoginActivity : ComponentActivity() {
 
     private fun handleRoleRedirection(uid: String, role: String) {
         isLoading = false
+        WorklyNotificationManager.sendWelcomeBackNotification(this)
         when (role) {
             "admin" -> {
                 startActivity(Intent(this, AdminDashboardActivity::class.java))

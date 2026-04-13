@@ -143,6 +143,18 @@ class BookingActivity : ComponentActivity() {
             )
             
             docRef.set(booking).addOnSuccessListener {
+                // ── NOTIFICATION DISPATCH ────────────────────────────────
+                val notification = mapOf(
+                    "recipientId" to providerId,
+                    "title" to "New Service Request! 🛠️",
+                    "body" to "$fetchedName booked you for $serviceTitle at $savedTime.",
+                    "type" to "NEW_BOOKING",
+                    "createdAt" to System.currentTimeMillis(),
+                    "isRead" to false
+                )
+                firestore.collection("notifications").add(notification)
+                // ─────────────────────────────────────────────────────────
+
                 val chatId = if (userId < providerId) "${userId}_$providerId" else "${providerId}_$userId"
                 val initialMessage = "I have booked your service: $serviceTitle."
                 firestore.collection("chats").document(chatId).set(mapOf(

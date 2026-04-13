@@ -49,6 +49,12 @@ import kotlinx.coroutines.launch
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.android.gms.tasks.*
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 
 // ── Brand Colors ─────────────────────────────────────────────────────────────
 private val BrandBlue     = Color(0xFF1A237E)
@@ -59,9 +65,21 @@ private val TrustGreen    = Color(0xFF4CAF50)
 
 class SplashActivity : ComponentActivity() {
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        // Permission handled
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val themeDataStore = ThemeDataStore(this)
 
@@ -74,6 +92,13 @@ class SplashActivity : ComponentActivity() {
                 val currentUser = remember { auth.currentUser }
 
                 LaunchedEffect(Unit) {
+                    if (currentUser != null) {
+                        com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnSuccessListener { token: String ->
+                            FirebaseFirestore.getInstance().collection("users").document(currentUser.uid)
+                                .update("fcmToken", token)
+                        }
+                    }
+                    
                     delay(2800)
 
                     if (currentUser != null) {

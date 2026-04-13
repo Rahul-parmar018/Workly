@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,13 +53,16 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(user?.email ?: "") }
     var isLoading by remember { mutableStateOf(true) }
+    var notificationsEnabled by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(user?.uid) {
         user?.uid?.let { uid ->
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { doc ->
                     name = doc.getString("name") ?: ""
+                    notificationsEnabled = doc.getBoolean("notificationsEnabled") ?: true
                     isLoading = false
                 }
         }
@@ -105,10 +109,13 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 
                 SecurityActionRow(Icons.Default.LockReset, "Request Password Reset") {
-                    user?.email?.let {
-                        auth.sendPasswordResetEmail(it)
+                    user?.email?.let { e ->
+                        auth.sendPasswordResetEmail(e)
                             .addOnSuccessListener { 
-                                // Toast would be better but let's assume we show feedback
+                                Toast.makeText(context, "Shield reset link sent to $e", Toast.LENGTH_LONG).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(context, "Security protocol failure.", Toast.LENGTH_SHORT).show()
                             }
                     }
                 }
@@ -119,7 +126,6 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
                 Text("SYSTEM MATRIX", color = PremiumSilver, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 Spacer(Modifier.height(16.dp))
                 
-                var notificationsEnabled by remember { mutableStateOf(true) }
                 SystemToggleRow(Icons.Default.NotificationsActive, "Push Notifications", notificationsEnabled) {
                     notificationsEnabled = !notificationsEnabled
                 }
@@ -131,8 +137,15 @@ fun AccountSettingsScreen(onBack: () -> Unit) {
                     onClick = {
                         isSaving = true
                         user?.uid?.let { uid ->
-                            db.collection("users").document(uid).update("name", name)
-                                .addOnCompleteListener { isSaving = false }
+                            val updates = mapOf(
+                                "name" to name,
+                                "notificationsEnabled" to notificationsEnabled
+                            )
+                            db.collection("users").document(uid).update(updates)
+                                .addOnCompleteListener { 
+                                    isSaving = false
+                                    Toast.makeText(context, "Elite Profile Synchronized", Toast.LENGTH_SHORT).show()
+                                }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(60.dp),
