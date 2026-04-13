@@ -7,7 +7,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,9 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workly.data.OrderStatus
-import com.example.workly.theme.ProfessionalBlue
-import com.example.workly.theme.ThemeDataStore
-import com.example.workly.theme.WorklyTheme
+import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -89,28 +87,67 @@ fun ProviderOrdersScreenFinal(onBack: () -> Unit) {
             TopAppBar(
                 title = { 
                     Column {
-                        Text("Operative Console", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Color(0xFF0F172A))
-                        Text("High-priority service tasks", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Text(
+                            "Operative Console", 
+                            fontWeight = FontWeight.Black, 
+                            fontSize = 20.sp, 
+                            color = PremiumWhite,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            "High-priority service tasks", 
+                            fontSize = 11.sp, 
+                            color = PremiumSilver.copy(alpha = 0.6f),
+                            letterSpacing = 1.sp
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PremiumSilver)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PremiumBlack)
             )
         },
-        containerColor = Color(0xFFF8FAFC)
+        containerColor = PremiumBlack
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ProfessionalBlue)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PremiumSilver)
             } else if (ordersList.isEmpty()) {
-                Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AssignmentLate, null, Modifier.size(80.dp), Color(0xFFE2E8F0))
+                Column(
+                    modifier = Modifier.align(Alignment.Center), 
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(PremiumBlackSurface, CircleShape)
+                            .border(1.dp, PremiumSilver.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.AssignmentLate, 
+                            null, 
+                            Modifier.size(48.dp), 
+                            PremiumSilver.copy(alpha = 0.2f)
+                        )
+                    }
                     Spacer(Modifier.height(24.dp))
-                    Text("No active requests", color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(
+                        "No active requests", 
+                        color = PremiumSilver, 
+                        fontWeight = FontWeight.Bold, 
+                        fontSize = 18.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        "Standing by for premium tasks...", 
+                        color = PremiumSilver.copy(alpha = 0.5f), 
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             } else {
                 LazyColumn(
@@ -148,17 +185,28 @@ fun PremiumProviderCard(order: Map<String, Any>) {
 
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = Color.White,
-        shadowElevation = 4.dp,
+        color = PremiumBlackSurface,
+        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.1f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header Row: Service + Badge
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = serviceTitle, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color(0xFF0F172A))
+                    Text(
+                        text = serviceTitle, 
+                        fontWeight = FontWeight.ExtraBold, 
+                        fontSize = 19.sp, 
+                        color = PremiumWhite,
+                        letterSpacing = 0.5.sp
+                    )
                     Spacer(Modifier.height(4.dp))
-                    Text(text = "Booked by $userName", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = "Booked by $userName", 
+                        fontSize = 14.sp, 
+                        color = PremiumSilver.copy(alpha = 0.7f), 
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 ModernStatusBadge(status)
             }
@@ -171,24 +219,38 @@ fun PremiumProviderCard(order: Map<String, Any>) {
             OperativeRow(Icons.Default.AccessTime, bookingTime)
             
             Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            HorizontalDivider(color = PremiumSilver.copy(alpha = 0.1f), thickness = 1.dp)
             Spacer(modifier = Modifier.height(20.dp))
 
             // Pricing & Action Cluster
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("Potential Earning", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                    Text("₹$price", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E2A78))
+                    Text(
+                        "POTENTIAL EARNING", 
+                        fontSize = 10.sp, 
+                        color = PremiumSilver.copy(alpha = 0.5f), 
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        "₹$price", 
+                        fontSize = 28.sp, 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = PremiumWhite
+                    )
                 }
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (status != OrderStatus.COMPLETED && status != OrderStatus.CANCELLED) {
                         Surface(
                             onClick = { if (userPhone.isNotEmpty()) context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$userPhone"))) },
-                            shape = CircleShape, color = Color(0xFFF1F5F9), modifier = Modifier.size(52.dp)
+                            shape = CircleShape, 
+                            color = PremiumBlack, 
+                            border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.3f)),
+                            modifier = Modifier.size(52.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Phone, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.Phone, null, tint = PremiumSilver, modifier = Modifier.size(22.dp))
                             }
                         }
                         Surface(
@@ -199,10 +261,13 @@ fun PremiumProviderCard(order: Map<String, Any>) {
                                 }
                                 context.startActivity(intent)
                             },
-                            shape = CircleShape, color = Color(0xFFF1F5F9), modifier = Modifier.size(52.dp)
+                            shape = CircleShape, 
+                            color = PremiumBlack, 
+                            border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.3f)),
+                            modifier = Modifier.size(52.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Chat, null, tint = Color(0xFF1E2A78), modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.Chat, null, tint = PremiumSilver, modifier = Modifier.size(22.dp))
                             }
                         }
                     }
@@ -225,10 +290,11 @@ fun PremiumProviderCard(order: Map<String, Any>) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(28.dp),
-                    color = Color(0xFFF1F5F9)
+                    color = Color(0xFF10B981).copy(alpha = 0.1f),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("Task Successfully Finalized ✨", color = Color(0xFF10B981), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text("TASK CRYSTALLIZED ✅", color = Color(0xFF10B981), fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
                     }
                 }
             }
@@ -239,9 +305,9 @@ fun PremiumProviderCard(order: Map<String, Any>) {
 @Composable
 fun OperativeRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E2A78))
+        Icon(icon, null, modifier = Modifier.size(16.dp), tint = PremiumSilver)
         Spacer(Modifier.width(10.dp))
-        Text(text, fontSize = 13.sp, color = Color(0xFF475569), fontWeight = FontWeight.Medium)
+        Text(text, fontSize = 14.sp, color = PremiumSilver.copy(alpha = 0.8f), fontWeight = FontWeight.Medium)
     }
 }
 
@@ -257,8 +323,9 @@ fun ModernStatusBadge(status: String) {
     }
     
     Surface(
-        color = color.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(12.dp)
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
         Text(
             text = label,
@@ -291,7 +358,7 @@ fun HeroActionEngine(
     }
 
     if (label.isNotEmpty()) {
-        val gradient = Brush.horizontalGradient(listOf(Color(0xFF1E2A78), Color(0xFF2D3FA3)))
+        val gradient = Brush.horizontalGradient(listOf(PremiumSilver, Color(0xFFB0BEC5)))
         
         Button(
             onClick = {
@@ -322,9 +389,9 @@ fun HeroActionEngine(
                 contentAlignment = Alignment.Center
             ) {
                 if (updating) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 3.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = PremiumBlack, strokeWidth = 3.dp)
                 } else {
-                    Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    Text(text = label, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = PremiumBlack)
                 }
             }
         }

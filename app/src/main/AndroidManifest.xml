@@ -40,10 +40,14 @@
         <!-- Home Screen -->
         <activity
             android:name=".home.HomeActivity"
-            android:exported="false" />
+            android:exported="true" />
 
         <activity
             android:name=".home.ServiceDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".home.AccountSettingsActivity"
             android:exported="false" />
 
 
@@ -92,7 +96,7 @@
         <activity android:name=".auth.AdminLoginActivity" android:exported="false" />
 
         <!-- Provider Specific Dynamic Screens -->
-        <activity android:name=".provider.MyServicesActivity" android:exported="false" />
+        <activity android:name=".provider.MyServicesActivity" android:exported="true" />
         <activity android:name=".provider.AddServiceActivity" android:exported="false" />
         <activity android:name=".provider.ProviderOrdersActivity" android:exported="false" />
         <activity android:name=".provider.ProviderEarningsActivity" android:exported="false" />

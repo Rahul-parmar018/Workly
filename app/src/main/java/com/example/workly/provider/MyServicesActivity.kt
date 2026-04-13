@@ -6,9 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -26,10 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.workly.data.Service
-import com.example.workly.theme.ProfessionalBlue
-import com.example.workly.theme.TextPrimary
-import com.example.workly.theme.ThemeDataStore
-import com.example.workly.theme.WorklyTheme
+import com.example.workly.theme.*
 import java.io.File
 
 class MyServicesActivity : ComponentActivity() {
@@ -63,25 +62,63 @@ fun MyServicesScreen(vm: MyServicesViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Listed Services", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        "My Listed Services", 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = PremiumWhite,
+                        letterSpacing = 1.sp
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = PremiumSilver)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = TextPrimary
+                    containerColor = PremiumBlack,
+                    titleContentColor = PremiumWhite
                 )
             )
         },
-        containerColor = Color(0xFFF5F7FA)
+        containerColor = PremiumBlack
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ProfessionalBlue)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PremiumSilver)
             } else if (servicesList.isEmpty()) {
-                Text("No services listed yet.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .background(PremiumBlackSurface, CircleShape)
+                            .border(1.dp, PremiumSilver.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Inventory,
+                            contentDescription = null,
+                            tint = PremiumSilver.copy(alpha = 0.3f),
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        "No services listed yet", 
+                        color = PremiumSilver, 
+                        fontSize = 18.sp, 
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Your premium services will appear here", 
+                        color = PremiumSilver.copy(alpha = 0.5f), 
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -113,9 +150,10 @@ fun ServiceCard(service: Service, vm: MyServicesViewModel) {
     }
     
     Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PremiumBlackSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -142,17 +180,28 @@ fun ServiceCard(service: Service, vm: MyServicesViewModel) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1A1A1A))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(text = "₹$price", fontSize = 14.sp, color = ProfessionalBlue, fontWeight = FontWeight.Bold)
-                
-                // Simplified view for college project - no sync status needed
                 Text(
-                    text = "Professional Service", 
-                    fontSize = 11.sp, 
-                    color = Color.Gray, 
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    text = title, 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 17.sp, 
+                    color = PremiumWhite,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "₹$price", 
+                    fontSize = 15.sp, 
+                    color = PremiumSilver, 
+                    fontWeight = FontWeight.ExtraBold
+                )
+                
+                Text(
+                    text = "PREMIUM SERVICE", 
+                    fontSize = 10.sp, 
+                    color = PremiumSilver.copy(alpha = 0.5f), 
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
 
@@ -169,13 +218,13 @@ fun ServiceCard(service: Service, vm: MyServicesViewModel) {
                     }
                     context.startActivity(intent)
                 }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = ProfessionalBlue, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = PremiumSilver, modifier = Modifier.size(18.dp))
                 }
                 
                 IconButton(onClick = {
                     vm.deleteService(service.id)
                 }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(0.7f), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF5252).copy(0.7f), modifier = Modifier.size(18.dp))
                 }
             }
         }

@@ -122,18 +122,27 @@ fun EarningsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Earnings Insight", fontWeight = FontWeight.ExtraBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                title = { 
+                    Text(
+                        "Earnings Insight", 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = PremiumWhite,
+                        letterSpacing = 0.5.sp
+                    ) 
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+                navigationIcon = {
+                    IconButton(onClick = onBack) { 
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = PremiumSilver) 
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PremiumBlack)
             )
         },
-        containerColor = BackgroundGray
+        containerColor = PremiumBlack
     ) { padding ->
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ProfessionalBlue)
+                CircularProgressIndicator(color = PremiumSilver)
             }
         } else {
             LazyColumn(
@@ -145,17 +154,17 @@ fun EarningsScreen(onBack: () -> Unit) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         EarningsSummaryCard(
-                            title = "Total Lifetime Revenue",
+                            title = "TOTAL LIFETIME REVENUE",
                             amount = "₹${totalEarned.toInt()}",
                             icon = Icons.Default.Payments,
-                            color = ProfessionalBlue
+                            color = PremiumBlackSurface // Component handles gradient
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.weight(1f)) {
-                                SmallStatCard("Pending", "₹${pendingClearance.toInt()}", EnergyOrange)
+                                SmallStatCard("PENDING", "₹${pendingClearance.toInt()}", EnergyOrange)
                             }
                             Box(Modifier.weight(1f)) {
-                                SmallStatCard("Completed", "$completedCount", Color(0xFF2E7D32))
+                                SmallStatCard("COMPLETED", "$completedCount", Color(0xFF10B981))
                             }
                         }
                     }
@@ -163,12 +172,18 @@ fun EarningsScreen(onBack: () -> Unit) {
 
                 // 📈 Custom Chart Section
                 item {
-                    Text("Revenue Trend", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "REVENUE TREND", 
+                        fontWeight = FontWeight.Black, 
+                        fontSize = 12.sp, 
+                        color = PremiumSilver.copy(alpha = 0.6f),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(12.dp))
                     Card(
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(Color.White),
-                        elevation = CardDefaults.cardElevation(4.dp)
+                        colors = CardDefaults.cardColors(PremiumBlackSurface),
+                        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.1f))
                     ) {
                         Column(Modifier.padding(20.dp)) {
                             SimpleBarChart(chartData)
@@ -178,7 +193,14 @@ fun EarningsScreen(onBack: () -> Unit) {
 
                 // 📝 Recent Transactions
                 item {
-                    Text("Recent Payouts", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
+                    Text(
+                        "RECENT PAYOUTS", 
+                        fontWeight = FontWeight.Black, 
+                        fontSize = 12.sp, 
+                        color = PremiumSilver.copy(alpha = 0.6f),
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
 
                 items(transactions.take(15)) { tx ->
@@ -191,16 +213,30 @@ fun EarningsScreen(onBack: () -> Unit) {
 
 @Composable
 fun EarningsSummaryCard(title: String, amount: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
+    val gradient = Brush.linearGradient(listOf(PremiumSilver, Color(0xFFB0BEC5)))
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(color),
+        colors = CardDefaults.cardColors(PremiumBlackSurface),
+        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.2f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(24.dp)) {
-            Icon(icon, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(32.dp))
-            Spacer(Modifier.height(16.dp))
-            Text(title, color = Color.White.copy(0.8f), fontSize = 14.sp)
-            Text(amount, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp)
+            Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.height(20.dp))
+            Text(
+                title, 
+                color = PremiumSilver.copy(alpha = 0.6f), 
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.5.sp
+            )
+            Text(
+                amount, 
+                color = PremiumWhite, 
+                fontWeight = FontWeight.ExtraBold, 
+                fontSize = 38.sp,
+                letterSpacing = (-1).sp
+            )
         }
     }
 }
@@ -209,13 +245,18 @@ fun EarningsSummaryCard(title: String, amount: String, icon: androidx.compose.ui
 fun SmallStatCard(title: String, value: String, color: Color) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(Color.White),
-        border = BorderStroke(1.dp, color.copy(0.2f)),
+        colors = CardDefaults.cardColors(PremiumBlackSurface),
+        border = BorderStroke(1.dp, color.copy(0.3f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(title, color = Color.Gray, fontSize = 12.sp)
-            Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                title, 
+                color = PremiumSilver.copy(alpha = 0.5f), 
+                fontSize = 10.sp, 
+                fontWeight = FontWeight.Black
+            )
+            Text(value, color = color, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         }
     }
 }
@@ -239,7 +280,7 @@ fun SimpleBarChart(data: List<Pair<String, Float>>) {
                         .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                         .background(
                             Brush.verticalGradient(
-                                listOf(ProfessionalBlue, ProfessionalBlue.copy(0.4f))
+                                listOf(PremiumSilver, PremiumSilver.copy(0.3f))
                             )
                         )
                 )
@@ -260,20 +301,21 @@ fun TransactionItem(tx: Map<String, Any>) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White
+        color = PremiumBlackSurface,
+        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.05f))
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(ProfessionalBlue.copy(0.1f)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Receipt, null, tint = ProfessionalBlue, modifier = Modifier.size(20.dp))
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(PremiumSilver.copy(0.1f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Receipt, null, tint = PremiumSilver, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(date, fontSize = 12.sp, color = Color.Gray)
+                Text(name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PremiumWhite)
+                Text(date, fontSize = 12.sp, color = PremiumSilver.copy(alpha = 0.5f))
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("+₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF2E7D32))
-                Text(status.uppercase(), fontSize = 10.sp, color = if(status == OrderStatus.PENDING) EnergyOrange else Color.Gray)
+                Text("+₹${price.toInt()}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF10B981))
+                Text(status.uppercase(), fontSize = 10.sp, color = if(status == OrderStatus.PENDING) EnergyOrange else PremiumSilver.copy(alpha = 0.3f), fontWeight = FontWeight.Black, letterSpacing = 1.sp)
             }
         }
     }

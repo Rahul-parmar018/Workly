@@ -386,7 +386,9 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                         }
                     }
 
-                    ProfileMenuButton(Icons.Default.Settings, "Account Settings") { }
+                    ProfileMenuButton(Icons.Default.Settings, "Account Settings") {
+                        context.startActivity(Intent(context, AccountSettingsActivity::class.java))
+                    }
                     ProfileMenuButton(Icons.Default.SupportAgent, "Help & Support") { }
                     
                     Spacer(modifier = Modifier.height(32.dp))
