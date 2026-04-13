@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Workly" parent="Theme.MaterialComponents.Light.NoActionBar" />
+    <!-- Base application theme. -->
+    <style name="Theme.Workly" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Main colors -->
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:navigationBarColor">#000000</item>
+        
+        <!-- Android 12+ Splash Screen -->
+        <item name="android:windowSplashScreenBackground">#000000</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/workly_logo</item>
+    </style>
 
     <style name="ShapeAppearance.Workly.Rounded" parent="">
         <item name="cornerFamily">rounded</item>

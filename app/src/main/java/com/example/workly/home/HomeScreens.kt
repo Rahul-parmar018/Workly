@@ -321,51 +321,111 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 @Composable
 fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Unit) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val isProvider = userRole.lowercase() == "provider"
     
-    LazyColumn(modifier = Modifier.fillMaxSize().background(PremiumBlack), contentPadding = PaddingValues(bottom = 160.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(PremiumBlack),
+        contentPadding = PaddingValues(bottom = 160.dp)
+    ) {
         item {
-            Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(modifier = Modifier.size(100.dp), shape = CircleShape, border = BorderStroke(2.dp, PremiumSilver)) {
-                    AsyncImage(model = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=000&color=fff&size=200", contentDescription = null, modifier = Modifier.fillMaxSize().clip(CircleShape))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header / Avatar
+                Surface(
+                    modifier = Modifier.size(110.dp),
+                    shape = CircleShape,
+                    border = BorderStroke(2.dp, PremiumSilver),
+                    color = PremiumBlackSurface
+                ) {
+                    AsyncImage(
+                        model = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=000&color=fff&size=200&bold=true",
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(userName, color = Color.White, fontWeight = FontWeight.Black, fontSize = 24.sp)
-                Text(userRole.uppercase(), color = PremiumSilver, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(userName, color = Color.White, fontWeight = FontWeight.Black, fontSize = 26.sp)
+                Surface(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = PremiumSilver.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        userRole.uppercase(), 
+                        color = PremiumSilver, 
+                        fontSize = 11.sp, 
+                        fontWeight = FontWeight.Black, 
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(48.dp))
                 
-                // PRODUCTION WIPE MODULE
-                Surface(
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        val db = FirebaseFirestore.getInstance()
-                        db.collection("services").get()
-                            .addOnSuccessListener { snapshot ->
-                                val batch = db.batch()
-                                snapshot.documents.forEach { batch.delete(it.reference) }
-                                batch.commit().addOnSuccessListener {
-                                    android.widget.Toast.makeText(context, "MARKETPLACE FULLY PURGED", android.widget.Toast.LENGTH_LONG).show()
-                                }
-                            }
-                    },
-                    shape = RoundedCornerShape(16.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
-                ) {
-                    Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.DeleteForever, null, tint = Color.Red, modifier = Modifier.size(28.dp))
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Column {
-                            Text("CLEAR MOCK SERVICES", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                            Text("Total Firestore Wipe (Services)", color = Color.White.copy(0.4f), fontSize = 11.sp)
+                // ── PROFILE ACTIONS ──────────────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    
+                    if (isProvider) {
+                        ProfileMenuButton(Icons.Default.Inventory2, "My Services") {
+                            context.startActivity(Intent(context, MyServicesActivity::class.java))
+                        }
+                        ProfileMenuButton(Icons.Default.AddCircleOutline, "Add New Service") {
+                            context.startActivity(Intent(context, AddServiceActivity::class.java))
+                        }
+                        ProfileMenuButton(Icons.Default.Assignment, "My Orders") {
+                            context.startActivity(Intent(context, ProviderOrdersActivity::class.java))
+                        }
+                        ProfileMenuButton(Icons.Default.AccountBalanceWallet, "Earnings") {
+                            context.startActivity(Intent(context, ProviderEarningsActivity::class.java))
+                        }
+                    } else {
+                        ProfileMenuButton(Icons.Default.CalendarMonth, "My Bookings") {
+                            context.startActivity(Intent(context, MyBookingsActivity::class.java))
+                        }
+                    }
+
+                    ProfileMenuButton(Icons.Default.Settings, "Account Settings") { }
+                    ProfileMenuButton(Icons.Default.SupportAgent, "Help & Support") { }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().clickable { onLogout() },
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFD32F2F).copy(alpha = 0.1f),
+                        border = BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.3f))
+                    ) {
+                        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Logout, null, tint = Color(0xFFD32F2F))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("LOGOUT", color = Color(0xFFD32F2F), fontWeight = FontWeight.Black, fontSize = 14.sp)
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Button(onClick = onLogout, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))) {
-                    Text("LOGOUT", color = Color.White, fontWeight = FontWeight.Black)
-                }
             }
+        }
+    }
+}
+
+@Composable
+fun ProfileMenuButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(18.dp),
+        color = PremiumBlackSurface,
+        border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.08f))
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp), 
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(18.dp))
+            Text(label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, null, tint = PremiumSilver.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
         }
     }
 }

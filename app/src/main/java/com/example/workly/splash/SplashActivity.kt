@@ -141,32 +141,26 @@ fun PremiumSplashScreen() {
     var progress by remember { mutableStateOf(0f) }
 
     val logoScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.85f,
-        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        targetValue = if (started) 1f else 0.8f,
+        animationSpec = tween(1000, easing = EaseOutExpo),
         label = "logoScale"
     )
     val logoAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(600),
+        animationSpec = tween(800),
         label = "logoAlpha"
     )
     val textAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(700, delayMillis = 400),
+        animationSpec = tween(800, delayMillis = 500),
         label = "textAlpha"
-    )
-    val taglineAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(700, delayMillis = 700),
-        label = "taglineAlpha"
     )
 
     LaunchedEffect(Unit) {
         started = true
-        // Animate progress bar
-        val steps = 50
+        val steps = 60
         repeat(steps) {
-            delay(40)
+            delay(35)
             progress = (it + 1f) / steps
         }
     }
@@ -174,23 +168,16 @@ fun PremiumSplashScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isSystemInDarkTheme()) 
-                        listOf(Color(0xFF0F172A), Color(0xFF1E293B)) 
-                    else 
-                        listOf(BrandBlue, BrandBlueMid, BrandBlueDark)
-                )
-            ),
+            .background(PremiumBlack),
         contentAlignment = Alignment.Center
     ) {
-        // Soft radial glow behind logo
+        // Subtle ambient glow behind logo
         Box(
             modifier = Modifier
-                .size(280.dp)
+                .size(320.dp)
                 .background(
                     Brush.radialGradient(
-                        listOf(BrandGlow, Color.Transparent)
+                        listOf(PremiumSilver.copy(alpha = 0.08f), Color.Transparent)
                     ),
                     CircleShape
                 )
@@ -200,71 +187,59 @@ fun PremiumSplashScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo circle
-            Surface(
+            // Elegant Logo (NO WHITE CIRCLE)
+            Image(
+                painter = painterResource(id = R.drawable.workly_logo),
+                contentDescription = "Workly Elite",
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(160.dp)
                     .scale(logoScale)
-                    .alpha(logoAlpha),
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 24.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.workly_logo),
-                        contentDescription = "Workly Logo",
-                        modifier = Modifier
-                            .size(72.dp)
-                            .padding(4.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+                    .alpha(logoAlpha)
+                    .clip(RoundedCornerShape(32.dp)),
+                contentScale = ContentScale.Fit
+            )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // App name
+            // Premium Typography
             Text(
-                "Workly",
+                "WORKLY ELITE",
                 color = Color.White,
-                fontSize = 40.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = (-1).sp,
+                letterSpacing = 8.sp,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.alpha(textAlpha)
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Tagline
             Text(
-                "Trusted Home Services in Minutes",
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .alpha(taglineAlpha)
-                    .padding(horizontal = 40.dp)
+                "CURATED HOME SERVICES",
+                color = PremiumSilver.copy(alpha = 0.5f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 4.sp,
+                modifier = Modifier.alpha(textAlpha)
             )
         }
 
-        // Progress bar at bottom
+        // Tactical Progress Bar
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 56.dp)
-                .padding(horizontal = 60.dp),
+                .padding(bottom = 80.dp)
+                .width(200.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = Color.White,
-                trackColor = Color.White.copy(alpha = 0.2f)
+                    .height(2.dp)
+                    .clip(CircleShape),
+                color = PremiumSilver,
+                trackColor = Color.White.copy(alpha = 0.1f)
             )
         }
     }
