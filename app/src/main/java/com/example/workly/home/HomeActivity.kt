@@ -23,9 +23,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.workly.auth.LoginActivity
+import com.example.workly.auth.AuthSelectionActivity
 import com.example.workly.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.workly.data.Service
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,11 +77,11 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
         }
     }
 
-    Scaffold(containerColor = Color(0xFFF8FAFC)) { innerPadding ->
+    Scaffold(containerColor = PremiumBlack) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
 
             // Content
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = 96.dp)) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 Crossfade(targetState = selectedItem, label = "ContentFade") { target ->
                     when (target) {
                         0 -> HomeScreenContent(
@@ -92,7 +94,21 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                             },
                             onNavigateToProfile = { selectedItem = 3 }
                         )
-                        1 -> ExploreScreen()
+                        1 -> ExploreScreenContent(
+                            innerPadding = innerPadding,
+                            onServiceClick = { service: com.example.workly.data.Service ->
+                                val intent = Intent(context, ServiceDetailActivity::class.java).apply {
+                                    putExtra("SERVICE_TITLE", service.title)
+                                    putExtra("SERVICE_PRICE", service.price)
+                                    putExtra("SERVICE_CATEGORY", service.category)
+                                    putExtra("SERVICE_ID", service.id)
+                                    putExtra("SERVICE_DURATION", service.duration)
+                                    putExtra("SERVICE_DESC", service.description)
+                                    putExtra("SERVICE_IMG", service.imageUrl)
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
                         2 -> InboxScreen()
                         3 -> ProfileScreenContent(
                             userName = userName,
@@ -119,7 +135,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
 
 fun performLogout(context: Context) {
     FirebaseAuth.getInstance().signOut()
-    val intent = Intent(context, com.example.workly.auth.AuthSelectionActivity::class.java)
+    val intent = Intent(context, AuthSelectionActivity::class.java)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     context.startActivity(intent)
 }

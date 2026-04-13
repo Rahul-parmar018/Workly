@@ -2,10 +2,10 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDrje5rJHg8ToxJCCzD9BQ9Xj5uUrrtsjw",
-  authDomain: "workly-dc636.firebaseapp.com",
-  projectId: "workly-dc636",
-  storageBucket: "workly-dc636.firebasestorage.app",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
 };
 
 const app = initializeApp(firebaseConfig);
