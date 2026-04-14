@@ -286,6 +286,9 @@ fun UrbanServiceCard(service: Service) {
                 putExtra("SERVICE_CATEGORY", service.category); putExtra("SERVICE_ID", service.id)
                 putExtra("SERVICE_DURATION", service.duration); putExtra("SERVICE_DESC", service.description)
                 putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { "" }) 
+                putExtra("SERVICE_ICON", service.iconName)
+                putExtra("PROVIDER_NAME", service.providerName)
+                putExtra("PROVIDER_ID", service.providerId)
             }) 
         },
         shape = RoundedCornerShape(24.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f))
@@ -293,7 +296,12 @@ fun UrbanServiceCard(service: Service) {
         Column {
             AsyncImage(model = service.imageUrl.ifEmpty { "https://placehold.co/600x400/000000/E0E0E0?text=Workly+Elite" }, contentDescription = service.title, modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)), contentScale = ContentScale.Crop)
             Column(modifier = Modifier.padding(18.dp)) {
-                Text(service.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val icon = ServiceIconMapper.getServiceIcon(service.iconName)
+                    Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(service.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 Text(service.category.uppercase(), color = PremiumSilver.copy(0.4f), fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 2.sp)
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {

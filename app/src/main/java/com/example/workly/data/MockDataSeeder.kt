@@ -7,8 +7,6 @@ object MockDataSeeder {
 
     fun seedMultiServices() {
         val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-        if (currentUser?.email != "rahulparmar99900@gmail.com") return
-
         val db = FirebaseFirestore.getInstance()
         
         // Define some power-providers who offer multiple services
@@ -19,53 +17,79 @@ object MockDataSeeder {
 
         val cleaningServices = listOf(
             mapOf(
-                "title" to "Deep Home Sterilization",
+                "title" to "Elite Home Sterilization",
                 "category" to "Cleaning",
                 "price" to 4999.0,
                 "duration" to "6 Hours",
-                "description" to "Hospital-grade sterilization for your entire living space.",
-                "imgUrl" to "https://images.unsplash.com/photo-1581578731548-c64695cc6954?auto=format&fit=crop&w=800&q=80"
+                "description" to "Hospital-grade sterilization for your living space.",
+                "imageUrl" to "https://images.unsplash.com/photo-1581578731548-c64695cc6954?auto=format&fit=crop&w=1200",
+                "iconName" to "Cleaning"
             ),
             mapOf(
-                "title" to "Elite Sofa & Carpet Triage",
+                "title" to "Premium Sofa & Carpet Triage",
                 "category" to "Cleaning",
                 "price" to 1499.0,
                 "duration" to "2 Hours",
                 "description" to "Deep steam cleaning for upholstery and premium fabrics.",
-                "imgUrl" to "https://images.unsplash.com/photo-1550963295-019d8a8a61c5?auto=format&fit=crop&w=800&q=80"
+                "imageUrl" to "https://images.unsplash.com/photo-1550963295-019d8a8a61c5?auto=format&fit=crop&w=1200",
+                "iconName" to "Cleaning"
             ),
             mapOf(
-                "title" to "Full Kitchen Degreasing",
-                "category" to "Cleaning",
+                "title" to "Industrial Kitchen Degreasing",
+                "category" to "Kitchen",
                 "price" to 2299.0,
                 "duration" to "3 Hours",
-                "description" to "Industrial-strength degreasing for high-traffic kitchens.",
-                "imgUrl" to "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
+                "description" to "Heavy-duty degreasing for high-traffic kitchens.",
+                "imageUrl" to "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200",
+                "iconName" to "Kitchen"
             )
         )
 
         val repairServices = listOf(
             mapOf(
-                "title" to "AC Precision Overhaul",
-                "category" to "Repair",
+                "title" to "AC Precision Diagnostic",
+                "category" to "AC Repair",
                 "price" to 899.0,
                 "duration" to "1.5 Hours",
                 "description" to "Full system diagnostic and chemical cleaning.",
-                "imgUrl" to "https://images.unsplash.com/photo-1581094288338-2314dddb7ecb?auto=format&fit=crop&w=800&q=80"
+                "imageUrl" to "https://images.unsplash.com/photo-1581094288338-2314dddb7ecb?auto=format&fit=crop&w=1200",
+                "iconName" to "AC Repair"
             ),
             mapOf(
-                "title" to "Electrical Load Balancing",
+                "title" to "Smart Home Load Balancing",
                 "category" to "Electric",
                 "price" to 1299.0,
                 "duration" to "2 Hours",
-                "description" to "Optimizing home circuits for maximum efficiency and safety.",
-                "imgUrl" to "https://images.unsplash.com/photo-1621905231291-0074d241d044?auto=format&fit=crop&w=800&q=80"
+                "description" to "Optimizing home circuits for maximum safety.",
+                "imageUrl" to "https://images.unsplash.com/photo-1621905231291-0074d241d044?auto=format&fit=crop&w=1200",
+                "iconName" to "Electric"
+            )
+        )
+
+        val specializedServices = listOf(
+            mapOf(
+                "title" to "Full House Premium Painting",
+                "category" to "Painting",
+                "price" to 8500.0,
+                "duration" to "2 Days",
+                "description" to "Professional 3-coat finish with dust protection.",
+                "imageUrl" to "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=1200",
+                "iconName" to "Painting"
+            ),
+            mapOf(
+                "title" to "Luxury Furniture Restoration",
+                "category" to "Carpentry",
+                "price" to 4500.0,
+                "duration" to "4 Hours",
+                "description" to "Detail-oriented restoration of wooden furniture.",
+                "imageUrl" to "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1200",
+                "iconName" to "Carpentry"
             )
         )
 
         // Seed Cleaning Pro Portfolio
-        cleaningServices.forEach { s ->
-            val id = UUID.randomUUID().toString()
+        cleaningServices.forEachIndexed { idx, s ->
+            val id = "mock_cleaning_$idx"
             db.collection("services").document(id).set(s + mapOf(
                 "id" to id,
                 "providerId" to providers[0]["id"]!!,
@@ -76,8 +100,20 @@ object MockDataSeeder {
         }
 
         // Seed Repair Pro Portfolio
-        repairServices.forEach { s ->
-            val id = UUID.randomUUID().toString()
+        repairServices.forEachIndexed { idx, s ->
+            val id = "mock_repair_$idx"
+            db.collection("services").document(id).set(s + mapOf(
+                "id" to id,
+                "providerId" to providers[1]["id"]!!,
+                "providerName" to providers[1]["name"]!!,
+                "isActive" to true,
+                "createdAt" to com.google.firebase.Timestamp.now()
+            ))
+        }
+
+        // Seed Specialized Portfolio
+        specializedServices.forEachIndexed { idx, s ->
+            val id = "mock_special_$idx"
             db.collection("services").document(id).set(s + mapOf(
                 "id" to id,
                 "providerId" to providers[1]["id"]!!,

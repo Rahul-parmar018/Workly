@@ -25,6 +25,7 @@ class ServiceDetailActivity : ComponentActivity() {
         val category = intent.getStringExtra("SERVICE_CATEGORY") ?: ""
         val serviceId = intent.getStringExtra("SERVICE_ID") ?: ""
         val imgUrl = intent.getStringExtra("SERVICE_IMG")
+        val iconName = intent.getStringExtra("SERVICE_ICON") ?: ""
 
         val themeDataStore = ThemeDataStore(this)
         val initialThemeMode = themeDataStore.getInitialThemeMode()
@@ -43,6 +44,7 @@ class ServiceDetailActivity : ComponentActivity() {
                     category = category,
                     serviceId = serviceId,
                     imgUrl = imgUrl,
+                    iconName = iconName,
                     onBack = { finish() }
                 )
             }

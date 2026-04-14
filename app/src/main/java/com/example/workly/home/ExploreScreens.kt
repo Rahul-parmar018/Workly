@@ -196,7 +196,12 @@ fun RealMarketplaceCard(service: Service, onClick: (Service) -> Unit) {
             )
             Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(service.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val icon = ServiceIconMapper.getServiceIcon(service.iconName)
+                        Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(service.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    }
                     Text(service.category.uppercase(), color = PremiumSilver, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 }
                 Text("₹${service.price.toInt()}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)

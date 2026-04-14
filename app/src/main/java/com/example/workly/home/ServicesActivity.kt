@@ -139,7 +139,12 @@ fun ServiceFeedCard(service: Service) {
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(service.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(service.category.uppercase(), color = PremiumSilver, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val icon = ServiceIconMapper.getServiceIcon(service.iconName)
+                    Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(10.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(service.category.uppercase(), color = PremiumSilver, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = PremiumSilver, modifier = Modifier.size(14.dp))

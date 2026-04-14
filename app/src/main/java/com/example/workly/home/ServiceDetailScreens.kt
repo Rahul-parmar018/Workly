@@ -43,6 +43,7 @@ fun ServiceDetailScreen(
     category: String,
     serviceId: String,
     imgUrl: String?,
+    iconName: String,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -171,13 +172,18 @@ fun ServiceDetailScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Text(
-                    text = title,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Black,
-                    color = onBg,
-                    lineHeight = 38.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val icon = ServiceIconMapper.getServiceIcon(iconName)
+                    Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = title,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        color = onBg,
+                        lineHeight = 38.sp
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(32.dp))
 
