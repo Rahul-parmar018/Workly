@@ -124,12 +124,38 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        "Request Access / Register instatlly",
+                        "Request Access / Register instantly",
                         modifier = Modifier.clickable { onSignUp() },
                         color = PremiumSilver.copy(alpha = 0.6f),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Divider(color = DarkBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 40.dp))
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    OutlinedButton(
+                        onClick = { onGoogleSignIn() },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, DarkBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        enabled = !isLoading
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_google),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("CONTINUE WITH GOOGLE", fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.sp)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }

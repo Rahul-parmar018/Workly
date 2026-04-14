@@ -51,13 +51,11 @@ class LoginActivity : ComponentActivity() {
         db = FirebaseFirestore.getInstance()
 
         // Commented out to fix build error with new google-services.json
-        /*
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
-        */
 
         val themeDataStore = ThemeDataStore(this)
         val initialThemeMode = themeDataStore.getInitialThemeMode()
@@ -85,13 +83,10 @@ class LoginActivity : ComponentActivity() {
                         }
                     },
                     onGoogleSignIn = {
-                        /*
                         isLoading = true
                         googleSignInClient.signOut().addOnCompleteListener {
                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
                         }
-                        */
-                        Toast.makeText(this, "Google Sign-In is temporarily disabled", Toast.LENGTH_SHORT).show()
                     },
                     onSignUp = {
                         startActivity(Intent(this, RegisterActivity::class.java))
