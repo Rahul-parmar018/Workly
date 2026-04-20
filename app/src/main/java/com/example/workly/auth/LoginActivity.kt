@@ -32,14 +32,31 @@ class LoginActivity : ComponentActivity() {
         if (result.resultCode == RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
-                val account = task.getResult(ApiException::class.java)!!
-                firebaseAuthWithGoogle(account.idToken!!)
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (idToken != null) {
+                    firebaseAuthWithGoogle(idToken)
+                } else {
+                    isLoading = false
+                    Toast.makeText(this, "Google Sign-In: Token was null. Check Client ID.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: ApiException) {
+                isLoading = false
+                val errorMsg = when (e.statusCode) {
+                    7 -> "Network Error. Please check your connection."
+                    10 -> "Developer Error (10): Likely invalid Client ID or SHA-1 fingerprint."
+                    12500 -> "Sign-in Failed (12500): Likely missing Google Play Services or incorrect config."
+                    12501 -> "Sign-in Cancelled"
+                    else -> "Google Error (${e.statusCode}): ${e.message}"
+                }
+                Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 isLoading = false
                 Toast.makeText(this, "Google sign in failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         } else {
             isLoading = false
+            // Optional: Toast.makeText(this, "Sign-in cancelled or failed (${result.resultCode})", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -50,7 +67,7 @@ class LoginActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        // Commented out to fix build error with new google-services.json
+        // Google Sign-In Configuration
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -123,10 +140,13 @@ class LoginActivity : ComponentActivity() {
                     saveRoleLocally(role)
                     handleRoleRedirection(uid, role)
                 } else {
+                    val user = auth.currentUser
                     val userMap = hashMapOf(
                         "id" to uid,
-                        "email" to (auth.currentUser?.email ?: ""),
-                        "role" to "user"
+                        "email" to (user?.email ?: ""),
+                        "name" to (user?.displayName ?: "Elite User"),
+                        "role" to "user",
+                        "createdAt" to System.currentTimeMillis()
                     )
                     db.collection("users").document(uid).set(userMap).addOnSuccessListener {
                         saveRoleLocally("user")

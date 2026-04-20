@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Workly</string>
-    <!-- TODO: Replace with your actual Web Client ID from Firebase Console -->
-    <string name="default_web_client_id">946400966138-000000000000000000000000000.apps.googleusercontent.com</string>
+    <!-- TODO: replace with YOUR REAL Web Client ID from Firebase Console (Authentication > Sign-in method > Google) -->
+    <string name="default_web_client_id">946400966138-g7f64n2diqdblvm07goag9lbg0n8ffv9.apps.googleusercontent.com</string>
 </resources>
