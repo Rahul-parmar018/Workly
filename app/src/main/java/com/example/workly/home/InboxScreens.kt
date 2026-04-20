@@ -63,21 +63,26 @@ fun InboxScreen() {
     LaunchedEffect(uid) {
         if (uid.isNotEmpty()) {
             isLoading = true
+            // Only listen to chats where I am a member
             db.collection("chats")
                 .whereArrayContains("members", uid)
                 .orderBy("lastTimestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, e ->
-                    if (e == null && snapshot != null) {
+                    if (snapshot != null) {
                         val previews = snapshot.documents.mapNotNull { doc ->
                             val members = doc.get("members") as? List<String> ?: emptyList()
-                            val otherId = members.find { it != uid } ?: "unknown"
+                            
+                            // Double verify membership client-side for safety
+                            if (!members.contains(uid)) return@mapNotNull null
+                            
+                            val otherId = members.find { it != uid } ?: return@mapNotNull null
                             val lastMsg = doc.getString("lastMessage") ?: ""
                             val ts = doc.getTimestamp("lastTimestamp")?.toDate() ?: Date()
                             val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(ts)
                             
                             ChatPreview(
                                 id = otherId,
-                                receiverName = "User $otherId", // Fallback
+                                receiverName = doc.getString("name_$otherId") ?: "User $otherId",
                                 lastMessage = lastMsg,
                                 time = timeStr,
                                 unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
@@ -87,10 +92,8 @@ fun InboxScreen() {
                             )
                         }
                         chats = previews
-                        isLoading = false
-                    } else {
-                        isLoading = false
                     }
+                    isLoading = false
                 }
         }
     }

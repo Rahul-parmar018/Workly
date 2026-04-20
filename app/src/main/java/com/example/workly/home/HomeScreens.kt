@@ -203,7 +203,7 @@ fun HomeScreenContent(
 }
 
 @Composable
-fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
+fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit, unreadCount: Int = 0) {
     val items = listOf(
         Triple("Home", Icons.Default.Home, Icons.Outlined.Home),
         Triple("Explore", Icons.Default.Explore, Icons.Outlined.Explore),
@@ -256,6 +256,25 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
                                     tint = if (isSelected) Color.White else PremiumSilver.copy(alpha = 0.35f), 
                                     modifier = Modifier.size(24.dp)
                                 )
+                                
+                                // 🔥 Unread Badge (Only for Messages index 2)
+                                if (index == 2 && unreadCount > 0) {
+                                    Surface(
+                                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(16.dp),
+                                        shape = CircleShape,
+                                        color = Color.Red,
+                                        border = BorderStroke(1.5.dp, PremiumBlackSurface)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                                color = Color.White,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
