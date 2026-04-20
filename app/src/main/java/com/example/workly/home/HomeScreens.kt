@@ -287,10 +287,15 @@ fun UrbanServiceCard(service: Service) {
     Surface(
         modifier = Modifier.width(240.dp).clickable { 
             context.startActivity(Intent(context, ServiceDetailActivity::class.java).apply { 
-                putExtra("SERVICE_TITLE", service.title); putExtra("SERVICE_PRICE", service.price)
-                putExtra("SERVICE_CATEGORY", service.category); putExtra("SERVICE_ID", service.id)
-                putExtra("SERVICE_DURATION", service.duration); putExtra("SERVICE_DESC", service.description)
-                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { "" }) 
+                putExtra("SERVICE_TITLE", service.title)
+                putExtra("SERVICE_PRICE", service.price)
+                putExtra("SERVICE_CATEGORY", service.category)
+                putExtra("SERVICE_ID", service.id)
+                putExtra("SERVICE_DURATION", service.duration)
+                putExtra("SERVICE_DESC", service.description)
+                putExtra("PROVIDER_NAME", service.providerName)
+                putExtra("PROVIDER_ID", service.providerId)
+                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) }) 
             }) 
         },
         shape = RoundedCornerShape(24.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f))

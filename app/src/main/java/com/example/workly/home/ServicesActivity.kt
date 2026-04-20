@@ -1,5 +1,6 @@
 package com.example.workly.home
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -58,8 +59,7 @@ fun ServicesScreen(onBack: () -> Unit) {
     var searchQuery by remember { mutableStateOf(initialFilter) }
 
     LaunchedEffect(Unit) {
-        com.example.workly.data.MockDataSeeder.seedMissingCategoriesOnce()
-        
+        // Mock seeder removed to ensure only real app data is used.        
         FirebaseFirestore.getInstance().collection("services")
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
@@ -145,14 +145,16 @@ fun ServiceFeedCard(service: Service) {
     val context = androidx.compose.ui.platform.LocalContext.current
     Surface(
         modifier = Modifier.fillMaxWidth().clickable {
-            context.startActivity(android.content.Intent(context, ServiceDetailActivity::class.java).apply {
+            context.startActivity(Intent(context, ServiceDetailActivity::class.java).apply {
                 putExtra("SERVICE_TITLE", service.title)
                 putExtra("SERVICE_PRICE", service.price)
                 putExtra("SERVICE_CATEGORY", service.category)
                 putExtra("SERVICE_ID", service.id)
                 putExtra("SERVICE_DURATION", service.duration)
                 putExtra("SERVICE_DESC", service.description)
-                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { "" })
+                putExtra("PROVIDER_NAME", service.providerName)
+                putExtra("PROVIDER_ID", service.providerId)
+                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) })
             })
         },
         shape = RoundedCornerShape(20.dp),

@@ -1,6 +1,7 @@
 package com.example.workly.data
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.PropertyName
 
 data class Service(
     val id: String = "",
@@ -10,7 +11,7 @@ data class Service(
     val price: Double = 0.0,
     val duration: String = "",
     val location: String = "",
-    val imageUrl: String = "",
+    @PropertyName("imgUrl") val imageUrl: String = "",
     val providerId: String = "",
     val providerName: String = "",
     val rating: Double = 0.0,

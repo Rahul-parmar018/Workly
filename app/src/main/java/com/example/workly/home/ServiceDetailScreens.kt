@@ -54,7 +54,7 @@ fun ServiceDetailScreen(
     val surfVar = MaterialTheme.colorScheme.surfaceVariant
 
     val safeImg = if (imgUrl.isNullOrEmpty()) {
-        "https://placehold.co/600x400/1E1E1E/E0E0E0?text=Workly+Service"
+        getPremiumImageForCategory(category)
     } else imgUrl
 
     val safeProviderName = if (providerName.isBlank() || providerName.equals("Unknown", true)) "Workly Professional" else providerName
