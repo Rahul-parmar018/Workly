@@ -72,6 +72,33 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                     }
                     dataLoaded = true
                 }
+
+            // 🔥 Real-time Notification Listener
+            db.collection("notifications")
+                .whereEqualTo("userId", user.uid)
+                .whereEqualTo("isRead", false)
+                .addSnapshotListener { snapshot, _ ->
+                    snapshot?.documentChanges?.forEach { change ->
+                        if (change.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                            val doc = change.document
+                            val chatId = doc.getString("chatId")
+                            
+                            // Only show if not currently in this chat
+                            if (chatId != com.example.workly.chat.ChatSessionManager.activeChatId) {
+                                val senderName = doc.getString("senderName") ?: "New Message"
+                                val message = doc.getString("message") ?: ""
+                                val senderId = doc.getString("senderId") ?: ""
+                                
+                                com.example.workly.notifications.WorklyNotificationManager.showChatNotification(
+                                    context, senderName, message, chatId ?: "", senderId
+                                )
+                                
+                                // Mark as read in notifications collection so we don't show it again
+                                doc.reference.update("isRead", true)
+                            }
+                        }
+                    }
+                }
         } else {
             dataLoaded = true
         }

@@ -63,17 +63,85 @@ class ChatActivity : ComponentActivity() {
 fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
-    val userId = auth.currentUser?.uid ?: ""
+    val userId = (auth.currentUser?.uid ?: "").trim()
+    val rId = receiverId.trim()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val chatId = remember(userId, rId) { 
+        if (userId < rId) "${userId}_$rId" else "${rId}_$userId" 
+    }
+
+    // ─── Manage Chat Session ────────────────────────────────────────────────
+    DisposableEffect(chatId) {
+        ChatSessionManager.activeChatId = chatId
+        onDispose {
+            ChatSessionManager.activeChatId = null
+        }
+    }
+    
+    var currentUserName by remember { mutableStateOf("User") }
+    var actualReceiverName by remember { mutableStateOf(receiverName) }
+    var isOtherTyping by remember { mutableStateOf(false) }
 
     var messageText by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // ─── Typing Indicator (Self Update) ──────────────────────────────────────
+    LaunchedEffect(messageText) {
+        if (userId.isNotEmpty() && chatId.isNotEmpty()) {
+            val isTyping = messageText.isNotEmpty()
+            firestore.collection("chats").document(chatId)
+                .update("typing_$userId", isTyping)
+            
+            if (isTyping) {
+                kotlinx.coroutines.delay(2000)
+                firestore.collection("chats").document(chatId)
+                    .update("typing_$userId", false)
+            }
+        }
+    }
+
+    // ─── Typing Indicator (Listen for Other) ─────────────────────────────────
+    LaunchedEffect(chatId) {
+        if (chatId.isNotEmpty()) {
+            firestore.collection("chats").document(chatId)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null && snapshot.exists()) {
+                        isOtherTyping = snapshot.getBoolean("typing_$rId") ?: false
+                        snapshot.getString("name_$rId")?.let { actualReceiverName = it }
+                    }
+                }
+        }
+    }
+
+    // ─── Fetch Names and Mark as Read ────────────────────────────────────────
+    LaunchedEffect(userId, rId) {
+        if (userId.isNotEmpty() && rId.isNotEmpty()) {
+            // Fetch current user name
+            firestore.collection("users").document(userId).get().addOnSuccessListener { doc ->
+                doc.getString("name")?.let { currentUserName = it }
+            }
+            
+            // Fetch receiver name (Try users then providers)
+            firestore.collection("users").document(rId).get().addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    doc.getString("name")?.let { actualReceiverName = it }
+                } else {
+                    firestore.collection("providers").document(rId).get().addOnSuccessListener { pDoc ->
+                        pDoc.getString("name")?.let { actualReceiverName = it }
+                    }
+                }
+            }
+
+            // Mark as read
+            firestore.collection("chats").document(chatId).update("isRead", true)
+        }
+    }
+
     // ─── Real-time message listener ──────────────────────────────────────────
-    LaunchedEffect(receiverId) {
-        if (userId.isNotEmpty() && receiverId.isNotEmpty()) {
-            val chatId = if (userId < receiverId) "${userId}_$receiverId" else "${receiverId}_$userId"
+    LaunchedEffect(chatId) {
+        if (chatId.isNotEmpty()) {
             firestore.collection("chats").document(chatId).collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener { snapshot, _ ->
@@ -106,7 +174,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                                 shape = CircleShape,
                                 color = surfVar
                             ) {
-                                ChatAvatar(receiverName)
+                                ChatAvatar(actualReceiverName)
                             }
                             Surface(
                                 modifier = Modifier.align(Alignment.BottomEnd).size(14.dp),
@@ -119,11 +187,15 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(receiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = onSurface)
+                                Text(actualReceiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = onSurface)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primary)
                             }
-                            Text("🟢 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = onSurface.copy(alpha = 0.6f))
+                            if (isOtherTyping) {
+                                Text("✍ Typing...", fontSize = 11.sp, color = primary, fontWeight = FontWeight.Bold)
+                            } else {
+                                Text("🟢 Online \u2022 Responds in 5 min", fontSize = 11.sp, color = onSurface.copy(alpha = 0.6f))
+                            }
                         }
                     }
                 },
@@ -144,7 +216,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val actions = listOf("📍 Share Location", "📞 Call Provider", "❌ Cancel Booking")
+                    val actions = listOf("📍 Share Location", "❌ Issue Report")
                     items(actions) { action ->
                         Surface(
                             modifier = Modifier.clickable { /* Action */ },
@@ -157,7 +229,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                     }
                 }
 
-                // Input Bar (Upgraded)
+                // Input Bar
                 Row(
                     modifier = Modifier.padding(bottom = 12.dp, start = 12.dp, end = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -192,7 +264,11 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         onClick = {
                             val text = messageText.trim()
                             if (text.isNotEmpty() && userId.isNotEmpty()) {
-                                sendChatMessage(firestore, userId, receiverId, text)
+                                sendChatMessage(firestore, userId, currentUserName, rId, actualReceiverName, text) { success ->
+                                    if (!success) {
+                                        android.widget.Toast.makeText(context, "Cloud sync failed.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                                 messageText = ""
                             }
                         },
@@ -209,7 +285,6 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         }
     ) { innerPadding ->
         if (messages.isEmpty()) {
-            // Empty State
             Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center
@@ -221,9 +296,9 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Start chatting with your provider", fontWeight = FontWeight.Black, fontSize = 18.sp, textAlign = TextAlign.Center, color = onSurface)
+                    Text("Secure Chat Environment", fontWeight = FontWeight.Black, fontSize = 18.sp, textAlign = TextAlign.Center, color = onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Ask about timing, special requirements, or preparation before they arrive.", fontSize = 14.sp, color = onSurface.copy(alpha = 0.5f), textAlign = TextAlign.Center)
+                    Text("Ask about timing, special requirements, or preparation details.", fontSize = 14.sp, color = onSurface.copy(alpha = 0.5f), textAlign = TextAlign.Center)
                 }
             }
         } else {
@@ -296,12 +371,20 @@ fun WhatsAppChatBubble(message: Message, isMe: Boolean) {
 fun sendChatMessage(
     firestore: FirebaseFirestore,
     senderId: String,
+    senderName: String,
     receiverId: String,
-    content: String
+    receiverName: String,
+    content: String,
+    onComplete: (Boolean) -> Unit = {}
 ) {
+    if (senderId.isEmpty() || receiverId.isEmpty()) return
+
     val chatId = if (senderId < receiverId) "${senderId}_$receiverId" else "${receiverId}_$senderId"
-    val colRef = firestore.collection("chats").document(chatId).collection("messages")
+    
+    val parentRef = firestore.collection("chats").document(chatId)
+    val colRef = parentRef.collection("messages")
     val docRef = colRef.document()
+    
     val message = Message(
         id = docRef.id,
         senderId = senderId,
@@ -310,16 +393,43 @@ fun sendChatMessage(
         timestamp = com.google.firebase.Timestamp.now()
     )
     
-    val parentRef = firestore.collection("chats").document(chatId)
-    val chatData = mapOf(
+    val chatUpdate = mapOf(
         "lastMessage" to content,
         "lastTimestamp" to com.google.firebase.Timestamp.now(),
-        "members" to listOf(senderId, receiverId)
+        "members" to listOf(senderId, receiverId),
+        "isRead" to false,
+        "lastSenderId" to senderId,
+        "name_$senderId" to senderName,
+        "name_$receiverId" to receiverName
     )
     
+    // Execute message & chat preview update in a batch
     firestore.runBatch { batch ->
         batch.set(docRef, message)
-        batch.set(parentRef, chatData, com.google.firebase.firestore.SetOptions.merge())
+        batch.set(parentRef, chatUpdate, com.google.firebase.firestore.SetOptions.merge())
+    }.addOnSuccessListener {
+        onComplete(true)
+        // Only attempt notification if the message was successful
+        val notificationRef = firestore.collection("notifications").document()
+        val notificationData = mapOf(
+            "id" to notificationRef.id,
+            "userId" to receiverId,
+            "title" to "New Message from $senderName",
+            "message" to content,
+            "type" to "chat",
+            "chatId" to chatId,
+            "senderId" to senderId,
+            "senderName" to senderName,
+            "createdAt" to System.currentTimeMillis(),
+            "isRead" to false
+        )
+        firestore.collection("notifications").document(notificationRef.id).set(notificationData)
+            .addOnFailureListener { e ->
+                android.util.Log.e("ChatSync", "Notification failed: ${e.message}")
+            }
+    }.addOnFailureListener { e ->
+        onComplete(false)
+        android.util.Log.e("ChatSync", "Batch failed (Message not sent): ${e.message}")
     }
 }
 
