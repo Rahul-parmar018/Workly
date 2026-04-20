@@ -84,7 +84,7 @@ class SplashActivity : ComponentActivity() {
         val themeDataStore = ThemeDataStore(this)
         
         // --- ── ELITE DATA PROVISIONING ───────────────────────────────────
-        com.example.workly.data.MockDataSeeder.seedMultiServices()
+        // com.example.workly.data.MockDataSeeder.seedMultiServices()
         // ──────────────────────────────────────────────────────────────────
 
         setContent {
@@ -360,8 +360,8 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
             description = "Book trusted cleaners instantly.",
             trustLine = "10,000+ homes serviced",
             trustIcon = "✔",
-            bgStart = Color(0xFFF8FAFC),
-            bgEnd = Color(0xFFEEF2FF),
+            bgStart = Color(0xFF0F172A),
+            bgEnd = Color(0xFF020617),
             ctaText = "Continue →"
         ),
         OnboardPage(
@@ -371,8 +371,8 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
             description = "Safe, instant electrical help anytime.",
             trustLine = "4.8 average rating",
             trustIcon = "⭐",
-            bgStart = Color(0xFFFFF7ED),
-            bgEnd = Color(0xFFFFEDD5),
+            bgStart = Color(0xFF1E1511),
+            bgEnd = Color(0xFF0F0B09),
             ctaText = "Continue →"
         ),
         OnboardPage(
@@ -382,8 +382,8 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
             description = "Verified plumbers for installs & repairs.",
             trustLine = "Background-verified professionals",
             trustIcon = "✔",
-            bgStart = Color(0xFFF0FDFA),
-            bgEnd = Color(0xFFCCFBF1),
+            bgStart = Color(0xFF081C15),
+            bgEnd = Color(0xFF020806),
             ctaText = "Get Started →",
             microCopy = "No booking fee • Cancel anytime"
         )
@@ -476,7 +476,7 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
 
                 // 3D Character Illustration (FULL BLEED)
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
                 ) {
@@ -484,11 +484,9 @@ fun PremiumOnboardingScreen(onGetStarted: () -> Unit) {
                         painter = painterResource(id = page.imageRes),
                         contentDescription = page.title,
                         modifier = Modifier
-                            .fillMaxWidth(1.05f) // Full bleed width stretching past edges slightly
-                            .fillMaxHeight(0.85f)
-                            .scale(breathingScale)
-                            .offset(y = 12.dp), // Pull exactly onto floor
-                        contentScale = ContentScale.FillWidth
+                            .fillMaxSize()
+                            .scale(breathingScale),
+                        contentScale = ContentScale.Crop
                     )
                     
                     // Soft Ellipse Ground Shadow (Simulates 25-40px Blur at 10-15% Opacity)

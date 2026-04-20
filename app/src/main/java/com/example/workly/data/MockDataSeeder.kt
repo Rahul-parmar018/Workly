@@ -141,4 +141,55 @@ object MockDataSeeder {
             }
         }
     }
+
+    fun seedMissingCategoriesOnce() {
+        val db = FirebaseFirestore.getInstance()
+        
+        val newServices = listOf(
+            mapOf(
+                "title" to "Emergency Pipe Repair",
+                "category" to "Plumbing",
+                "price" to 1999.0,
+                "duration" to "1.5 Hours",
+                "description" to "Instant leak resolution and high-pressure pipe sealing.",
+                "imgUrl" to "https://images.unsplash.com/photo-1505798577917-a65157d3320a?auto=format&fit=crop&w=800&q=80"
+            ),
+            mapOf(
+                "title" to "Elite Workly VIP Support",
+                "category" to "Support",
+                "price" to 0.0,
+                "duration" to "Custom",
+                "description" to "24/7 dedicated support representative for our premium tier users.",
+                "imgUrl" to "https://images.unsplash.com/photo-1534536281715-e28d76689b4d?auto=format&fit=crop&w=800&q=80"
+            )
+        )
+
+        db.collection("services").whereEqualTo("category", "Plumbing").get().addOnSuccessListener { docs ->
+            if (docs.isEmpty) {
+                val s = newServices[0]
+                val id = UUID.randomUUID().toString()
+                db.collection("services").document(id).set(s + mapOf(
+                    "id" to id,
+                    "providerId" to "pro_cleaning_master",
+                    "providerName" to "Elite Sanctum Professionals",
+                    "isActive" to true,
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                ))
+            }
+        }
+        
+        db.collection("services").whereEqualTo("category", "Support").get().addOnSuccessListener { docs ->
+            if (docs.isEmpty) {
+                val s = newServices[1]
+                val id = UUID.randomUUID().toString()
+                db.collection("services").document(id).set(s + mapOf(
+                    "id" to id,
+                    "providerId" to "pro_repair_guru",
+                    "providerName" to "Alpha Technical Solutions",
+                    "isActive" to true,
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                ))
+            }
+        }
+    }
 }

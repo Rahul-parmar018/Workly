@@ -267,7 +267,12 @@ fun FloatingBottomBar(selectedItem: Int, onItemSelected: (Int) -> Unit) {
 
 @Composable
 fun UrbanCategoryItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.clickable { }, horizontalAlignment = Alignment.CenterHorizontally) {
+    val context = LocalContext.current
+    Column(modifier = modifier.clickable {
+        context.startActivity(Intent(context, ServicesActivity::class.java).apply {
+            putExtra("FILTER_CATEGORY", title)
+        })
+    }, horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(modifier = Modifier.size(68.dp), shape = RoundedCornerShape(20.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f))) {
             Box(contentAlignment = Alignment.Center) { Icon(icon, null, tint = PremiumSilver, modifier = Modifier.size(31.dp)) }
         }
@@ -291,7 +296,7 @@ fun UrbanServiceCard(service: Service) {
         shape = RoundedCornerShape(24.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f))
     ) {
         Column {
-            AsyncImage(model = service.imageUrl.ifEmpty { "https://placehold.co/600x400/000000/E0E0E0?text=Workly+Elite" }, contentDescription = service.title, modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)), contentScale = ContentScale.Crop)
+            AsyncImage(model = service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) }, contentDescription = service.title, modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)), contentScale = ContentScale.Crop)
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(service.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(service.category.uppercase(), color = PremiumSilver.copy(0.4f), fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 2.sp)

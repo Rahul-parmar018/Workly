@@ -54,7 +54,7 @@ fun ServiceDetailScreen(
     val surfVar = MaterialTheme.colorScheme.surfaceVariant
 
     val safeImg = if (imgUrl.isNullOrEmpty()) {
-        ""
+        "https://placehold.co/600x400/1E1E1E/E0E0E0?text=Workly+Service"
     } else imgUrl
 
     val safeProviderName = if (providerName.isBlank() || providerName.equals("Unknown", true)) "Workly Professional" else providerName
@@ -91,7 +91,7 @@ fun ServiceDetailScreen(
                 ) {
                     Column {
                         Text("Starting from", color = onBg.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("â‚¹${price.toInt()}", color = PremiumSilver, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text("₹${price.toInt()}", color = PremiumSilver, fontSize = 28.sp, fontWeight = FontWeight.Black)
                     }
                     
                     Button(
@@ -165,7 +165,7 @@ fun ServiceDetailScreen(
                         Text("UC VERIFIED", color = PremiumSilver, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("4.8â˜…", color = onBg, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Text("4.8★", color = onBg, fontWeight = FontWeight.Black, fontSize = 14.sp)
                     Text(" (2.4k reviews)", color = onBg.copy(alpha = 0.4f), fontSize = 13.sp)
                 }
 
@@ -183,8 +183,8 @@ fun ServiceDetailScreen(
 
                 // Modern Detail Grid
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    UrbanDetailItem("â± $duration", "Duration", Modifier.weight(1f))
-                    UrbanDetailItem("ðŸ‘¤ Expert", safeProviderName, Modifier.weight(1f))
+                    UrbanDetailItem("⏱ $duration", "Duration", Modifier.weight(1f))
+                    UrbanDetailItem("👤 Expert", safeProviderName, Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -255,7 +255,7 @@ fun ServiceDetailScreen(
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     AsyncImage(
-                                        model = s.imageUrl,
+                                        model = s.imageUrl.ifEmpty { getPremiumImageForCategory(s.category) },
                                         contentDescription = null,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -265,7 +265,7 @@ fun ServiceDetailScreen(
                                     )
                                     Spacer(Modifier.height(12.dp))
                                     Text(s.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text("â‚¹${s.price.toInt()}", color = PremiumSilver, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                                    Text("₹${s.price.toInt()}", color = PremiumSilver, fontSize = 12.sp, fontWeight = FontWeight.Black)
                                 }
                             }
                         }
