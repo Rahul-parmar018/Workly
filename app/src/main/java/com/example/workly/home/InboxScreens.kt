@@ -75,13 +75,21 @@ fun InboxScreen() {
                             val ts = doc.getTimestamp("lastTimestamp")?.toDate() ?: Date()
                             val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(ts)
                             
+                            // Get name from metadata if exists
+                            val nameFromMeta = doc.getString("name_$otherId") ?: "User $otherId"
+                            val lastSenderId = doc.getString("lastSenderId") ?: ""
+                            val isReadStatus = doc.getBoolean("isRead") ?: true
+                            
+                            // If last message is from other person and not read, count as 1 unread
+                            val unreadCount = if (lastSenderId != uid && !isReadStatus) 1 else 0
+
                             ChatPreview(
                                 id = otherId,
-                                receiverName = "User $otherId", // Fallback
+                                receiverName = nameFromMeta,
                                 lastMessage = lastMsg,
                                 time = timeStr,
-                                unreadCount = (doc.getLong("unreadCount") ?: 0L).toInt(),
-                                isRead = doc.getBoolean("isRead") ?: true,
+                                unreadCount = unreadCount,
+                                isRead = isReadStatus,
                                 onlineStatus = "Online",
                                 status = doc.getString("status") ?: "active"
                             )

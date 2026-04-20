@@ -54,11 +54,13 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
     var userRole by remember { mutableStateOf("user") }
     var dataLoaded by remember { mutableStateOf(false) }
 
+    val startTime = remember { System.currentTimeMillis() }
     LaunchedEffect(Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
             val db = FirebaseFirestore.getInstance()
             
+            // ── User Data Listener ──
             db.collection("users").document(user.uid)
                 .addSnapshotListener { doc, error ->
                     if (doc != null && doc.exists()) {
@@ -71,6 +73,36 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                         userRole = "user"
                     }
                     dataLoaded = true
+                }
+
+            // ── Live Notification Listener (For System Tray) ──
+            db.collection("notifications")
+                .whereEqualTo("userId", user.uid)
+                .whereEqualTo("isRead", false)
+                .whereGreaterThan("createdAt", startTime)
+                .addSnapshotListener { snapshot, _ ->
+                    snapshot?.documentChanges?.forEach { change ->
+                        if (change.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                            val doc = change.document
+                            val type = doc.getString("type") ?: ""
+                            if (type == "chat") {
+                                val sName = doc.getString("senderName") ?: "New Message"
+                                val msg = doc.getString("message") ?: ""
+                                val cId = doc.getString("chatId") ?: ""
+                                val sId = doc.getString("senderId") ?: ""
+                                
+                                // Only show notification if NOT currently in this chat
+                                if (com.example.workly.chat.ChatSessionManager.activeChatId != cId) {
+                                    com.example.workly.notifications.WorklyNotificationManager.showChatNotification(
+                                        context, sName, msg, cId, sId
+                                    )
+                                }
+                                
+                                // Optional: Mark as "seen" (not necessarily read in chat, but handled by manager)
+                                // doc.reference.update("isRead", true) 
+                            }
+                        }
+                    }
                 }
         } else {
             dataLoaded = true
