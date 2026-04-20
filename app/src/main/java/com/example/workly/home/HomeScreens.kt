@@ -76,7 +76,7 @@ fun HomeScreenContent(
     var firestoreServices by remember { mutableStateOf<List<Service>>(emptyList()) }
     LaunchedEffect(Unit) {
         FirebaseFirestore.getInstance().collection("services")
-            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .limit(10)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
