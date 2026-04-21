@@ -3,6 +3,7 @@ package com.example.workly.home
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,6 +54,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
     var userName by remember { mutableStateOf("Loading...") }
     var userRole by remember { mutableStateOf("user") }
     var dataLoaded by remember { mutableStateOf(false) }
+    var totalUnreadCount by remember { mutableIntStateOf(0) }
 
     val startTime = remember { System.currentTimeMillis() }
     LaunchedEffect(Unit) {
@@ -60,6 +62,31 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
         if (user != null) {
             val db = FirebaseFirestore.getInstance()
             
+            // Start Background Sync Service
+            val serviceIntent = Intent(context, com.example.workly.notifications.WorklyBackgroundService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+
+            // Total Unread Count Listener
+            db.collection("chats")
+                .whereArrayContains("members", user.uid)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        var total = 0
+                        snapshot.documents.forEach { doc ->
+                            val lastSenderId = doc.getString("lastSenderId")
+                            val isRead = doc.getBoolean("isRead") ?: true
+                            if (!isRead && lastSenderId != user.uid) {
+                                total++
+                            }
+                        }
+                        totalUnreadCount = total
+                    }
+                }
+
             // ── User Data Listener ──
             db.collection("users").document(user.uid)
                 .addSnapshotListener { doc, error ->
@@ -98,8 +125,8 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                                     )
                                 }
                                 
-                                // Optional: Mark as "seen" (not necessarily read in chat, but handled by manager)
-                                // doc.reference.update("isRead", true) 
+                                // Mark as seen in notifications collection so we don't show it again in this listener
+                                doc.reference.update("isRead", true) 
                             }
                         }
                     }
@@ -157,7 +184,8 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
             Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                 FloatingBottomBar(
                     selectedItem = selectedItem,
-                    onItemSelected = { selectedItem = it }
+                    onItemSelected = { selectedItem = it },
+                    unreadCount = totalUnreadCount
                 )
             }
 
@@ -168,6 +196,10 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
 }
 
 fun performLogout(context: Context) {
+    // Stop Background Sync
+    val serviceIntent = Intent(context, com.example.workly.notifications.WorklyBackgroundService::class.java)
+    context.stopService(serviceIntent)
+    
     FirebaseAuth.getInstance().signOut()
     val intent = Intent(context, AuthSelectionActivity::class.java)
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
