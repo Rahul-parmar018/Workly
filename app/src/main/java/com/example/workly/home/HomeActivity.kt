@@ -136,7 +136,9 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                                     putExtra("SERVICE_ID", service.id)
                                     putExtra("SERVICE_DURATION", service.duration)
                                     putExtra("SERVICE_DESC", service.description)
-                                    putExtra("SERVICE_IMG", service.imageUrl)
+                                    putExtra("PROVIDER_NAME", service.providerName)
+                                    putExtra("PROVIDER_ID", service.providerId)
+                                    putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) })
                                 }
                                 context.startActivity(intent)
                             }

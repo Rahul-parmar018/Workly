@@ -8,8 +8,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -57,7 +59,7 @@ class BookingSuccessActivity : ComponentActivity() {
                     providerId = providerId,
                     onGoHome = {
                         startActivity(Intent(this, HomeActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         })
                         finish()
                     }
@@ -90,7 +92,8 @@ fun BookingSuccessScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(bg),
+            .background(bg)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── Success Gradient Header ──
@@ -206,11 +209,27 @@ fun BookingSuccessScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // LEFT BUTTON -> Redirect to Home Screen
+                Button(
+                    onClick = onGoHome,
+                    modifier = Modifier.weight(1f).height(58.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver, contentColor = Color.Black),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(Icons.Default.Home, null, modifier = Modifier.size(20.dp), tint = Color.Black)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Go Home", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.Black)
+                }
+
+                // RIGHT BUTTON -> Open Chat Screen
                 Button(
                     onClick = {
                         val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
                             putExtra("RECEIVER_NAME", providerName)
                             putExtra("RECEIVER_ID", providerId)
+                            // Preserve state without reloading entire stack
+                            flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }
                         context.startActivity(chatIntent)
                     },
@@ -226,18 +245,6 @@ fun BookingSuccessScreen(
                     Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Chat Pro", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-                }
-                
-                Button(
-                    onClick = onGoHome,
-                    modifier = Modifier.weight(1f).height(58.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver, contentColor = Color.Black),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(Icons.Default.Home, null, modifier = Modifier.size(20.dp), tint = Color.Black)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go Home", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.Black)
                 }
             }
             

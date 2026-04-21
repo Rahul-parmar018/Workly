@@ -287,10 +287,15 @@ fun UrbanServiceCard(service: Service) {
     Surface(
         modifier = Modifier.width(240.dp).clickable { 
             context.startActivity(Intent(context, ServiceDetailActivity::class.java).apply { 
-                putExtra("SERVICE_TITLE", service.title); putExtra("SERVICE_PRICE", service.price)
-                putExtra("SERVICE_CATEGORY", service.category); putExtra("SERVICE_ID", service.id)
-                putExtra("SERVICE_DURATION", service.duration); putExtra("SERVICE_DESC", service.description)
-                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { "" }) 
+                putExtra("SERVICE_TITLE", service.title)
+                putExtra("SERVICE_PRICE", service.price)
+                putExtra("SERVICE_CATEGORY", service.category)
+                putExtra("SERVICE_ID", service.id)
+                putExtra("SERVICE_DURATION", service.duration)
+                putExtra("SERVICE_DESC", service.description)
+                putExtra("PROVIDER_NAME", service.providerName)
+                putExtra("PROVIDER_ID", service.providerId)
+                putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) }) 
             }) 
         },
         shape = RoundedCornerShape(24.dp), color = PremiumBlackSurface, border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.15f))
@@ -327,6 +332,23 @@ fun SectionHeader(title: String, onSeeAll: (() -> Unit)? = null) {
 fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Unit) {
     val context = LocalContext.current
     val isProvider = userRole.lowercase() == "provider"
+    val user = FirebaseAuth.getInstance().currentUser
+    
+    var userImage by remember { mutableStateOf<String?>(null) }
+    var showSupportSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(user?.uid) {
+        user?.uid?.let { uid ->
+            FirebaseFirestore.getInstance().collection("users").document(uid).get()
+                .addOnSuccessListener { doc -> userImage = doc.getString("imageUrl") }
+        }
+    }
+    
+    val effectiveAvatar = userImage ?: "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=000&color=fff&size=200&bold=true"
+    
+    if (showSupportSheet) {
+        SupportSelectionSheet(userName = userName) { showSupportSheet = false }
+    }
     
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(PremiumBlack),
@@ -341,13 +363,14 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                 Surface(
                     modifier = Modifier.size(110.dp),
                     shape = CircleShape,
-                    border = BorderStroke(2.dp, PremiumSilver),
+                    border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.5f)),
                     color = PremiumBlackSurface
                 ) {
                     AsyncImage(
-                        model = "https://ui-avatars.com/api/?name=${userName.replace(" ", "+")}&background=000&color=fff&size=200&bold=true",
+                        model = effectiveAvatar,
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        contentScale = ContentScale.Crop
                     )
                 }
                 Spacer(modifier = Modifier.height(20.dp))
@@ -394,7 +417,9 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     ProfileMenuButton(Icons.Default.Settings, "Account Settings") {
                         context.startActivity(Intent(context, AccountSettingsActivity::class.java))
                     }
-                    ProfileMenuButton(Icons.Default.SupportAgent, "Help & Support") { }
+                    ProfileMenuButton(Icons.Default.SupportAgent, "Help & Support") { 
+                        showSupportSheet = true
+                    }
                     
                     Spacer(modifier = Modifier.height(32.dp))
                     
@@ -412,6 +437,111 @@ fun ProfileScreenContent(userName: String, userRole: String, onLogout: () -> Uni
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SupportSelectionSheet(userName: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = PremiumBlackSurface,
+        scrimColor = Color.Black.copy(alpha = 0.7f),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = PremiumSilver.copy(alpha = 0.3f)) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp)
+        ) {
+            Text("Elite Support", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
+            Text("Select your preferred communication channel", color = PremiumSilver.copy(0.6f), fontSize = 13.sp)
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // ── WHATSAPP (Priority for India/Locale) ──────────
+            SupportOptionItem(
+                icon = Icons.Default.Chat,
+                title = "Direct WhatsApp",
+                subtitle = "Instant response from Elite Support",
+                accent = Color(0xFF25D366)
+            ) {
+                val url = "https://api.whatsapp.com/send?phone=917600000000&text=Hi Support, I am $userName, I need help with Workly."
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                onDismiss()
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // ── EMAIL ESCALATION ──────────────────────────────
+            SupportOptionItem(
+                icon = Icons.Default.Email,
+                title = "Official Escalation",
+                subtitle = "Resolution within 2-4 business hours",
+                accent = PremiumSilver
+            ) {
+                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = android.net.Uri.parse("mailto:support@worklyelite.com")
+                    putExtra(Intent.EXTRA_SUBJECT, "Elite Support Request: $userName")
+                }
+                try {
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "No email client", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                onDismiss()
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // ── TELEPHONIC SUPPORT ────────────────────────────
+            SupportOptionItem(
+                icon = Icons.Default.Phone,
+                title = "Priority Concierge",
+                subtitle = "Speak directly to a human agent",
+                accent = Color.White
+            ) {
+                val intent = Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:+917600000000"))
+                context.startActivity(intent)
+                onDismiss()
+            }
+        }
+    }
+}
+
+@Composable
+fun SupportOptionItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, accent: Color, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White.copy(alpha = 0.03f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f))
+    ) {
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = accent.copy(alpha = 0.1f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = accent, modifier = Modifier.size(24.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(18.dp))
+            Column {
+                Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(subtitle, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, null, tint = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(20.dp))
         }
     }
 }
