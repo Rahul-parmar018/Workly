@@ -189,7 +189,7 @@ fun RealMarketplaceCard(service: Service, onClick: (Service) -> Unit) {
     ) {
         Column {
             AsyncImage(
-                model = service.imageUrl.ifEmpty { "" },
+                model = service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) },
                 contentDescription = null,
                 modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
                 contentScale = ContentScale.Crop

@@ -41,17 +41,20 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import android.content.Intent
 import android.net.Uri
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import androidx.compose.ui.platform.LocalContext
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,18 +81,25 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = (auth.currentUser?.uid ?: "").trim()
     val rId = receiverId.trim()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val bg        = MaterialTheme.colorScheme.background
     val primary   = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface   = MaterialTheme.colorScheme.surface
     val surfVar   = MaterialTheme.colorScheme.surfaceVariant
     val outline   = MaterialTheme.colorScheme.outline
-
     val chatId = remember(userId, rId) { 
         if (userId < rId) "${userId}_$rId" else "${rId}_$userId" 
     }
 
+    // ─── Manage Chat Session ────────────────────────────────────────────────
+    DisposableEffect(chatId) {
+        ChatSessionManager.activeChatId = chatId
+        onDispose {
+            ChatSessionManager.activeChatId = null
+        }
+    }
+    
     var currentUserName by remember { mutableStateOf("User") }
     var userRole by remember { mutableStateOf("user") }
     var actualReceiverName by remember { mutableStateOf(receiverName) }
@@ -165,14 +175,6 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         )
     }
 
-    // ─── Manage Chat Session ────────────────────────────────────────────────
-    DisposableEffect(chatId) {
-        ChatSessionManager.activeChatId = chatId
-        onDispose {
-            ChatSessionManager.activeChatId = null
-        }
-    }
-
     // ─── Typing Indicator (Self Update) ──────────────────────────────────────
     LaunchedEffect(messageText) {
         if (userId.isNotEmpty() && chatId.isNotEmpty()) {
@@ -181,7 +183,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                 .update("typing_$userId", isTyping)
             
             if (isTyping) {
-                kotlinx.coroutines.delay(2000)
+                delay(2000) // Debounce: stop typing status after 2 seconds of inactivity
                 firestore.collection("chats").document(chatId)
                     .update("typing_$userId", false)
             }
@@ -204,7 +206,7 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
     // ─── Fetch Names and Mark as Read ────────────────────────────────────────
     LaunchedEffect(userId, rId) {
         if (userId.isNotEmpty() && rId.isNotEmpty()) {
-            // 3. Fallback: Fetch receiver name from users OR providers
+            // Fallback: Fetch receiver name from users OR providers
             firestore.collection("users").document(rId).get().addOnSuccessListener { doc ->
                 if (doc.exists()) {
                     val name = doc.getString("name") ?: ""
@@ -246,14 +248,17 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
 
     // ─── Real-time message listener ──────────────────────────────────────────
     LaunchedEffect(chatId) {
-        if (chatId.isNotEmpty()) {
+        if (chatId.isNotEmpty() && !chatId.startsWith("_") && !chatId.endsWith("_")) {
             firestore.collection("chats").document(chatId).collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener { snapshot, _ ->
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) return@addSnapshotListener
                     if (snapshot != null) {
-                        messages = try { snapshot.toObjects(Message::class.java) } catch (e: Exception) { emptyList() }
+                        messages = snapshot.toObjects(Message::class.java)
                         scope.launch {
-                            if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+                            if (messages.isNotEmpty()) {
+                                listState.animateScrollToItem(messages.size - 1)
+                            }
                         }
                     }
                 }
@@ -305,14 +310,18 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(actualReceiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(actualReceiverName, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("✔ Verified", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primary)
+                            }
                             if (isOtherTyping) {
-                                Text("typing...", color = primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("✍ Typing...", color = primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.size(8.dp).background(Color(0xFF10B981), CircleShape))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Online", color = Color.White.copy(0.6f), fontSize = 12.sp)
+                                    Text("Online \u2022 Responds in 5 min", color = Color.White.copy(0.6f), fontSize = 11.sp)
                                 }
                             }
                         }
@@ -367,32 +376,26 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
         bottomBar = {
             Column(modifier = Modifier.background(PremiumBlack).navigationBarsPadding().imePadding()) {
                 if (userRole.lowercase() == "user") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        val actions = listOf("📍 Share Location", "❌ Cancel Service")
-                        actions.forEach { action ->
+                        val actions = listOf("📍 Share Location", "❌ Cancel Service", "📞 Call Info", "❌ Issue Report")
+                        items(actions) { action ->
                             Surface(
-                                modifier = Modifier.weight(1f).clickable { 
+                                modifier = Modifier.clickable { 
                                     if (action.contains("Location")) {
                                         shareSavedLocation()
-                                    } else {
+                                    } else if (action.contains("Cancel")) {
                                         showCancelDialog = true
                                     }
                                 },
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White.copy(alpha = 0.05f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                                shape = RoundedCornerShape(50.dp),
+                                border = BorderStroke(1.dp, outline.copy(alpha = 0.1f)),
+                                color = surface
                             ) {
-                                Text(
-                                    text = action,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 12.dp)
-                                )
+                                Text(action, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), color = primary)
                             }
                         }
                     }
@@ -425,8 +428,13 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         Spacer(Modifier.width(12.dp))
                         Surface(
                             onClick = {
-                                if (messageText.isNotEmpty()) {
-                                    sendChatMessage(firestore, userId, currentUserName, rId, actualReceiverName, messageText)
+                                val text = messageText.trim()
+                                if (text.isNotEmpty() && userId.isNotEmpty()) {
+                                    sendChatMessage(firestore, userId, currentUserName, rId, actualReceiverName, text) { success ->
+                                        if (!success) {
+                                            android.widget.Toast.makeText(context, "Cloud sync failed. Check connectivity.", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                     messageText = ""
                                 }
                             },
@@ -437,6 +445,10 @@ fun ChatScreen(receiverName: String, receiverId: String, onBack: () -> Unit) {
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
                             }
                         }
                     }

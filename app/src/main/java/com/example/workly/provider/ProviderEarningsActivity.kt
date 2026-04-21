@@ -34,7 +34,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class ProviderEarningsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,9 +70,32 @@ fun EarningsScreen(onBack: () -> Unit) {
     var avgOrderValue by remember { mutableDoubleStateOf(0.0) }
     var weeklyGrowth by remember { mutableStateOf(0.0) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedPeriod by remember { mutableStateOf("Week") } 
     val context = LocalContext.current
 
-    LaunchedEffect(user?.uid) {
+    val todayLabel = remember(selectedPeriod) {
+        val now = Calendar.getInstance()
+        when (selectedPeriod) {
+            "Day" -> {
+                val h = now.get(Calendar.HOUR_OF_DAY)
+                val bucket = (h / 3) * 3
+                val bucketCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, bucket)
+                    set(Calendar.MINUTE, 0)
+                }
+                SimpleDateFormat("HH:00", Locale.getDefault()).format(bucketCal.time)
+            }
+            "Week" -> {
+                val map = mapOf(2 to "Mon", 3 to "Tue", 4 to "Wed", 5 to "Thu", 6 to "Fri", 7 to "Sat", 1 to "Sun")
+                map[now.get(Calendar.DAY_OF_WEEK)] ?: ""
+            }
+            "Month" -> SimpleDateFormat("'W'w", Locale.getDefault()).format(now.time)
+            "Year" -> SimpleDateFormat("MMM", Locale.getDefault()).format(now.time)
+            else -> ""
+        }
+    }
+
+    LaunchedEffect(user?.uid, selectedPeriod) {
         if (user != null) {
             db.collection("orders")
                 .whereEqualTo("providerId", user.uid)
@@ -81,37 +106,61 @@ fun EarningsScreen(onBack: () -> Unit) {
                         return@addSnapshotListener
                     }
                     if (snapshot != null) {
-                        val docs = snapshot.documents.mapNotNull { it.data?.plus("id" to it.id) }
-                        transactions = docs
+                        val allDocs = snapshot.documents.mapNotNull { it.data?.plus("id" to it.id) }
+                        // ── STRICT SOURCE FILTER: Only real app services have a serviceId ──
+                        val realDocs = allDocs.filter { (it["serviceId"] as? String)?.isNotEmpty() == true }
+                        transactions = realDocs
                         
                         var total = 0.0
                         var pending = 0.0
                         var count = 0
                         
-                        val dayMap = mutableMapOf<String, Float>()
                         val catMap = mutableMapOf<String, Float>()
                         val serviceMap = mutableMapOf<String, Double>()
                         
-                        // Time-series Logic
-                        val sdf = SimpleDateFormat("EEE", Locale.getDefault())
+                        // --- ENHANCED TREND LOGIC ---
+                        val trendMap = mutableMapOf<String, Float>()
+                        val labels = mutableListOf<String>()
                         val cal = Calendar.getInstance()
-                        val days = mutableListOf<String>()
-                        for(i in 0..6) {
-                            val d = sdf.format(cal.time)
-                            days.add(d)
-                            dayMap[d] = 0f
-                            cal.add(Calendar.DAY_OF_YEAR, -1)
+
+                        when (selectedPeriod) {
+                            "Day" -> {
+                                val sdfHour = SimpleDateFormat("HH:00", Locale.getDefault())
+                                for (i in 0..7) {
+                                    val label = sdfHour.format(cal.time)
+                                    labels.add(label)
+                                    trendMap[label] = 0f
+                                    cal.add(Calendar.HOUR_OF_DAY, -3)
+                                }
+                            }
+                             "Week" -> {
+                                 // ── FIXED WEEK ORDER: Mon to Sun ──
+                                 val fixedDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                                 labels.addAll(fixedDays)
+                                 fixedDays.forEach { trendMap[it] = 0f }
+                             }
+                            "Month" -> {
+                                val sdfWeek = SimpleDateFormat("'W'w", Locale.getDefault())
+                                for (i in 0..3) {
+                                    val label = sdfWeek.format(cal.time)
+                                    labels.add(label)
+                                    trendMap[label] = 0f
+                                    cal.add(Calendar.WEEK_OF_YEAR, -1)
+                                }
+                            }
+                            "Year" -> {
+                                val sdfMonth = SimpleDateFormat("MMM", Locale.getDefault())
+                                for (i in 0..5) {
+                                    val label = sdfMonth.format(cal.time)
+                                    labels.add(label)
+                                    trendMap[label] = 0f
+                                    cal.add(Calendar.MONTH, -1)
+                                }
+                            }
                         }
-                        
-                        val now = System.currentTimeMillis()
-                        val weekAgo = now - (7 * 24 * 60 * 60 * 1000L)
-                        val prevWeekStart = now - (14 * 24 * 60 * 60 * 1000L)
-                        
-                        var currentWeekTotal = 0.0
-                        var prevWeekTotal = 0.0
-                        
-                        for (doc in docs) {
-                            val price = (doc["finalPrice"] as? Number)?.toDouble() ?: (doc["price"] as? Number)?.toDouble() ?: 0.0
+
+                        for (doc in realDocs) {
+                            val price = (doc["finalPrice"] as? Number)?.toDouble() ?: (doc["price"] as? Number)?.toDouble() ?: (doc["basePrice"] as? Number)?.toDouble() ?: 0.0
                             val status = doc["status"]?.toString() ?: OrderStatus.PENDING
                             val cat = doc["serviceCategory"]?.toString() ?: "Other"
                             val sName = doc["serviceName"]?.toString() ?: "Unnamed Task"
@@ -124,37 +173,75 @@ fun EarningsScreen(onBack: () -> Unit) {
                                 else -> 0L
                             }
                             
-                            if (status == OrderStatus.ACCEPTED || status == OrderStatus.COMPLETED) {
+                            // ── RECOGNIZED STATUSES ──
+                            val isCompleted = status == OrderStatus.COMPLETED
+                            val isPending = status == OrderStatus.ACCEPTED || status == OrderStatus.ASSIGNED || 
+                                           status == OrderStatus.ARRIVING || status == OrderStatus.STARTED
+
+                            if (isCompleted || isPending) {
                                 total += price
-                                if (status == OrderStatus.ACCEPTED) pending += price
+                                count++
+                                if (isPending) pending += price
                                 if (status == OrderStatus.COMPLETED) {
-                                    count++
                                     serviceMap[sName] = (serviceMap[sName] ?: 0.0) + price
                                 }
                                 
-                                // Category distribution
                                 catMap[cat] = (catMap[cat] ?: 0f) + price.toFloat()
                                 
-                                // Trend Data
-                                val dateStr = sdf.format(Date(ts))
-                                if (dayMap.containsKey(dateStr)) {
-                                    dayMap[dateStr] = dayMap[dateStr]!! + price.toFloat()
+                                // Grouping for Trend
+                                val date = Date(ts)
+                                val groupLabel = when (selectedPeriod) {
+                                    "Day" -> SimpleDateFormat("HH:00", Locale.getDefault()).apply {
+                                        val c = Calendar.getInstance().apply { time = date }
+                                        val h = c.get(Calendar.HOUR_OF_DAY)
+                                        val bucket = (h / 3) * 3
+                                        c.set(Calendar.HOUR_OF_DAY, bucket)
+                                        c.set(Calendar.MINUTE, 0)
+                                    }.format(date)
+                                     "Week" -> {
+                                         val c = Calendar.getInstance().apply { time = date }
+                                         val dayIdx = c.get(Calendar.DAY_OF_WEEK) // 1=Sun, 2=Mon...
+                                         val map = mapOf(2 to "Mon", 3 to "Tue", 4 to "Wed", 5 to "Thu", 6 to "Fri", 7 to "Sat", 1 to "Sun")
+                                         map[dayIdx] ?: ""
+                                     }
+                                    "Month" -> SimpleDateFormat("'W'w", Locale.getDefault()).format(date)
+                                    "Year" -> SimpleDateFormat("MMM", Locale.getDefault()).format(date)
+                                    else -> ""
                                 }
-                                
-                                // Growth Calculation
-                                if (ts > weekAgo) currentWeekTotal += price
-                                else if (ts > prevWeekStart) prevWeekTotal += price
+
+                                if (trendMap.containsKey(groupLabel)) {
+                                    trendMap[groupLabel] = trendMap[groupLabel]!! + price.toFloat()
+                                }
                             }
                         }
                         
                         avgOrderValue = if (count > 0) total / count else 0.0
-                        weeklyGrowth = if (prevWeekTotal > 0) ((currentWeekTotal - prevWeekTotal) / prevWeekTotal) * 100 else 0.0
                         totalEarned = total
                         pendingClearance = pending
                         completedCount = count
-                        chartData = days.reversed().map { it to (dayMap[it] ?: 0f) }
-                        categoryDistribution = catMap.toList().sortedByDescending { it.second }.take(4)
-                        topServices = serviceMap.toList().sortedByDescending { it.second }.take(3)
+                        val catList = mutableListOf<Pair<String, Float>>()
+                        for ((cName, cVal) in catMap) {
+                            catList.add(Pair(cName, cVal))
+                        }
+                        catList.sortByDescending { p -> p.second }
+                        categoryDistribution = catList.take(4)
+
+                        val svcList = mutableListOf<Pair<String, Double>>()
+                        for ((sName, sVal) in serviceMap) {
+                            svcList.add(Pair(sName, sVal))
+                        }
+                        svcList.sortByDescending { p -> p.second }
+                        topServices = svcList.take(3)
+                        
+                        val chartList = mutableListOf<Pair<String, Float>>()
+                        // Use labels as defined (Mon -> Sun for Week, others use their generated labels)
+                        // If it's a Week view, use the fixed ordering; otherwise use whatever was generated.
+                        val orderToUse = if (selectedPeriod == "Week") labels else labels.reversed()
+                        
+                        for (lab in orderToUse) {
+                            chartList.add(Pair(lab, trendMap[lab] ?: 0f))
+                        }
+                        chartData = chartList
                         
                         isLoading = false
                     }
@@ -246,13 +333,35 @@ fun EarningsScreen(onBack: () -> Unit) {
 
                 // 📈 Revenue Velocity Chart
                 item {
-                    Text(
-                        "REVENUE VELOCITY (7D)", 
-                        fontWeight = FontWeight.Black, 
-                        fontSize = 11.sp, 
-                        color = PremiumSilver.copy(alpha = 0.5f),
-                        letterSpacing = 2.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "REVENUE VELOCITY", 
+                            fontWeight = FontWeight.Black, 
+                            fontSize = 11.sp, 
+                            color = PremiumSilver.copy(alpha = 0.5f),
+                            letterSpacing = 2.sp
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Day", "Week", "Month", "Year").forEach { p ->
+                                val sel = selectedPeriod == p
+                                Surface(
+                                    onClick = { selectedPeriod = p },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (sel) PremiumSilver else Color.Transparent,
+                                    border = if (sel) null else BorderStroke(1.dp, PremiumSilver.copy(0.1f)),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    Box(Modifier.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                                        Text(p, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (sel) PremiumBlack else PremiumSilver)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(12.dp))
                     Card(
                         shape = RoundedCornerShape(24.dp),
@@ -260,7 +369,7 @@ fun EarningsScreen(onBack: () -> Unit) {
                         border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.1f))
                     ) {
                         Column(Modifier.padding(24.dp)) {
-                            SimpleBarChart(chartData)
+                            SimpleBarChart(data = chartData, todayLabel = todayLabel)
                         }
                     }
                 }
@@ -406,31 +515,99 @@ fun SmallStatCard(title: String, value: String, color: Color) {
     }
 }
 
-@Composable
-fun SimpleBarChart(data: List<Pair<String, Float>>) {
-    val maxVal = (data.maxOfOrNull { it.second } ?: 100f).coerceAtLeast(100f)
+ @Composable
+fun SimpleBarChart(data: List<Pair<String, Float>>, todayLabel: String = "") {
+    val maxVal = (data.maxOfOrNull { it.second } ?: 1f).coerceAtLeast(1f)
     
-    Row(
-        modifier = Modifier.fillMaxWidth().height(160.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        data.forEach { (label, value) ->
-            val barHeightRatio = (value / maxVal).coerceIn(0.05f, 1f)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+        // --- ── CHART AREA ───────────────────────────────────────────────────
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            // Horizontal Grid Lines
+            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                repeat(5) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(PremiumSilver.copy(alpha = 0.05f)))
+                }
+            }
+            
+            // Bars Area
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                data.forEach { (label, value) ->
+                    val ratio = (value / maxVal).coerceIn(0f, 1f)
+                    val isToday = label == todayLabel
+                    
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        if (value > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight(ratio.coerceAtLeast(0.01f))
+                                    .width(30.dp)
+                                    .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                PremiumSilver.copy(alpha = if (isToday) 0.6f else 0.4f),
+                                                PremiumSilver.copy(alpha = 0.05f)
+                                            )
+                                        )
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = PremiumSilver.copy(alpha = if (isToday) 0.3f else 0.1f),
+                                        shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                                    ),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                // Top Accent Line
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(2.dp)
+                                        .background(if (isToday) Color.White else PremiumSilver.copy(0.7f))
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // --- ── X-AXIS BASELINE ──────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(PremiumSilver.copy(alpha = 0.15f))
+        )
+        
+        // --- ── LABELS AREA ──────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, top = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            data.forEach { (label, _) ->
+                val isToday = label == todayLabel
                 Box(
-                    modifier = Modifier
-                        .width(32.dp)
-                        .fillMaxHeight(barHeightRatio)
-                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(PremiumSilver, PremiumSilver.copy(0.2f))
-                            )
-                        )
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(label, fontSize = 10.sp, color = PremiumSilver.copy(0.5f), fontWeight = FontWeight.Medium)
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        fontSize = 10.sp,
+                        color = if (isToday) Color.White else PremiumSilver.copy(0.4f),
+                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

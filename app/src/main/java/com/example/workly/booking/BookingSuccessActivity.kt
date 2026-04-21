@@ -6,9 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -56,7 +59,7 @@ class BookingSuccessActivity : ComponentActivity() {
                     providerId = providerId,
                     onGoHome = {
                         startActivity(Intent(this, HomeActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         })
                         finish()
                     }
@@ -89,7 +92,8 @@ fun BookingSuccessScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(bg),
+            .background(bg)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── Success Gradient Header ──
@@ -177,25 +181,25 @@ fun BookingSuccessScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Booking Details", fontWeight = FontWeight.Black, fontSize = 20.sp, color = onSurf)
-                        Surface(shape = RoundedCornerShape(12.dp), color = primary.copy(0.12f)) {
-                            Text("#${bookingId.take(8).uppercase()}", color = primary, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                        Text("Booking Details", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color.White)
+                        Surface(shape = RoundedCornerShape(12.dp), color = PremiumSilver.copy(0.15f)) {
+                            Text("#${bookingId.take(8).uppercase()}", color = PremiumSilver, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                     
-                    HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
 
-                    DetailItem(Icons.Default.Handyman, "Service", serviceName, primary, onSurf)
-                    DetailItem(Icons.Default.Person, "Professional", providerName, primary, onSurf)
-                    if (date.isNotEmpty()) DetailItem(Icons.Default.CalendarMonth, "Date", date, primary, onSurf)
-                    if (time.isNotEmpty()) DetailItem(Icons.Default.Schedule, "Time", time, primary, onSurf)
-                    if (address.isNotEmpty()) DetailItem(Icons.Default.LocationOn, "Address", address, primary, onSurf)
+                    DetailItem(Icons.Default.Handyman, "Service", serviceName, PremiumSilver, Color.White)
+                    DetailItem(Icons.Default.Person, "Professional", providerName, PremiumSilver, Color.White)
+                    if (date.isNotEmpty()) DetailItem(Icons.Default.CalendarMonth, "Date", date, PremiumSilver, Color.White)
+                    if (time.isNotEmpty()) DetailItem(Icons.Default.Schedule, "Time", time, PremiumSilver, Color.White)
+                    if (address.isNotEmpty()) DetailItem(Icons.Default.LocationOn, "Address", address, PremiumSilver, Color.White)
 
-                    HorizontalDivider(color = onSurf.copy(alpha = 0.05f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Amount Paid", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurf)
-                        Text("₹${price.toInt()}", color = primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                        Text("Amount Paid", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("₹${price.toInt()}", color = PremiumSilver, fontWeight = FontWeight.Black, fontSize = 22.sp)
                     }
                 }
             }
@@ -205,37 +209,42 @@ fun BookingSuccessScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // LEFT BUTTON -> Redirect to Home Screen
+                Button(
+                    onClick = onGoHome,
+                    modifier = Modifier.weight(1f).height(58.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumSilver, contentColor = Color.Black),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(Icons.Default.Home, null, modifier = Modifier.size(20.dp), tint = Color.Black)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Go Home", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.Black)
+                }
+
+                // RIGHT BUTTON -> Open Chat Screen
                 Button(
                     onClick = {
                         val chatIntent = android.content.Intent(context, com.example.workly.chat.ChatActivity::class.java).apply {
                             putExtra("RECEIVER_NAME", providerName)
                             putExtra("RECEIVER_ID", providerId)
+                            // Preserve state without reloading entire stack
+                            flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
                         }
                         context.startActivity(chatIntent)
                     },
                     modifier = Modifier.weight(1f).height(58.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = primary.copy(alpha = 0.1f),
-                        contentColor = primary
+                        containerColor = PremiumBlackSurface,
+                        contentColor = Color.White
                     ),
+                    border = BorderStroke(1.dp, PremiumSilver.copy(alpha = 0.3f)),
                     elevation = null
                 ) {
-                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Chat Pro", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-                
-                Button(
-                    onClick = onGoHome,
-                    modifier = Modifier.weight(1f).height(58.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = primary, contentColor = Color.White),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(Icons.Default.Home, null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go Home", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Chat Pro", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                 }
             }
             

@@ -56,6 +56,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
     var dataLoaded by remember { mutableStateOf(false) }
     var totalUnreadCount by remember { mutableIntStateOf(0) }
 
+    val startTime = remember { System.currentTimeMillis() }
     LaunchedEffect(Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
@@ -86,6 +87,7 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                     }
                 }
 
+            // ── User Data Listener ──
             db.collection("users").document(user.uid)
                 .addSnapshotListener { doc, error ->
                     if (doc != null && doc.exists()) {
@@ -100,28 +102,31 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                     dataLoaded = true
                 }
 
-            // 🔥 Real-time Notification Listener
+            // ── Live Notification Listener (For System Tray) ──
             db.collection("notifications")
                 .whereEqualTo("userId", user.uid)
                 .whereEqualTo("isRead", false)
+                .whereGreaterThan("createdAt", startTime)
                 .addSnapshotListener { snapshot, _ ->
                     snapshot?.documentChanges?.forEach { change ->
                         if (change.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
                             val doc = change.document
-                            val chatId = doc.getString("chatId")
-                            
-                            // Only show if not currently in this chat
-                            if (chatId != com.example.workly.chat.ChatSessionManager.activeChatId) {
-                                val senderName = doc.getString("senderName") ?: "New Message"
-                                val message = doc.getString("message") ?: ""
-                                val senderId = doc.getString("senderId") ?: ""
+                            val type = doc.getString("type") ?: ""
+                            if (type == "chat") {
+                                val sName = doc.getString("senderName") ?: "New Message"
+                                val msg = doc.getString("message") ?: ""
+                                val cId = doc.getString("chatId") ?: ""
+                                val sId = doc.getString("senderId") ?: ""
                                 
-                                com.example.workly.notifications.WorklyNotificationManager.showChatNotification(
-                                    context, senderName, message, chatId ?: "", senderId
-                                )
+                                // Only show notification if NOT currently in this chat
+                                if (com.example.workly.chat.ChatSessionManager.activeChatId != cId) {
+                                    com.example.workly.notifications.WorklyNotificationManager.showChatNotification(
+                                        context, sName, msg, cId, sId
+                                    )
+                                }
                                 
-                                // Mark as read in notifications collection so we don't show it again
-                                doc.reference.update("isRead", true)
+                                // Mark as seen in notifications collection so we don't show it again in this listener
+                                doc.reference.update("isRead", true) 
                             }
                         }
                     }
@@ -158,7 +163,9 @@ fun MainScreen(viewModel: HomeViewModel = viewModel()) {
                                     putExtra("SERVICE_ID", service.id)
                                     putExtra("SERVICE_DURATION", service.duration)
                                     putExtra("SERVICE_DESC", service.description)
-                                    putExtra("SERVICE_IMG", service.imageUrl)
+                                    putExtra("PROVIDER_NAME", service.providerName)
+                                    putExtra("PROVIDER_ID", service.providerId)
+                                    putExtra("SERVICE_IMG", service.imageUrl.ifEmpty { getPremiumImageForCategory(service.category) })
                                 }
                                 context.startActivity(intent)
                             }

@@ -37,7 +37,7 @@ class AddServiceRepository(private val context: Context) {
             "location" to location,
             "duration" to duration,
             "price" to price.toDouble(),
-            "imageUrl" to "", // empty for now (college project simplification)
+            "imgUrl" to "", // empty for now (college project simplification)
             "imagePath" to localImagePath,
             "syncStatus" to "synced",
             "providerId" to user.uid,

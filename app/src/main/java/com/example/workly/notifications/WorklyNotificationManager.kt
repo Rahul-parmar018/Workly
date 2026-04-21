@@ -60,12 +60,13 @@ object WorklyNotificationManager {
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle(senderName)
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(NotificationCompat.PRIORITY_MAX) // MAX for heads-up
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setVibrate(longArrayOf(1000, 1000, 1000))
+            .setOnlyAlertOnce(false)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
